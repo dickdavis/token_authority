@@ -1,14 +1,14 @@
 require_relative "lib/token_authority/version"
 
 Gem::Specification.new do |spec|
-  spec.name        = "token_authority"
-  spec.version     = TokenAuthority::VERSION
-  spec.authors     = [ "Dick Davis" ]
-  spec.email       = [ "webmaster@dick.codes" ]
-  spec.homepage    = "https://github.com/dickdavis/token-authority"
-  spec.summary     = "Rails engine allowing apps to act as their own OAuth 2.1 provider."
+  spec.name = "token_authority"
+  spec.version = TokenAuthority::VERSION
+  spec.authors = ["Dick Davis"]
+  spec.email = ["webmaster@dick.codes"]
+  spec.homepage = "https://github.com/dickdavis/token-authority"
+  spec.summary = "Rails engine allowing apps to act as their own OAuth 2.1 provider."
   spec.description = "Rails engine allowing apps to act as their own OAuth 2.1 provider."
-  spec.license     = "MIT"
+  spec.license = "MIT"
 
   spec.metadata["allowed_push_host"] = "https://rubygems.org"
   spec.metadata["homepage_uri"] = spec.homepage

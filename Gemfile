@@ -9,7 +9,11 @@ gem "sqlite3"
 
 gem "propshaft"
 
-group :development do
+group :development, :test do
   gem "debug"
+  gem "rspec-rails"
+end
+
+group :development do
   gem "standard"
 end

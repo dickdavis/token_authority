@@ -1,0 +1,24 @@
+<div>
+  <%= tag.p notice, class: "notice" if notice %>
+  <%= tag.p alert, class: "alert" if alert %>
+
+  <% if current_user %>
+    <p>Signed in as <%= current_user.email %></p>
+    <%= button_to "Sign out", sign_out_path, method: :delete %>
+  <% else %>
+    <%= form_with(url: sign_in_path, method: "post", data: { turbo: "false" }) do |form| %>
+      <div>
+        <%= form.label :email %>
+        <%= form.email_field :email %>
+      </div>
+      <div>
+        <%= form.label :password %>
+        <%= form.password_field :password %>
+      </div>
+      <div>
+        <%= form.submit t(".submit") %>
+      </div>
+    <% end %>
+    <p>Don't have an account? <%= link_to "Sign up", new_user_path %></p>
+  <% end %>
+</div>

@@ -1,0 +1,6 @@
+en:
+  users:
+    form:
+      submit: "Sign up"
+    create:
+      registration_success: "You have successfully registered an account."

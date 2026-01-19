@@ -1,8 +1,37 @@
-name: CI
+name: Ruby
 
 on:
-  pull_request:
   push:
     branches: [ main ]
+  pull_request:
 
 jobs:
+  standard:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        ruby-version: ['3.4.8']
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: ${{ matrix.ruby-version }}
+        bundler-cache: true
+    - name: Run standard
+      run: bundle exec standardrb --format github
+
+  rspec:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        ruby-version: ['4.0.0', '3.4.8', '3.3.10', '3.2.10']
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: ${{ matrix.ruby-version }}
+        bundler-cache: true
+    - name: Specs
+      run: bundle exec rspec

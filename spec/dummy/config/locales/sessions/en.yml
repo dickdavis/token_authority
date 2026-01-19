@@ -1,0 +1,7 @@
+en:
+  sessions:
+    new:
+      submit: "Login"
+    create:
+      login_failure: "Invalid email/password combination."
+      login_success: "You are now signed in."

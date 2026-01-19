@@ -10,6 +10,7 @@ gem "sqlite3"
 gem "propshaft"
 
 group :development, :test do
+  gem "bcrypt"
   gem "debug"
   gem "rspec-rails"
 end

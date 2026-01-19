@@ -1,0 +1,68 @@
+# frozen_string_literal: true
+
+class CreateTokenAuthorityTables < ActiveRecord::Migration[8.1]
+  def change
+    # OAuth Clients - registered applications that can request tokens
+    create_table :token_authority_clients do |t|
+      t.string :public_id, null: false # Public-facing identifier (UUID)
+      t.string :name, null: false
+      t.string :client_type, null: false, default: "confidential" # "confidential" or "public"
+      t.string :redirect_uri, null: false
+      t.bigint :access_token_duration, null: false, default: 300 # 5 minutes in seconds
+      t.bigint :refresh_token_duration, null: false, default: 1_209_600 # 14 days in seconds
+      t.string :client_secret_id # Used for HMAC-based secret generation (confidential clients only)
+
+      t.timestamps
+    end
+
+    add_index :token_authority_clients, :public_id, unique: true
+    add_index :token_authority_clients, :client_secret_id, unique: true
+
+    # Authorization Grants - authorization codes issued during OAuth flow
+    create_table :token_authority_authorization_grants do |t|
+      t.string :public_id, null: false # Public-facing identifier (UUID) - this is the authorization code
+      t.datetime :expires_at, null: false
+      t.boolean :redeemed, null: false, default: false
+      t.references :token_authority_client,
+        null: false,
+        foreign_key: {to_table: :token_authority_clients},
+        index: {name: "index_ta_auth_grants_on_client_id"}
+      t.bigint :user_id
+
+      t.timestamps
+    end
+
+    add_index :token_authority_authorization_grants, :public_id, unique: true
+    add_index :token_authority_authorization_grants, :user_id, name: "index_ta_auth_grants_on_user_id"
+    add_foreign_key :token_authority_authorization_grants, :users, column: :user_id
+
+    # PKCE Challenges - stores code_challenge for PKCE flow
+    create_table :token_authority_challenges do |t|
+      t.string :code_challenge
+      t.string :code_challenge_method, default: "S256"
+      t.string :redirect_uri
+      t.references :token_authority_authorization_grant,
+        null: false,
+        foreign_key: {to_table: :token_authority_authorization_grants},
+        index: {name: "index_ta_challenges_on_auth_grant_id"}
+
+      t.timestamps
+    end
+
+    # OAuth Sessions - tracks issued tokens and their status
+    create_table :token_authority_sessions do |t|
+      t.string :access_token_jti, null: false
+      t.string :refresh_token_jti, null: false
+      t.string :status, null: false, default: "created" # "created", "expired", "refreshed", "revoked"
+      t.references :token_authority_authorization_grant,
+        null: true,
+        foreign_key: {to_table: :token_authority_authorization_grants},
+        index: {name: "index_ta_sessions_on_auth_grant_id"}
+
+      t.timestamps
+    end
+
+    add_index :token_authority_sessions, :access_token_jti, unique: true
+    add_index :token_authority_sessions, :refresh_token_jti, unique: true
+  end
+end

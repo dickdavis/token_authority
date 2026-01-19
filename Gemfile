@@ -15,5 +15,6 @@ group :development, :test do
 end
 
 group :development do
+  gem "lefthook", require: false
   gem "standard"
 end

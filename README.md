@@ -19,6 +19,38 @@ And then execute:
 $ bundle
 ```
 
+Run the install generator to create the required database tables:
+
+```bash
+$ bin/rails generate token_authority:install
+```
+
+The generator accepts the following options:
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--user_table_name` | `users` | Name of your application's user table |
+| `--user_foreign_key_type` | `bigint` | Primary key type of your user table (`bigint`, `uuid`, `integer`) |
+
+For example, if your user table is named `accounts` with UUID primary keys:
+
+```bash
+$ bin/rails generate token_authority:install --user_table_name=accounts --user_foreign_key_type=uuid
+```
+
+Then run the migration:
+
+```bash
+$ bin/rails db:migrate
+```
+
+This creates the following tables:
+
+- `token_authority_clients` - OAuth client applications
+- `token_authority_authorization_grants` - Authorization codes issued during the OAuth flow
+- `token_authority_challenges` - PKCE code challenges
+- `token_authority_sessions` - Tracks issued tokens and their status
+
 ## Development
 
 Clone the repository and install dependencies:

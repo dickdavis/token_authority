@@ -30,13 +30,4 @@
     <% end %>
   </dl>
 
-  <h3>Token Exchange</h3>
-  <p>Send a POST request to <code>/oauth/token</code> with:</p>
-  <pre>
-grant_type=authorization_code
-code=<%= @code %>
-client_id=YOUR_CLIENT_ID
-client_secret=YOUR_CLIENT_SECRET
-code_verifier=YOUR_CODE_VERIFIER (if using PKCE)
-  </pre>
 <% end %>

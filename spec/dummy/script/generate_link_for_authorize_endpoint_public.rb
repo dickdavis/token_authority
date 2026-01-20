@@ -9,15 +9,23 @@ client_id = client.public_id
 redirect_uri = client.redirect_uri
 
 puts <<~TEXT
-  Save the code verifier for the token exchange request.
-
-  code_verifier: #{code_verifier}
-
   Open this URL in your browser and sign in to approve the authorization:
 
-  http://localhost:3000/oauth/authorize?client_id=#{client_id}&response_type=code&code_challenge=#{code_challenge}&code_challenge_method=S256&redirect_uri=#{redirect_uri}
+  http://localhost:3000/oauth/authorize?client_id=#{client_id}&redirect_uri=#{redirect_uri}&response_type=code&code_challenge=#{code_challenge}&code_challenge_method=S256
 
-  Client credentials:
-  client_id: #{client_id}
-  redirect_uri: #{redirect_uri}
+TEXT
+
+print "Enter the authorization code: "
+authorization_code = gets.chomp
+
+puts <<~TEXT
+
+  Exchange the authorization code for tokens:
+
+  curl -X POST http://localhost:3000/oauth/token \\
+    -d "grant_type=authorization_code" \\
+    -d "code=#{authorization_code}" \\
+    -d "client_id=#{client_id}" \\
+    -d "redirect_uri=#{redirect_uri}" \\
+    -d "code_verifier=#{code_verifier}"
 TEXT

@@ -242,6 +242,45 @@ TokenAuthority.configure do |config|
 end
 ```
 
+## Protecting API Endpoints
+
+TokenAuthority provides the `TokenAuthentication` concern for validating JWT access tokens in your API controllers. Include the concern and use `user_from_token` to authenticate requests:
+
+```ruby
+class Api::V1::ResourcesController < ActionController::API
+  include TokenAuthority::TokenAuthentication
+
+  def index
+    user = user_from_token
+    render json: user.resources
+  end
+end
+```
+
+The `user_from_token` method:
+1. Extracts the Bearer token from the `Authorization` header
+2. Decodes and validates the JWT access token
+3. Verifies the associated session is active
+4. Returns the authenticated user
+
+### Error Handling
+
+The concern automatically handles authentication errors and returns JSON responses:
+
+| Scenario | HTTP Status | Error Key |
+|----------|-------------|-----------|
+| Missing or blank `Authorization` header | 401 | `missing_auth_header` |
+| Malformed or invalid JWT | 401 | `invalid_token` |
+| Expired token or inactive session | 401 | `unauthorized_token` |
+
+Example error response:
+
+```json
+{
+  "error": "The access token is expired or unauthorized"
+}
+```
+
 ## Customizing Views
 
 The install generator copies TokenAuthority's views to your application at `app/views/token_authority/`. These views are intentionally unstyled so you can customize them to match your application's branding.

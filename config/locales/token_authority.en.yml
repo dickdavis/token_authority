@@ -177,3 +177,6 @@ en:
       mismatched_refresh_token: 'The provided refresh token JTI does not match the refresh token JTI of the target OAuthSession.'
       oauth_session_failure: 'Failed to create OAuthSession. Errors: %{errors}'
       revoked_session: 'Refresh token replay attack detected. Refreshed OAuthSession: %{refreshed_session_id}, Revoked OAuthSession: %{revoked_session_id}, Client ID: %{client_id}, User ID: %{user_id}'
+      missing_auth_header: 'Authorization header is missing or empty'
+      invalid_token: 'The access token is invalid or malformed'
+      unauthorized_token: 'The access token is expired or unauthorized'

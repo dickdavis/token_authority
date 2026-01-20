@@ -19,11 +19,16 @@ And then execute:
 $ bundle
 ```
 
-Run the install generator to create the required database tables:
+Run the install generator:
 
 ```bash
 $ bin/rails generate token_authority:install
 ```
+
+This creates:
+
+1. A migration for the required database tables
+2. An initializer at `config/initializers/token_authority.rb`
 
 The generator accepts the following options:
 
@@ -44,12 +49,34 @@ Then run the migration:
 $ bin/rails db:migrate
 ```
 
-This creates the following tables:
+### Database Tables
+
+The migration creates the following tables:
 
 - `token_authority_clients` - OAuth client applications
 - `token_authority_authorization_grants` - Authorization codes issued during the OAuth flow
 - `token_authority_challenges` - PKCE code challenges
 - `token_authority_sessions` - Tracks issued tokens and their status
+
+## Configuration
+
+The generated initializer configures TokenAuthority:
+
+```ruby
+TokenAuthority.configure do |config|
+  config.audience_url = ENV.fetch("TOKEN_AUTHORITY_AUDIENCE_URL", "http://localhost:3000/api/")
+  config.issuer_url = ENV.fetch("TOKEN_AUTHORITY_ISSUER_URL", "http://localhost:3000/")
+  config.secret_key = Rails.application.credentials.secret_key_base || Rails.application.secret_key_base
+  config.user_class = "User"
+end
+```
+
+| Option | Description |
+|--------|-------------|
+| `audience_url` | The audience URL for JWT tokens (used as the `aud` claim) |
+| `issuer_url` | The issuer URL for JWT tokens (used as the `iss` claim) |
+| `secret_key` | Secret key for signing JWTs and generating client secrets |
+| `user_class` | Class name of your user model (e.g., `"User"`, `"Account"`) |
 
 ## Development
 

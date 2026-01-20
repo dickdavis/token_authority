@@ -1,0 +1,31 @@
+# frozen_string_literal: true
+
+module TokenAuthority
+  ##
+  # Models a refresh token
+  class RefreshToken
+    include TokenAuthority::ClaimValidatable
+
+    def self.default(exp:)
+      new(
+        aud: TokenAuthority.config.audience_url,
+        exp:,
+        iat: Time.zone.now.to_i,
+        iss: TokenAuthority.config.issuer_url,
+        jti: SecureRandom.uuid
+      )
+    end
+
+    def self.from_token(token)
+      new(TokenAuthority::JsonWebToken.decode(token))
+    end
+
+    def to_h
+      {aud:, exp:, iat:, iss:, jti:}
+    end
+
+    def to_encoded_token
+      TokenAuthority::JsonWebToken.encode(to_h, exp)
+    end
+  end
+end

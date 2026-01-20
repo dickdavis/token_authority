@@ -1,0 +1,20 @@
+# frozen_string_literal: true
+
+TokenAuthority.configure do |config|
+  # The audience URL for JWT tokens. This is typically your API's base URL.
+  # Used as the "aud" (audience) claim in issued tokens.
+  config.audience_url = ENV.fetch("TOKEN_AUTHORITY_AUDIENCE_URL", "http://localhost:3000/api/")
+
+  # The issuer URL for JWT tokens. This is typically your application's base URL.
+  # Used as the "iss" (issuer) claim in issued tokens.
+  config.issuer_url = ENV.fetch("TOKEN_AUTHORITY_ISSUER_URL", "http://localhost:3000/")
+
+  # The secret key used for signing JWT tokens and generating client secrets.
+  # This should be a secure, random string. By default, it uses the application's
+  # secret_key_base from credentials or configuration.
+  config.secret_key = Rails.application.credentials.secret_key_base || Rails.application.secret_key_base
+
+  # The class name of your user model. This is used for the belongs_to association
+  # in TokenAuthority::AuthorizationGrant.
+  config.user_class = "User"
+end

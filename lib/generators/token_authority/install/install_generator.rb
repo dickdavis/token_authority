@@ -27,6 +27,10 @@ module TokenAuthority
         )
       end
 
+      def create_initializer_file
+        template "token_authority.rb", "config/initializers/token_authority.rb"
+      end
+
       private
 
       def user_table_name

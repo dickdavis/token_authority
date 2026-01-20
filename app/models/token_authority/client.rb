@@ -14,6 +14,7 @@ module TokenAuthority
     validates :redirect_uri, presence: true
     validate :redirect_uri_is_valid_uri
 
+    before_validation :set_default_durations, on: :create
     before_create :generate_client_secret_id
     before_create :generate_public_id
 
@@ -77,6 +78,11 @@ module TokenAuthority
 
     def generate_public_id
       self.public_id = SecureRandom.uuid
+    end
+
+    def set_default_durations
+      self.access_token_duration ||= TokenAuthority.config.default_access_token_duration
+      self.refresh_token_duration ||= TokenAuthority.config.default_refresh_token_duration
     end
 
     def generate_client_secret_for(secret_id)

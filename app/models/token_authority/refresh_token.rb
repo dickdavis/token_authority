@@ -8,10 +8,10 @@ module TokenAuthority
 
     def self.default(exp:)
       new(
-        aud: TokenAuthority.config.audience_url,
+        aud: TokenAuthority.config.rfc_9068_audience_url,
         exp:,
         iat: Time.zone.now.to_i,
-        iss: TokenAuthority.config.issuer_url,
+        iss: TokenAuthority.config.rfc_9068_issuer_url,
         jti: SecureRandom.uuid
       )
     end

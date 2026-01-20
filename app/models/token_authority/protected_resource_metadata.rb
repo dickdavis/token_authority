@@ -32,43 +32,43 @@ module TokenAuthority
     end
 
     def issuer
-      config.issuer_url.to_s.chomp("/")
+      config.rfc_9068_issuer_url.to_s.chomp("/")
     end
 
     def resource
-      config.resource_url.presence || issuer
+      config.rfc_9728_resource.presence || issuer
     end
 
     def authorization_servers
-      config.resource_authorization_servers.presence || [issuer]
+      config.rfc_9728_authorization_servers.presence || [issuer]
     end
 
     def scopes_supported
-      config.resource_scopes_supported.presence || config.scopes_supported || []
+      config.rfc_9728_scopes_supported.presence || config.rfc_8414_scopes_supported || []
     end
 
     def bearer_methods_supported
-      config.resource_bearer_methods_supported
+      config.rfc_9728_bearer_methods_supported
     end
 
     def jwks_uri
-      config.resource_jwks_uri
+      config.rfc_9728_jwks_uri
     end
 
     def resource_name
-      config.resource_name
+      config.rfc_9728_resource_name
     end
 
     def resource_documentation
-      config.resource_documentation
+      config.rfc_9728_resource_documentation
     end
 
     def resource_policy_uri
-      config.resource_policy_uri
+      config.rfc_9728_resource_policy_uri
     end
 
     def resource_tos_uri
-      config.resource_tos_uri
+      config.rfc_9728_resource_tos_uri
     end
   end
 end

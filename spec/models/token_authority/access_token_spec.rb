@@ -44,10 +44,10 @@ RSpec.describe TokenAuthority::AccessToken, type: :model do
       refresh_token = described_class.default(exp:, user_id:)
       aggregate_failures do
         expect(refresh_token).to be_a(described_class)
-        expect(refresh_token.aud).to eq(TokenAuthority.config.audience_url)
+        expect(refresh_token.aud).to eq(TokenAuthority.config.rfc_9068_audience_url)
         expect(refresh_token.exp).to eq(exp)
         expect(refresh_token.iat).to be_a(Integer)
-        expect(refresh_token.iss).to eq(TokenAuthority.config.issuer_url)
+        expect(refresh_token.iss).to eq(TokenAuthority.config.rfc_9068_issuer_url)
         expect(refresh_token.jti).to match(TokenAuthority::Session::VALID_UUID_REGEX)
         expect(refresh_token.user_id).to eq(user_id)
       end

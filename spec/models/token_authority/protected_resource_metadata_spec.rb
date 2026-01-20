@@ -8,22 +8,22 @@ RSpec.describe TokenAuthority::ProtectedResourceMetadata, type: :model do
   let(:mount_path) { "/oauth" }
   let!(:original_config) do
     {
-      issuer_url: TokenAuthority.config.issuer_url,
-      scopes_supported: TokenAuthority.config.scopes_supported,
-      resource_url: TokenAuthority.config.resource_url,
-      resource_scopes_supported: TokenAuthority.config.resource_scopes_supported,
-      resource_authorization_servers: TokenAuthority.config.resource_authorization_servers,
-      resource_bearer_methods_supported: TokenAuthority.config.resource_bearer_methods_supported,
-      resource_jwks_uri: TokenAuthority.config.resource_jwks_uri,
-      resource_name: TokenAuthority.config.resource_name,
-      resource_documentation: TokenAuthority.config.resource_documentation,
-      resource_policy_uri: TokenAuthority.config.resource_policy_uri,
-      resource_tos_uri: TokenAuthority.config.resource_tos_uri
+      rfc_9068_issuer_url: TokenAuthority.config.rfc_9068_issuer_url,
+      rfc_8414_scopes_supported: TokenAuthority.config.rfc_8414_scopes_supported,
+      rfc_9728_resource: TokenAuthority.config.rfc_9728_resource,
+      rfc_9728_scopes_supported: TokenAuthority.config.rfc_9728_scopes_supported,
+      rfc_9728_authorization_servers: TokenAuthority.config.rfc_9728_authorization_servers,
+      rfc_9728_bearer_methods_supported: TokenAuthority.config.rfc_9728_bearer_methods_supported,
+      rfc_9728_jwks_uri: TokenAuthority.config.rfc_9728_jwks_uri,
+      rfc_9728_resource_name: TokenAuthority.config.rfc_9728_resource_name,
+      rfc_9728_resource_documentation: TokenAuthority.config.rfc_9728_resource_documentation,
+      rfc_9728_resource_policy_uri: TokenAuthority.config.rfc_9728_resource_policy_uri,
+      rfc_9728_resource_tos_uri: TokenAuthority.config.rfc_9728_resource_tos_uri
     }
   end
 
   before do
-    TokenAuthority.config.issuer_url = "https://example.com/"
+    TokenAuthority.config.rfc_9068_issuer_url = "https://example.com/"
   end
 
   after do
@@ -42,28 +42,28 @@ RSpec.describe TokenAuthority::ProtectedResourceMetadata, type: :model do
     end
 
     it "strips trailing slash from resource" do
-      TokenAuthority.config.issuer_url = "https://example.com/"
+      TokenAuthority.config.rfc_9068_issuer_url = "https://example.com/"
       expect(model.to_h[:resource]).to eq("https://example.com")
     end
 
     it "handles issuer without trailing slash" do
-      TokenAuthority.config.issuer_url = "https://example.com"
+      TokenAuthority.config.rfc_9068_issuer_url = "https://example.com"
       expect(model.to_h[:resource]).to eq("https://example.com")
     end
 
-    context "with custom resource_url configured" do
+    context "with custom rfc_9728_resource configured" do
       before do
-        TokenAuthority.config.resource_url = "https://api.example.com/"
+        TokenAuthority.config.rfc_9728_resource = "https://api.example.com/"
       end
 
-      it "uses the configured resource_url" do
+      it "uses the configured rfc_9728_resource" do
         expect(model.to_h[:resource]).to eq("https://api.example.com/")
       end
     end
 
-    context "with custom resource_authorization_servers configured" do
+    context "with custom rfc_9728_authorization_servers configured" do
       before do
-        TokenAuthority.config.resource_authorization_servers = [
+        TokenAuthority.config.rfc_9728_authorization_servers = [
           "https://auth1.example.com",
           "https://auth2.example.com"
         ]
@@ -77,9 +77,9 @@ RSpec.describe TokenAuthority::ProtectedResourceMetadata, type: :model do
       end
     end
 
-    context "when resource_scopes_supported is configured" do
+    context "when rfc_9728_scopes_supported is configured" do
       before do
-        TokenAuthority.config.resource_scopes_supported = ["api:read", "api:write"]
+        TokenAuthority.config.rfc_9728_scopes_supported = ["api:read", "api:write"]
       end
 
       it "includes scopes_supported in the response" do
@@ -87,21 +87,21 @@ RSpec.describe TokenAuthority::ProtectedResourceMetadata, type: :model do
       end
     end
 
-    context "when resource_scopes_supported is not configured but scopes_supported is" do
+    context "when rfc_9728_scopes_supported is not configured but rfc_8414_scopes_supported is" do
       before do
-        TokenAuthority.config.resource_scopes_supported = nil
-        TokenAuthority.config.scopes_supported = ["read", "write"]
+        TokenAuthority.config.rfc_9728_scopes_supported = nil
+        TokenAuthority.config.rfc_8414_scopes_supported = ["read", "write"]
       end
 
-      it "falls back to scopes_supported" do
+      it "falls back to rfc_8414_scopes_supported" do
         expect(model.to_h[:scopes_supported]).to eq(["read", "write"])
       end
     end
 
     context "when no scopes are configured" do
       before do
-        TokenAuthority.config.resource_scopes_supported = nil
-        TokenAuthority.config.scopes_supported = []
+        TokenAuthority.config.rfc_9728_scopes_supported = nil
+        TokenAuthority.config.rfc_8414_scopes_supported = []
       end
 
       it "omits scopes_supported from the response" do
@@ -111,7 +111,7 @@ RSpec.describe TokenAuthority::ProtectedResourceMetadata, type: :model do
 
     context "when bearer_methods_supported is configured" do
       before do
-        TokenAuthority.config.resource_bearer_methods_supported = ["header", "body"]
+        TokenAuthority.config.rfc_9728_bearer_methods_supported = ["header", "body"]
       end
 
       it "includes bearer_methods_supported in the response" do
@@ -121,7 +121,7 @@ RSpec.describe TokenAuthority::ProtectedResourceMetadata, type: :model do
 
     context "when bearer_methods_supported is not configured" do
       before do
-        TokenAuthority.config.resource_bearer_methods_supported = nil
+        TokenAuthority.config.rfc_9728_bearer_methods_supported = nil
       end
 
       it "omits bearer_methods_supported from the response" do
@@ -131,7 +131,7 @@ RSpec.describe TokenAuthority::ProtectedResourceMetadata, type: :model do
 
     context "when jwks_uri is configured" do
       before do
-        TokenAuthority.config.resource_jwks_uri = "https://example.com/.well-known/jwks.json"
+        TokenAuthority.config.rfc_9728_jwks_uri = "https://example.com/.well-known/jwks.json"
       end
 
       it "includes jwks_uri in the response" do
@@ -141,7 +141,7 @@ RSpec.describe TokenAuthority::ProtectedResourceMetadata, type: :model do
 
     context "when jwks_uri is not configured" do
       before do
-        TokenAuthority.config.resource_jwks_uri = nil
+        TokenAuthority.config.rfc_9728_jwks_uri = nil
       end
 
       it "omits jwks_uri from the response" do
@@ -151,7 +151,7 @@ RSpec.describe TokenAuthority::ProtectedResourceMetadata, type: :model do
 
     context "when resource_name is configured" do
       before do
-        TokenAuthority.config.resource_name = "Example API"
+        TokenAuthority.config.rfc_9728_resource_name = "Example API"
       end
 
       it "includes resource_name in the response" do
@@ -161,7 +161,7 @@ RSpec.describe TokenAuthority::ProtectedResourceMetadata, type: :model do
 
     context "when resource_name is not configured" do
       before do
-        TokenAuthority.config.resource_name = nil
+        TokenAuthority.config.rfc_9728_resource_name = nil
       end
 
       it "omits resource_name from the response" do
@@ -171,7 +171,7 @@ RSpec.describe TokenAuthority::ProtectedResourceMetadata, type: :model do
 
     context "when resource_documentation is configured" do
       before do
-        TokenAuthority.config.resource_documentation = "https://example.com/docs/api"
+        TokenAuthority.config.rfc_9728_resource_documentation = "https://example.com/docs/api"
       end
 
       it "includes resource_documentation in the response" do
@@ -181,7 +181,7 @@ RSpec.describe TokenAuthority::ProtectedResourceMetadata, type: :model do
 
     context "when resource_documentation is not configured" do
       before do
-        TokenAuthority.config.resource_documentation = nil
+        TokenAuthority.config.rfc_9728_resource_documentation = nil
       end
 
       it "omits resource_documentation from the response" do
@@ -191,7 +191,7 @@ RSpec.describe TokenAuthority::ProtectedResourceMetadata, type: :model do
 
     context "when resource_policy_uri is configured" do
       before do
-        TokenAuthority.config.resource_policy_uri = "https://example.com/privacy"
+        TokenAuthority.config.rfc_9728_resource_policy_uri = "https://example.com/privacy"
       end
 
       it "includes resource_policy_uri in the response" do
@@ -201,7 +201,7 @@ RSpec.describe TokenAuthority::ProtectedResourceMetadata, type: :model do
 
     context "when resource_policy_uri is not configured" do
       before do
-        TokenAuthority.config.resource_policy_uri = nil
+        TokenAuthority.config.rfc_9728_resource_policy_uri = nil
       end
 
       it "omits resource_policy_uri from the response" do
@@ -211,7 +211,7 @@ RSpec.describe TokenAuthority::ProtectedResourceMetadata, type: :model do
 
     context "when resource_tos_uri is configured" do
       before do
-        TokenAuthority.config.resource_tos_uri = "https://example.com/tos"
+        TokenAuthority.config.rfc_9728_resource_tos_uri = "https://example.com/tos"
       end
 
       it "includes resource_tos_uri in the response" do
@@ -221,7 +221,7 @@ RSpec.describe TokenAuthority::ProtectedResourceMetadata, type: :model do
 
     context "when resource_tos_uri is not configured" do
       before do
-        TokenAuthority.config.resource_tos_uri = nil
+        TokenAuthority.config.rfc_9728_resource_tos_uri = nil
       end
 
       it "omits resource_tos_uri from the response" do

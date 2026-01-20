@@ -134,52 +134,7 @@ Run the linter:
 bundle exec standardrb
 ```
 
-### Manual Testing with the Dummy App
-
-The `spec/dummy` directory contains a Rails application for testing the engine. The dummy app includes a `/callback` endpoint that displays authorization codes returned from the OAuth flow, and helper scripts that guide you through the complete OAuth flow.
-
-1. Start the dummy app server:
-
-```bash
-cd spec/dummy
-bin/rails db:migrate
-bin/rails server
-```
-
-2. Create a test user and client in the Rails console:
-
-```bash
-bin/rails console
-```
-
-```ruby
-# Create a test user
-User.create!(email: "test@example.com", password: "password")
-
-# Create a test client
-TokenAuthority::Client.create!(
-  name: "Test Client",
-  client_type: "confidential",
-  redirect_uri: "http://localhost:3000/callback"
-)
-```
-
-3. Run one of the helper scripts to test the OAuth flow:
-
-```bash
-bin/rails runner script/generate_link_for_authorize_endpoint.rb
-```
-
-The script will display an authorization URL. Open it in your browser, sign in with the test user, and approve the authorization. After being redirected to the callback page, copy the authorization code and enter it into the script prompt. The script will output a curl command to exchange the code for tokens.
-
-Available scripts:
-
-| Script | Description |
-|--------|-------------|
-| `generate_link_for_authorize_endpoint.rb` | Confidential client with PKCE |
-| `generate_link_for_authorize_endpoint_confidential.rb` | Confidential client without PKCE |
-| `generate_link_for_authorize_endpoint_confidential_pkce.rb` | Confidential client with PKCE and redirect_uri |
-| `generate_link_for_authorize_endpoint_public.rb` | Public client with PKCE |
+For manual testing with the dummy app, see [Manual Testing](https://github.com/dickdavis/token_authority/wiki/Manual-Testing).
 
 ## Releasing
 

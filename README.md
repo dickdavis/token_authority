@@ -237,6 +237,75 @@ Run the linter:
 bundle exec standardrb
 ```
 
+### Manual Testing with the Dummy App
+
+The `spec/dummy` directory contains a Rails application for testing the engine. The dummy app includes a `/callback` endpoint that displays authorization codes returned from the OAuth flow.
+
+1. Start the dummy app server:
+
+```bash
+cd spec/dummy
+bin/rails db:migrate
+bin/rails server
+```
+
+2. Create a test user and client in the Rails console:
+
+```bash
+bin/rails console
+```
+
+```ruby
+# Create a test user
+User.create!(email: "test@example.com", password: "password")
+
+# Create a test client
+client = TokenAuthority::Client.create!(
+  name: "Test Client",
+  client_type: "confidential",
+  redirect_uri: "http://localhost:3000/callback",
+  access_token_duration: 3600,
+  refresh_token_duration: 86400
+)
+
+# Note the client credentials (the secret is derived, not stored)
+puts "client_id: #{client.public_id}"
+puts "client_secret: #{client.client_secret}"
+```
+
+Save these credentials as you'll need them for testing the token exchange.
+
+3. Generate an authorization URL using one of the helper scripts:
+
+```bash
+bin/rails runner script/generate_link_for_authorize_endpoint.rb
+```
+
+Available scripts:
+
+| Script | Description |
+|--------|-------------|
+| `generate_link_for_authorize_endpoint.rb` | Confidential client with PKCE |
+| `generate_link_for_authorize_endpoint_confidential.rb` | Confidential client without PKCE |
+| `generate_link_for_authorize_endpoint_confidential_pkce.rb` | Confidential client with PKCE and redirect_uri |
+| `generate_link_for_authorize_endpoint_public.rb` | Public client with PKCE |
+
+4. Open the authorization URL in your browser, sign in with the test user, and approve the authorization. You'll be redirected to the callback page which displays the authorization code.
+
+5. Exchange the authorization code for tokens:
+
+```bash
+curl -X POST http://localhost:3000/oauth/token \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "grant_type=authorization_code" \
+  -d "code=AUTHORIZATION_CODE" \
+  -d "client_id=YOUR_CLIENT_ID" \
+  -d "client_secret=YOUR_CLIENT_SECRET" \
+  -d "code_verifier=YOUR_CODE_VERIFIER"
+```
+
+Replace the placeholders with the values from the previous steps. The `code_verifier` is only required if you used a PKCE script in step 3.
+
 ## Releasing
 
 1. Update the version number in `lib/token_authority/version.rb`

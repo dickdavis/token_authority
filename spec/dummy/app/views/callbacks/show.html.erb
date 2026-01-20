@@ -1,0 +1,42 @@
+<h1>OAuth Callback</h1>
+
+<% if @error.present? %>
+  <h2>Error</h2>
+  <dl>
+    <dt>Error</dt>
+    <dd><code><%= @error %></code></dd>
+
+    <% if @error_description.present? %>
+      <dt>Description</dt>
+      <dd><%= @error_description %></dd>
+    <% end %>
+
+    <% if @state.present? %>
+      <dt>State</dt>
+      <dd><code><%= @state %></code></dd>
+    <% end %>
+  </dl>
+<% else %>
+  <h2>Authorization Code Received</h2>
+  <p>Use this authorization code to exchange for tokens at the token endpoint.</p>
+
+  <dl>
+    <dt>Authorization Code</dt>
+    <dd><code><%= @code %></code></dd>
+
+    <% if @state.present? %>
+      <dt>State</dt>
+      <dd><code><%= @state %></code></dd>
+    <% end %>
+  </dl>
+
+  <h3>Token Exchange</h3>
+  <p>Send a POST request to <code>/oauth/token</code> with:</p>
+  <pre>
+grant_type=authorization_code
+code=<%= @code %>
+client_id=YOUR_CLIENT_ID
+client_secret=YOUR_CLIENT_SECRET
+code_verifier=YOUR_CODE_VERIFIER (if using PKCE)
+  </pre>
+<% end %>

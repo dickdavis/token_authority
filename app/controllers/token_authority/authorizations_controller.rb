@@ -28,7 +28,8 @@ module TokenAuthority
       )
 
       if authorization_request.valid?
-        redirect_to new_authorization_grant_path(state: authorization_request.to_internal_state_token)
+        session[:token_authority_internal_state] = authorization_request.to_internal_state_token
+        redirect_to new_authorization_grant_path
       elsif authorization_request.errors.where(:redirect_uri).any?
         head :bad_request and return
       else

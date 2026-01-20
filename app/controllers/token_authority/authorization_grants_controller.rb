@@ -19,6 +19,7 @@ module TokenAuthority
     before_action :set_token_authority_client
 
     rescue_from TokenAuthority::InvalidRedirectUrlError do |error|
+      session.delete(:token_authority_internal_state)
       render "token_authority/client_error",
         layout: TokenAuthority.config.error_page_layout,
         status: :bad_request,
@@ -26,9 +27,8 @@ module TokenAuthority
     end
 
     def new
-      state = @authorization_request.to_internal_state_token
       client_name = @token_authority_client.name
-      render :new, locals: {state:, client_name:}
+      render :new, locals: {client_name:}
     end
 
     def create
@@ -55,7 +55,17 @@ module TokenAuthority
     private
 
     def set_authorization_request
-      @authorization_request = TokenAuthority::AuthorizationRequest.from_internal_state_token(params[:state])
+      internal_state = session[:token_authority_internal_state]
+
+      if internal_state.blank?
+        render_state_error("Authorization state not found")
+        return
+      end
+
+      @authorization_request = TokenAuthority::AuthorizationRequest.from_internal_state_token(internal_state)
+    rescue JWT::DecodeError, JWT::ExpiredSignature
+      clear_internal_state
+      render_state_error("Invalid or expired authorization state")
     end
 
     def set_token_authority_client
@@ -63,8 +73,20 @@ module TokenAuthority
     end
 
     def redirect_to_client(params_for_redirect:)
+      clear_internal_state
       url = @token_authority_client.url_for_redirect(params: params_for_redirect.compact)
       redirect_to url, allow_other_host: true
+    end
+
+    def clear_internal_state
+      session.delete(:token_authority_internal_state)
+    end
+
+    def render_state_error(message)
+      render "token_authority/client_error",
+        layout: TokenAuthority.config.error_page_layout,
+        status: :bad_request,
+        locals: {error_class: "InvalidStateError", error_message: message}
     end
   end
 end

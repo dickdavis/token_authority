@@ -12,10 +12,6 @@ This project aims to implement the OAuth standards specified in the [MCP Authori
 | ✅ | [OAuth 2.0 Protected Resource Metadata (RFC 9728)](https://datatracker.ietf.org/doc/html/rfc9728) |
 | ❌ | [OAuth Client ID Metadata Documents](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-client-id-metadata-document-00) |
 
-## Usage
-
-TokenAuthority is simple to install and configure. It slots alongside your existing authentication solution easily.
-
 ## Installation
 
 Add this line to your application's Gemfile:
@@ -24,52 +20,34 @@ Add this line to your application's Gemfile:
 gem "token_authority"
 ```
 
-And then execute:
+Run bundle and the install generator:
+
 ```bash
 $ bundle
-```
-
-Run the install generator:
-
-```bash
 $ bin/rails generate token_authority:install
-```
-
-This creates:
-
-1. A migration for the required database tables
-2. An initializer at `config/initializers/token_authority.rb`
-3. Customizable views at `app/views/token_authority/`
-
-The generator accepts the following options:
-
-| Option | Default | Description |
-|--------|---------|-------------|
-| `--user_table_name` | `users` | Name of your application's user table |
-| `--user_foreign_key_type` | `bigint` | Primary key type of your user table (`bigint`, `uuid`, `integer`) |
-
-For example, if your user table is named `accounts` with UUID primary keys:
-
-```bash
-$ bin/rails generate token_authority:install --user_table_name=accounts --user_foreign_key_type=uuid
-```
-
-Then run the migration:
-
-```bash
 $ bin/rails db:migrate
 ```
 
-### Database Tables
+See the [Installation Guide](https://github.com/dickdavis/token-authority/wiki/Installation-Guide) for generator options and custom configurations.
 
-The migration creates the following tables:
+## Configuration
 
-- `token_authority_clients` - OAuth client applications
-- `token_authority_authorization_grants` - Authorization codes issued during the OAuth flow
-- `token_authority_challenges` - PKCE code challenges
-- `token_authority_sessions` - Tracks issued tokens and their status
+Configure TokenAuthority in the generated initializer:
 
-### Mount the Engine
+```ruby
+# config/initializers/token_authority.rb
+TokenAuthority.configure do |config|
+  config.secret_key = Rails.application.credentials.secret_key_base
+  config.audience_url = "https://example.com/api/"
+  config.issuer_url = "https://example.com/"
+  config.authenticatable_controller = "ApplicationController"
+  config.user_class = "User"
+end
+```
+
+See the [Configuration Reference](https://github.com/dickdavis/token-authority/wiki/Configuration-Reference) for all available options.
+
+## Mount the Engine
 
 Add the engine routes to your `config/routes.rb`:
 
@@ -92,159 +70,20 @@ Rails.application.routes.draw do
 end
 ```
 
-## Configuration
+## User Consent
 
-The generated initializer configures TokenAuthority:
+Before issuing authorization codes, TokenAuthority displays a consent screen where users can approve or deny access to OAuth clients. The consent views are fully customizable and the layout is configurable—see [Customizing Views](https://github.com/dickdavis/token-authority/wiki/Customizing-Views) for details.
 
-```ruby
-TokenAuthority.configure do |config|
-  # General
-  config.secret_key = Rails.application.credentials.secret_key_base
+The consent screen requires user authentication. Your `authenticatable_controller` must provide two methods:
 
-  # Token
-  config.audience_url = ENV.fetch("TOKEN_AUTHORITY_AUDIENCE_URL", "http://localhost:3000/api/")
-  config.issuer_url = ENV.fetch("TOKEN_AUTHORITY_ISSUER_URL", "http://localhost:3000/")
-  # config.default_access_token_duration = 300 # 5 minutes
-  # config.default_refresh_token_duration = 1_209_600 # 14 days
+- `authenticate_user!` - Ensures the user is logged in (redirects to login if not)
+- `current_user` - Returns the authenticated user
 
-  # User Authentication
-  config.authenticatable_controller = "ApplicationController"
-  config.user_class = "User"
-
-  # UI/Layout
-  config.consent_page_layout = "application"
-  config.error_page_layout = "application"
-
-  # Server Metadata (RFC 8414)
-  # config.scopes_supported = ["read", "write"]
-  # config.service_documentation = "https://example.com/docs/oauth"
-end
-```
-
-### General
-
-| Option | Description |
-|--------|-------------|
-| `secret_key` | Secret key for signing JWTs and generating client secrets |
-
-### Token
-
-| Option | Description |
-|--------|-------------|
-| `audience_url` | The audience URL for JWT tokens (used as the `aud` claim) |
-| `issuer_url` | The issuer URL for JWT tokens (used as the `iss` claim) |
-| `default_access_token_duration` | Default duration for access tokens in seconds (default: 300 / 5 minutes) |
-| `default_refresh_token_duration` | Default duration for refresh tokens in seconds (default: 1,209,600 / 14 days) |
-
-### User Authentication
-
-| Option | Description |
-|--------|-------------|
-| `authenticatable_controller` | Controller for user-facing endpoints (see [User Authentication](#user-authentication-1)) |
-| `user_class` | Class name of your user model (e.g., `"User"`, `"Account"`) |
-
-### UI/Layout
-
-| Option | Description |
-|--------|-------------|
-| `consent_page_layout` | Layout for the OAuth consent screen (default: `"application"`) |
-| `error_page_layout` | Layout for error pages like invalid redirect URL (default: `"application"`) |
-
-### Server Metadata (RFC 8414)
-
-| Option | Description |
-|--------|-------------|
-| `scopes_supported` | Array of OAuth scopes your server supports (optional) |
-| `service_documentation` | URL to developer documentation (optional) |
-
-### Protected Resource Metadata (RFC 9728)
-
-| Option | Description |
-|--------|-------------|
-| `resource_url` | The protected resource's identifier URL (defaults to `issuer_url`) |
-| `resource_scopes_supported` | Scopes accepted by the resource (falls back to `scopes_supported`) |
-| `resource_authorization_servers` | List of authorization server issuer URLs (defaults to local AS) |
-| `resource_bearer_methods_supported` | Token presentation methods (e.g., `["header"]`) |
-| `resource_jwks_uri` | URL to the resource's JSON Web Key Set |
-| `resource_name` | Human-readable name for the resource |
-| `resource_documentation` | URL to developer documentation |
-| `resource_policy_uri` | URL to the resource's privacy policy |
-| `resource_tos_uri` | URL to the resource's terms of service |
-
-## User Authentication
-
-TokenAuthority requires user authentication for the consent screen where users approve or deny OAuth client access. The `authenticatable_controller` configuration specifies which controller provides the authentication methods.
-
-The authenticatable controller must implement two methods:
-
-| Method | Purpose |
-|--------|---------|
-| `authenticate_user!` | A before_action that ensures the user is logged in (redirects to login if not) |
-| `current_user` | Returns the currently authenticated user |
-
-### With Devise
-
-If you use [Devise](https://github.com/heartcombo/devise), these methods are already available on `ApplicationController`. No additional configuration is needed:
-
-```ruby
-TokenAuthority.configure do |config|
-  config.authenticatable_controller = "ApplicationController"
-end
-```
-
-### With Other Authentication Systems
-
-For other authentication systems, implement `authenticate_user!` and `current_user` on your authenticatable controller. You can delegate to your existing authentication methods:
-
-```ruby
-class ApplicationController < ActionController::Base
-  def authenticate_user!
-    redirect_to login_path, alert: "Please log in" unless current_user
-  end
-
-  def current_user
-    @current_user ||= User.find_by(id: session[:user_id])
-  end
-end
-```
-
-Or if your authentication library uses different method names, delegate to them:
-
-```ruby
-class ApplicationController < ActionController::Base
-  def authenticate_user!
-    authenticate_account!  # Your authentication method
-  end
-
-  def current_user
-    current_account  # Your current user method
-  end
-end
-```
-
-Alternatively, create a dedicated controller with these methods and configure TokenAuthority to use it:
-
-```ruby
-# app/controllers/oauth_base_controller.rb
-class OAuthBaseController < ApplicationController
-  def authenticate_user!
-    # Your authentication logic
-  end
-
-  def current_user
-    # Return the current user
-  end
-end
-
-# config/initializers/token_authority.rb
-TokenAuthority.configure do |config|
-  config.authenticatable_controller = "OAuthBaseController"
-end
-```
+If you use [Devise](https://github.com/heartcombo/devise), these methods are already available on `ApplicationController`. For other authentication systems, see [User Authentication](https://github.com/dickdavis/token-authority/wiki/User-Authentication).
 
 ## Protecting API Endpoints
 
-TokenAuthority provides the `TokenAuthentication` concern for validating JWT access tokens in your API controllers. Include the concern and use `user_from_token` to authenticate requests:
+Use the `TokenAuthentication` concern to validate access tokens:
 
 ```ruby
 class Api::V1::ResourcesController < ActionController::API
@@ -257,60 +96,15 @@ class Api::V1::ResourcesController < ActionController::API
 end
 ```
 
-The `user_from_token` method:
-1. Extracts the Bearer token from the `Authorization` header
-2. Decodes and validates the JWT access token
-3. Verifies the associated session is active
-4. Returns the authenticated user
+See [Protecting API Endpoints](https://github.com/dickdavis/token-authority/wiki/Protecting-API-Endpoints) for error handling details.
 
-### Error Handling
+## Learn More
 
-The concern automatically handles authentication errors and returns JSON responses:
-
-| Scenario | HTTP Status | Error Key |
-|----------|-------------|-----------|
-| Missing or blank `Authorization` header | 401 | `missing_auth_header` |
-| Malformed or invalid JWT | 401 | `invalid_token` |
-| Expired token or inactive session | 401 | `unauthorized_token` |
-
-Example error response:
-
-```json
-{
-  "error": "The access token is expired or unauthorized"
-}
-```
-
-## Customizing Views
-
-The install generator copies TokenAuthority's views to your application at `app/views/token_authority/`. These views are intentionally unstyled so you can customize them to match your application's branding.
-
-### Copied Views
-
-| View | Purpose |
-|------|---------|
-| `authorization_grants/new.html.erb` | OAuth consent screen where users approve or deny client access |
-| `client_error.html.erb` | Error page shown when the OAuth client's redirect URL is invalid |
-
-### Styling the Views
-
-Edit the copied views to add your CSS classes, layout structure, and branding:
-
-```erb
-<%# app/views/token_authority/authorization_grants/new.html.erb %>
-<div class="oauth-consent">
-  <h1>Authorize <%= client_name %></h1>
-  <p><%= t("token_authority.authorization_grants.new.lede") %></p>
-
-  <%= form_with url: token_authority.authorization_grants_path, method: :post do |form| %>
-    <%= form.hidden_field :state, value: state %>
-    <%= form.submit t("token_authority.authorization_grants.new.approve"), name: "approve", value: "true", class: "btn btn-primary" %>
-    <%= form.submit t("token_authority.authorization_grants.new.reject"), name: "approve", value: "false", class: "btn btn-secondary" %>
-  <% end %>
-</div>
-```
-
-The views use Rails I18n for text content. You can customize the text by overriding the keys in your locale files. See `config/locales/token_authority.en.yml` in the gem for available keys.
+- [Installation Guide](https://github.com/dickdavis/token-authority/wiki/Installation-Guide) - Generator options, custom table names
+- [Configuration Reference](https://github.com/dickdavis/token-authority/wiki/Configuration-Reference) - All configuration options
+- [User Authentication](https://github.com/dickdavis/token-authority/wiki/User-Authentication) - Custom authentication setups
+- [Protecting API Endpoints](https://github.com/dickdavis/token-authority/wiki/Protecting-API-Endpoints) - Error handling, validation details
+- [Customizing Views](https://github.com/dickdavis/token-authority/wiki/Customizing-Views) - Styling consent screens
 
 ## Development
 

@@ -9,10 +9,10 @@ module TokenAuthority
     before_action :authenticate_client
 
     rescue_from TokenAuthority::InvalidRedirectUrlError do |error|
-      render "token_authority/client_error", status: :bad_request, locals: {
-        error_class: error.class,
-        error_message: error.message
-      }
+      render "token_authority/client_error",
+        layout: TokenAuthority.config.error_page_layout,
+        status: :bad_request,
+        locals: {error_class: error.class, error_message: error.message}
     end
 
     def authorize

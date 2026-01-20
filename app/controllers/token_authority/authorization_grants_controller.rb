@@ -12,15 +12,17 @@ module TokenAuthority
   # For Devise users, these methods are already available on ApplicationController.
   # For other authentication systems, implement these methods on your parent controller.
   class AuthorizationGrantsController < TokenAuthority.config.parent_controller.constantize
+    layout -> { TokenAuthority.config.authorization_grant_layout }
+
     before_action :authenticate_user!
     before_action :set_authorization_request
     before_action :set_token_authority_client
 
     rescue_from TokenAuthority::InvalidRedirectUrlError do |error|
-      render "token_authority/client_error", status: :bad_request, locals: {
-        error_class: error.class,
-        error_message: error.message
-      }
+      render "token_authority/client_error",
+        layout: TokenAuthority.config.error_page_layout,
+        status: :bad_request,
+        locals: {error_class: error.class, error_message: error.message}
     end
 
     def new

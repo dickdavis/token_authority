@@ -20,6 +20,12 @@ TokenAuthority.configure do |config|
   # 2. Set this to a controller that provides these methods
   config.parent_controller = "ApplicationController"
 
+  # The layout used for the OAuth consent screen (authorization grants).
+  config.authorization_grant_layout = "application"
+
+  # The layout used for error pages (e.g., invalid redirect URL).
+  config.error_page_layout = "application"
+
   # The secret key used for signing JWT tokens and generating client secrets.
   # This should be a secure, random string. By default, it uses the application's
   # secret_key_base from credentials or configuration.

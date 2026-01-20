@@ -80,6 +80,8 @@ TokenAuthority.configure do |config|
   config.audience_url = ENV.fetch("TOKEN_AUTHORITY_AUDIENCE_URL", "http://localhost:3000/api/")
   config.issuer_url = ENV.fetch("TOKEN_AUTHORITY_ISSUER_URL", "http://localhost:3000/")
   config.parent_controller = "ApplicationController"
+  config.authorization_grant_layout = "application"
+  config.error_page_layout = "application"
   config.secret_key = Rails.application.credentials.secret_key_base
   config.user_class = "User"
 end
@@ -88,6 +90,8 @@ end
 | Option | Description |
 |--------|-------------|
 | `audience_url` | The audience URL for JWT tokens (used as the `aud` claim) |
+| `authorization_grant_layout` | Layout for the OAuth consent screen (default: `"application"`) |
+| `error_page_layout` | Layout for error pages like invalid redirect URL (default: `"application"`) |
 | `issuer_url` | The issuer URL for JWT tokens (used as the `iss` claim) |
 | `parent_controller` | Parent controller for user-facing endpoints (see [User Authentication](#user-authentication)) |
 | `secret_key` | Secret key for signing JWTs and generating client secrets |

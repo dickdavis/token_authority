@@ -75,11 +75,23 @@ Add the engine routes to your `config/routes.rb`:
 
 ```ruby
 Rails.application.routes.draw do
+  token_authority_metadata_routes  # Adds /.well-known/oauth-authorization-server
   mount TokenAuthority::Engine => "/oauth"
 end
 ```
 
-This exposes the OAuth endpoints at `/oauth/authorize`, `/oauth/token`, etc.
+This exposes:
+- RFC 8414 metadata at `/.well-known/oauth-authorization-server`
+- OAuth endpoints at `/oauth/authorize`, `/oauth/token`, etc.
+
+If you mount the engine at a different path, pass the `mount_path` option:
+
+```ruby
+Rails.application.routes.draw do
+  token_authority_metadata_routes(mount_path: "/auth")
+  mount TokenAuthority::Engine => "/auth"
+end
+```
 
 ## Configuration
 

@@ -13,7 +13,11 @@ This project aims to implement the OAuth standards specified in the [MCP Authori
 | ✅ | [OAuth 2.0 Protected Resource Metadata (RFC 9728)](https://datatracker.ietf.org/doc/html/rfc9728) |
 | ❌ | [OAuth Client ID Metadata Documents](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-client-id-metadata-document-00) |
 
-## Installation
+## Usage
+
+TokenAuthority is simple to install and configure.
+
+### Installation
 
 Add this line to your application's Gemfile:
 
@@ -21,7 +25,7 @@ Add this line to your application's Gemfile:
 gem "token_authority"
 ```
 
-Run bundle and the install generator:
+Install the gem, generate the required set-up files, and run the migration:
 
 ```bash
 $ bundle
@@ -31,7 +35,7 @@ $ bin/rails db:migrate
 
 See the [Installation Guide](https://github.com/dickdavis/token_authority/wiki/Installation-Guide) for generator options and custom configurations.
 
-## Configuration
+### Configuration
 
 Configure TokenAuthority in the generated initializer. The following represents a minimal configuration:
 
@@ -53,7 +57,7 @@ end
 
 See the [Configuration Reference](https://github.com/dickdavis/token_authority/wiki/Configuration-Reference) for all available options.
 
-## Mount the Engine
+### Mount the Engine
 
 Add the engine routes to your `config/routes.rb`:
 
@@ -76,7 +80,7 @@ Rails.application.routes.draw do
 end
 ```
 
-## User Consent
+### User Consent
 
 Before issuing authorization codes, TokenAuthority displays a consent screen where users can approve or deny access to OAuth clients. The consent views are fully customizable and the layout is configurable—see [Customizing Views](https://github.com/dickdavis/token_authority/wiki/Customizing-Views) for details.
 
@@ -87,7 +91,7 @@ The consent screen requires user authentication. Your `authenticatable_controlle
 
 If you use [Devise](https://github.com/heartcombo/devise), these methods are already available on `ApplicationController`. For other authentication systems, see [User Authentication](https://github.com/dickdavis/token_authority/wiki/User-Authentication).
 
-## Protecting API Endpoints
+### Protecting API Endpoints
 
 Use the `TokenAuthentication` concern to validate access tokens:
 
@@ -96,7 +100,7 @@ class Api::V1::ResourcesController < ActionController::API
   include TokenAuthority::TokenAuthentication
 
   def index
-    user = user_from_token
+    user = user_from_token # Retrieve the user associated with the access token
     render json: user.resources
   end
 end
@@ -104,7 +108,7 @@ end
 
 See [Protecting API Endpoints](https://github.com/dickdavis/token_authority/wiki/Protecting-API-Endpoints) for error handling details.
 
-## Learn More
+### Learn More
 
 - [Installation Guide](https://github.com/dickdavis/token_authority/wiki/Installation-Guide) - Generator options, custom table names
 - [Configuration Reference](https://github.com/dickdavis/token_authority/wiki/Configuration-Reference) - All configuration options
@@ -142,7 +146,7 @@ bundle exec standardrb
 
 For manual testing with the dummy app, see [Manual Testing](https://github.com/dickdavis/token_authority/wiki/Manual-Testing).
 
-## Releasing
+### Releasing
 
 1. Update the version number in `lib/token_authority/version.rb`
 2. Commit the version change: `git commit -am "Bump version to X.Y.Z"`

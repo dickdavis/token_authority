@@ -28,7 +28,7 @@ $ bin/rails generate token_authority:install
 $ bin/rails db:migrate
 ```
 
-See the [Installation Guide](https://github.com/dickdavis/token-authority/wiki/Installation-Guide) for generator options and custom configurations.
+See the [Installation Guide](https://github.com/dickdavis/token_authority/wiki/Installation-Guide) for generator options and custom configurations.
 
 ## Configuration
 
@@ -45,7 +45,7 @@ TokenAuthority.configure do |config|
 end
 ```
 
-See the [Configuration Reference](https://github.com/dickdavis/token-authority/wiki/Configuration-Reference) for all available options.
+See the [Configuration Reference](https://github.com/dickdavis/token_authority/wiki/Configuration-Reference) for all available options.
 
 ## Mount the Engine
 
@@ -72,14 +72,14 @@ end
 
 ## User Consent
 
-Before issuing authorization codes, TokenAuthority displays a consent screen where users can approve or deny access to OAuth clients. The consent views are fully customizable and the layout is configurable—see [Customizing Views](https://github.com/dickdavis/token-authority/wiki/Customizing-Views) for details.
+Before issuing authorization codes, TokenAuthority displays a consent screen where users can approve or deny access to OAuth clients. The consent views are fully customizable and the layout is configurable—see [Customizing Views](https://github.com/dickdavis/token_authority/wiki/Customizing-Views) for details.
 
 The consent screen requires user authentication. Your `authenticatable_controller` must provide two methods:
 
 - `authenticate_user!` - Ensures the user is logged in (redirects to login if not)
 - `current_user` - Returns the authenticated user
 
-If you use [Devise](https://github.com/heartcombo/devise), these methods are already available on `ApplicationController`. For other authentication systems, see [User Authentication](https://github.com/dickdavis/token-authority/wiki/User-Authentication).
+If you use [Devise](https://github.com/heartcombo/devise), these methods are already available on `ApplicationController`. For other authentication systems, see [User Authentication](https://github.com/dickdavis/token_authority/wiki/User-Authentication).
 
 ## Protecting API Endpoints
 
@@ -96,15 +96,15 @@ class Api::V1::ResourcesController < ActionController::API
 end
 ```
 
-See [Protecting API Endpoints](https://github.com/dickdavis/token-authority/wiki/Protecting-API-Endpoints) for error handling details.
+See [Protecting API Endpoints](https://github.com/dickdavis/token_authority/wiki/Protecting-API-Endpoints) for error handling details.
 
 ## Learn More
 
-- [Installation Guide](https://github.com/dickdavis/token-authority/wiki/Installation-Guide) - Generator options, custom table names
-- [Configuration Reference](https://github.com/dickdavis/token-authority/wiki/Configuration-Reference) - All configuration options
-- [User Authentication](https://github.com/dickdavis/token-authority/wiki/User-Authentication) - Custom authentication setups
-- [Protecting API Endpoints](https://github.com/dickdavis/token-authority/wiki/Protecting-API-Endpoints) - Error handling, validation details
-- [Customizing Views](https://github.com/dickdavis/token-authority/wiki/Customizing-Views) - Styling consent screens
+- [Installation Guide](https://github.com/dickdavis/token_authority/wiki/Installation-Guide) - Generator options, custom table names
+- [Configuration Reference](https://github.com/dickdavis/token_authority/wiki/Configuration-Reference) - All configuration options
+- [User Authentication](https://github.com/dickdavis/token_authority/wiki/User-Authentication) - Custom authentication setups
+- [Protecting API Endpoints](https://github.com/dickdavis/token_authority/wiki/Protecting-API-Endpoints) - Error handling, validation details
+- [Customizing Views](https://github.com/dickdavis/token_authority/wiki/Customizing-Views) - Styling consent screens
 
 ## Development
 

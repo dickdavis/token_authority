@@ -4,15 +4,15 @@ module TokenAuthority
   ##
   # Controller for granting authorization to clients.
   #
-  # Inherits from the controller configured via TokenAuthority.config.parent_controller.
-  # The parent controller must implement:
+  # Inherits from the controller configured via TokenAuthority.config.authenticatable_controller.
+  # The authenticatable controller must implement:
   # - authenticate_user! (before_action that ensures user is logged in)
   # - current_user (returns the currently authenticated user)
   #
   # For Devise users, these methods are already available on ApplicationController.
-  # For other authentication systems, implement these methods on your parent controller.
-  class AuthorizationGrantsController < TokenAuthority.config.parent_controller.constantize
-    layout -> { TokenAuthority.config.authorization_grant_layout }
+  # For other authentication systems, implement these methods on your authenticatable controller.
+  class AuthorizationGrantsController < TokenAuthority.config.authenticatable_controller.constantize
+    layout -> { TokenAuthority.config.consent_page_layout }
 
     before_action :authenticate_user!
     before_action :set_authorization_request

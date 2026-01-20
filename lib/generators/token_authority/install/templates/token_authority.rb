@@ -11,24 +11,24 @@ TokenAuthority.configure do |config|
   config.secret_key = Rails.application.credentials.secret_key_base || Rails.application.secret_key_base
 
   # ==========================================================================
-  # Token
+  # JWT Access Tokens (RFC 9068)
   # ==========================================================================
 
   # The audience URL for JWT tokens. This is typically your API's base URL.
   # Used as the "aud" (audience) claim in issued tokens.
-  config.audience_url = ENV.fetch("TOKEN_AUTHORITY_AUDIENCE_URL", "http://localhost:3000/api/")
+  config.rfc_9068_audience_url = ENV.fetch("TOKEN_AUTHORITY_AUDIENCE_URL", "http://localhost:3000/api/")
 
   # The issuer URL for JWT tokens. This is typically your application's base URL.
   # Used as the "iss" (issuer) claim in issued tokens.
-  config.issuer_url = ENV.fetch("TOKEN_AUTHORITY_ISSUER_URL", "http://localhost:3000/")
+  config.rfc_9068_issuer_url = ENV.fetch("TOKEN_AUTHORITY_ISSUER_URL", "http://localhost:3000/")
 
   # Default duration for access tokens in seconds (5 minutes).
   # This value is used when creating new clients without explicit durations.
-  # config.default_access_token_duration = 300
+  # config.rfc_9068_default_access_token_duration = 300
 
   # Default duration for refresh tokens in seconds (14 days).
   # This value is used when creating new clients without explicit durations.
-  # config.default_refresh_token_duration = 1_209_600
+  # config.rfc_9068_default_refresh_token_duration = 1_209_600
 
   # ==========================================================================
   # User Authentication
@@ -65,43 +65,43 @@ TokenAuthority.configure do |config|
 
   # OAuth scopes supported by your authorization server.
   # Included in the /.well-known/oauth-authorization-server response.
-  # config.scopes_supported = ["read", "write"]
+  # config.rfc_8414_scopes_supported = ["read", "write"]
 
   # URL to developer documentation for your OAuth server.
   # Included in the /.well-known/oauth-authorization-server response.
-  # config.service_documentation = "https://example.com/docs/oauth"
+  # config.rfc_8414_service_documentation = "https://example.com/docs/oauth"
 
   # ==========================================================================
   # Protected Resource Metadata (RFC 9728)
   # ==========================================================================
 
   # The protected resource's identifier URL.
-  # Defaults to issuer_url if not set.
-  # config.resource_url = "https://api.example.com/"
+  # Defaults to rfc_9068_issuer_url if not set.
+  # config.rfc_9728_resource = "https://api.example.com/"
 
   # Scopes accepted by the protected resource.
-  # Falls back to scopes_supported if not set.
-  # config.resource_scopes_supported = ["api:read", "api:write"]
+  # Falls back to rfc_8414_scopes_supported if not set.
+  # config.rfc_9728_scopes_supported = ["api:read", "api:write"]
 
   # List of authorization server issuer URLs that can issue tokens for this resource.
-  # Defaults to the local authorization server (issuer_url) if not set.
-  # config.resource_authorization_servers = ["https://auth.example.com"]
+  # Defaults to the local authorization server (rfc_9068_issuer_url) if not set.
+  # config.rfc_9728_authorization_servers = ["https://auth.example.com"]
 
   # Token presentation methods supported by the resource (e.g., "header", "body", "query").
-  # config.resource_bearer_methods_supported = ["header"]
+  # config.rfc_9728_bearer_methods_supported = ["header"]
 
   # URL to the resource's JSON Web Key Set (JWKS).
-  # config.resource_jwks_uri = "https://api.example.com/.well-known/jwks.json"
+  # config.rfc_9728_jwks_uri = "https://api.example.com/.well-known/jwks.json"
 
   # Human-readable name for the protected resource.
-  # config.resource_name = "Example API"
+  # config.rfc_9728_resource_name = "Example API"
 
   # URL to developer documentation for the protected resource.
-  # config.resource_documentation = "https://example.com/docs/api"
+  # config.rfc_9728_resource_documentation = "https://example.com/docs/api"
 
   # URL to the resource's privacy policy.
-  # config.resource_policy_uri = "https://example.com/privacy"
+  # config.rfc_9728_resource_policy_uri = "https://example.com/privacy"
 
   # URL to the resource's terms of service.
-  # config.resource_tos_uri = "https://example.com/tos"
+  # config.rfc_9728_resource_tos_uri = "https://example.com/tos"
 end

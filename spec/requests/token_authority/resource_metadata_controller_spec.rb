@@ -8,19 +8,19 @@ RSpec.describe TokenAuthority::ResourceMetadataController, type: :request do
 
     let!(:original_config) do
       {
-        issuer_url: TokenAuthority.config.issuer_url,
-        scopes_supported: TokenAuthority.config.scopes_supported,
-        resource_url: TokenAuthority.config.resource_url,
-        resource_scopes_supported: TokenAuthority.config.resource_scopes_supported,
-        resource_authorization_servers: TokenAuthority.config.resource_authorization_servers,
-        resource_bearer_methods_supported: TokenAuthority.config.resource_bearer_methods_supported,
-        resource_name: TokenAuthority.config.resource_name,
-        resource_documentation: TokenAuthority.config.resource_documentation
+        rfc_9068_issuer_url: TokenAuthority.config.rfc_9068_issuer_url,
+        rfc_8414_scopes_supported: TokenAuthority.config.rfc_8414_scopes_supported,
+        rfc_9728_resource: TokenAuthority.config.rfc_9728_resource,
+        rfc_9728_scopes_supported: TokenAuthority.config.rfc_9728_scopes_supported,
+        rfc_9728_authorization_servers: TokenAuthority.config.rfc_9728_authorization_servers,
+        rfc_9728_bearer_methods_supported: TokenAuthority.config.rfc_9728_bearer_methods_supported,
+        rfc_9728_resource_name: TokenAuthority.config.rfc_9728_resource_name,
+        rfc_9728_resource_documentation: TokenAuthority.config.rfc_9728_resource_documentation
       }
     end
 
     before do
-      TokenAuthority.config.issuer_url = "http://localhost:3000/"
+      TokenAuthority.config.rfc_9068_issuer_url = "http://localhost:3000/"
     end
 
     after do
@@ -51,7 +51,7 @@ RSpec.describe TokenAuthority::ResourceMetadataController, type: :request do
 
     context "when scopes_supported is configured" do
       before do
-        TokenAuthority.config.resource_scopes_supported = ["api:read", "api:write"]
+        TokenAuthority.config.rfc_9728_scopes_supported = ["api:read", "api:write"]
       end
 
       it "includes scopes_supported in the response" do
@@ -62,7 +62,7 @@ RSpec.describe TokenAuthority::ResourceMetadataController, type: :request do
 
     context "when resource_name is configured" do
       before do
-        TokenAuthority.config.resource_name = "Example API"
+        TokenAuthority.config.rfc_9728_resource_name = "Example API"
       end
 
       it "includes resource_name in the response" do
@@ -73,7 +73,7 @@ RSpec.describe TokenAuthority::ResourceMetadataController, type: :request do
 
     context "when resource_documentation is configured" do
       before do
-        TokenAuthority.config.resource_documentation = "https://example.com/docs"
+        TokenAuthority.config.rfc_9728_resource_documentation = "https://example.com/docs"
       end
 
       it "includes resource_documentation in the response" do

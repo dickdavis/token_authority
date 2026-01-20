@@ -29,15 +29,15 @@ module TokenAuthority
     private
 
     def issuer
-      TokenAuthority.config.issuer_url.to_s.chomp("/")
+      TokenAuthority.config.rfc_9068_issuer_url.to_s.chomp("/")
     end
 
     def scopes_supported
-      TokenAuthority.config.scopes_supported
+      TokenAuthority.config.rfc_8414_scopes_supported
     end
 
     def service_documentation
-      TokenAuthority.config.service_documentation
+      TokenAuthority.config.rfc_8414_service_documentation
     end
   end
 end

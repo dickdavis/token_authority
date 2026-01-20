@@ -18,7 +18,7 @@ module TokenAuthority
 
       validates :jti, presence: true
 
-      validates :aud, presence: true, format: {with: /\A#{TokenAuthority.config.audience_url}*/}
+      validates :aud, presence: true, format: {with: /\A#{TokenAuthority.config.rfc_9068_audience_url}*/}
 
       validates :exp, presence: true
       validate do
@@ -27,7 +27,7 @@ module TokenAuthority
         errors.add(:exp, :expired) if Time.zone.now > Time.zone.at(exp)
       end
 
-      validates :iss, presence: true, format: {with: /\A#{TokenAuthority.config.issuer_url}\z/}
+      validates :iss, presence: true, format: {with: /\A#{TokenAuthority.config.rfc_9068_issuer_url}\z/}
 
       after_validation :expire_token_authority_session, if: :errors_for_expirable_claims?
       after_validation :revoke_token_authority_session, if: :errors_for_revocable_claims?

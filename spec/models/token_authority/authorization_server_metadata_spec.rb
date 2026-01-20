@@ -6,14 +6,14 @@ RSpec.describe TokenAuthority::AuthorizationServerMetadata, type: :model do
   subject(:model) { described_class.new(mount_path: mount_path) }
 
   let(:mount_path) { "/oauth" }
-  let!(:original_issuer_url) { TokenAuthority.config.issuer_url }
+  let!(:original_issuer_url) { TokenAuthority.config.rfc_9068_issuer_url }
 
   before do
-    TokenAuthority.config.issuer_url = "https://example.com/"
+    TokenAuthority.config.rfc_9068_issuer_url = "https://example.com/"
   end
 
   after do
-    TokenAuthority.config.issuer_url = original_issuer_url
+    TokenAuthority.config.rfc_9068_issuer_url = original_issuer_url
   end
 
   describe "#to_h" do
@@ -33,12 +33,12 @@ RSpec.describe TokenAuthority::AuthorizationServerMetadata, type: :model do
     end
 
     it "strips trailing slash from issuer" do
-      TokenAuthority.config.issuer_url = "https://example.com/"
+      TokenAuthority.config.rfc_9068_issuer_url = "https://example.com/"
       expect(model.to_h[:issuer]).to eq("https://example.com")
     end
 
     it "handles issuer without trailing slash" do
-      TokenAuthority.config.issuer_url = "https://example.com"
+      TokenAuthority.config.rfc_9068_issuer_url = "https://example.com"
       expect(model.to_h[:issuer]).to eq("https://example.com")
     end
 
@@ -58,11 +58,11 @@ RSpec.describe TokenAuthority::AuthorizationServerMetadata, type: :model do
 
     context "when scopes_supported is configured" do
       before do
-        TokenAuthority.config.scopes_supported = ["read", "write"]
+        TokenAuthority.config.rfc_8414_scopes_supported = ["read", "write"]
       end
 
       after do
-        TokenAuthority.config.scopes_supported = []
+        TokenAuthority.config.rfc_8414_scopes_supported = []
       end
 
       it "includes scopes_supported in the response" do
@@ -72,7 +72,7 @@ RSpec.describe TokenAuthority::AuthorizationServerMetadata, type: :model do
 
     context "when scopes_supported is empty" do
       before do
-        TokenAuthority.config.scopes_supported = []
+        TokenAuthority.config.rfc_8414_scopes_supported = []
       end
 
       it "omits scopes_supported from the response" do
@@ -82,11 +82,11 @@ RSpec.describe TokenAuthority::AuthorizationServerMetadata, type: :model do
 
     context "when service_documentation is configured" do
       before do
-        TokenAuthority.config.service_documentation = "https://example.com/docs/oauth"
+        TokenAuthority.config.rfc_8414_service_documentation = "https://example.com/docs/oauth"
       end
 
       after do
-        TokenAuthority.config.service_documentation = nil
+        TokenAuthority.config.rfc_8414_service_documentation = nil
       end
 
       it "includes service_documentation in the response" do
@@ -96,7 +96,7 @@ RSpec.describe TokenAuthority::AuthorizationServerMetadata, type: :model do
 
     context "when service_documentation is nil" do
       before do
-        TokenAuthority.config.service_documentation = nil
+        TokenAuthority.config.rfc_8414_service_documentation = nil
       end
 
       it "omits service_documentation from the response" do

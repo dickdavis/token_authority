@@ -81,8 +81,8 @@ module TokenAuthority
     end
 
     def set_default_durations
-      self.access_token_duration ||= TokenAuthority.config.default_access_token_duration
-      self.refresh_token_duration ||= TokenAuthority.config.default_refresh_token_duration
+      self.access_token_duration ||= TokenAuthority.config.rfc_9068_default_access_token_duration
+      self.refresh_token_duration ||= TokenAuthority.config.rfc_9068_default_refresh_token_duration
     end
 
     def generate_client_secret_for(secret_id)

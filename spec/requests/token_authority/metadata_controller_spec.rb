@@ -6,14 +6,14 @@ RSpec.describe TokenAuthority::MetadataController, type: :request do
   describe "GET /.well-known/oauth-authorization-server" do
     subject(:call_endpoint) { get "/.well-known/oauth-authorization-server" }
 
-    let!(:original_issuer_url) { TokenAuthority.config.issuer_url }
+    let!(:original_issuer_url) { TokenAuthority.config.rfc_9068_issuer_url }
 
     before do
-      TokenAuthority.config.issuer_url = "http://localhost:3000/"
+      TokenAuthority.config.rfc_9068_issuer_url = "http://localhost:3000/"
     end
 
     after do
-      TokenAuthority.config.issuer_url = original_issuer_url
+      TokenAuthority.config.rfc_9068_issuer_url = original_issuer_url
     end
 
     it "responds with HTTP status ok" do
@@ -44,11 +44,11 @@ RSpec.describe TokenAuthority::MetadataController, type: :request do
 
     context "when scopes_supported is configured" do
       before do
-        TokenAuthority.config.scopes_supported = ["read", "write"]
+        TokenAuthority.config.rfc_8414_scopes_supported = ["read", "write"]
       end
 
       after do
-        TokenAuthority.config.scopes_supported = []
+        TokenAuthority.config.rfc_8414_scopes_supported = []
       end
 
       it "includes scopes_supported in the response" do
@@ -59,11 +59,11 @@ RSpec.describe TokenAuthority::MetadataController, type: :request do
 
     context "when service_documentation is configured" do
       before do
-        TokenAuthority.config.service_documentation = "https://example.com/docs"
+        TokenAuthority.config.rfc_8414_service_documentation = "https://example.com/docs"
       end
 
       after do
-        TokenAuthority.config.service_documentation = nil
+        TokenAuthority.config.rfc_8414_service_documentation = nil
       end
 
       it "includes service_documentation in the response" do

@@ -3,13 +3,32 @@
 require "rails_helper"
 
 RSpec.describe TokenAuthority::AuthorizationGrantsController, type: :request do
+  # Helper to set up session state via the authorize endpoint
+  def start_authorization_flow(client, state: "foobar")
+    params = {
+      client_id: client.public_id,
+      state:,
+      code_challenge: "code_challenge",
+      code_challenge_method: "S256",
+      redirect_uri: client.redirect_uri,
+      response_type: "code"
+    }
+
+    # Confidential clients require HTTP Basic auth
+    if client.confidential_client_type?
+      auth = ActionController::HttpAuthentication::Basic.encode_credentials(client.public_id, client.client_secret)
+      get token_authority.authorize_path, params:, headers: {"HTTP_AUTHORIZATION" => auth}
+    else
+      get token_authority.authorize_path, params:
+    end
+  end
+
   describe "GET /new" do
-    subject(:call_endpoint) { get token_authority.new_authorization_grant_path, params: {state:} }
+    subject(:call_endpoint) do
+      get token_authority.new_authorization_grant_path
+    end
 
     let_it_be(:user) { create(:user) }
-
-    let(:state) { authorization_request.to_internal_state_token }
-    let(:authorization_request) { build(:token_authority_authorization_request, token_authority_client:, client_id: token_authority_client.id) }
 
     before do
       sign_in(user)
@@ -17,6 +36,8 @@ RSpec.describe TokenAuthority::AuthorizationGrantsController, type: :request do
 
     context "when the client type is public" do
       let_it_be(:token_authority_client) { create(:token_authority_client, client_type: "public") }
+
+      before { start_authorization_flow(token_authority_client) }
 
       it "renders a successful response" do
         call_endpoint
@@ -27,9 +48,44 @@ RSpec.describe TokenAuthority::AuthorizationGrantsController, type: :request do
     context "when the client type is confidential" do
       let_it_be(:token_authority_client) { create(:token_authority_client, client_type: "confidential") }
 
+      before { start_authorization_flow(token_authority_client) }
+
       it "renders a successful response" do
         call_endpoint
         expect(response).to have_http_status(:ok)
+      end
+    end
+
+    context "when session state is missing" do
+      let_it_be(:token_authority_client) { create(:token_authority_client, client_type: "public") }
+
+      # Don't call start_authorization_flow, so session state is never set
+
+      it "returns bad request with error message" do
+        call_endpoint
+        aggregate_failures do
+          expect(response).to have_http_status(:bad_request)
+          expect(response.body).to include("Authorization state not found")
+        end
+      end
+    end
+
+    context "when session state is invalid" do
+      let_it_be(:token_authority_client) { create(:token_authority_client, client_type: "public") }
+
+      before do
+        start_authorization_flow(token_authority_client)
+        # Stub to simulate invalid/expired JWT
+        allow(TokenAuthority::AuthorizationRequest).to receive(:from_internal_state_token)
+          .and_raise(JWT::DecodeError)
+      end
+
+      it "returns bad request with error message" do
+        call_endpoint
+        aggregate_failures do
+          expect(response).to have_http_status(:bad_request)
+          expect(response.body).to include("Invalid or expired authorization state")
+        end
       end
     end
   end
@@ -39,8 +95,13 @@ RSpec.describe TokenAuthority::AuthorizationGrantsController, type: :request do
       it "creates an authorization grant and redirects to client redirection_uri with state and code params" do
         aggregate_failures do
           expect { call_endpoint }.to change(TokenAuthority::AuthorizationGrant, :count)
-          expect(response).to redirect_to("http://localhost:3000/?code=#{TokenAuthority::AuthorizationGrant.last.public_id}&state=#{authorization_request.state}")
+          expect(response).to redirect_to("http://localhost:3000/?code=#{TokenAuthority::AuthorizationGrant.last.public_id}&state=#{client_state}")
         end
+      end
+
+      it "clears the session state after redirect" do
+        call_endpoint
+        expect(session[:token_authority_internal_state]).to be_nil
       end
     end
 
@@ -51,7 +112,12 @@ RSpec.describe TokenAuthority::AuthorizationGrantsController, type: :request do
 
       it "redirects to client redirection_uri with state and error params" do
         call_endpoint
-        expect(response).to redirect_to("http://localhost:3000/?error=invalid_request&state=#{authorization_request.state}")
+        expect(response).to redirect_to("http://localhost:3000/?error=invalid_request&state=#{client_state}")
+      end
+
+      it "clears the session state after redirect" do
+        call_endpoint
+        expect(session[:token_authority_internal_state]).to be_nil
       end
     end
   end
@@ -61,7 +127,12 @@ RSpec.describe TokenAuthority::AuthorizationGrantsController, type: :request do
 
     it "redirects to client redirection_uri with state and error params" do
       call_endpoint
-      expect(response).to redirect_to("http://localhost:3000/?error=access_denied&state=#{authorization_request.state}")
+      expect(response).to redirect_to("http://localhost:3000/?error=access_denied&state=#{client_state}")
+    end
+
+    it "clears the session state after redirect" do
+      call_endpoint
+      expect(session[:token_authority_internal_state]).to be_nil
     end
   end
 
@@ -74,19 +145,24 @@ RSpec.describe TokenAuthority::AuthorizationGrantsController, type: :request do
       call_endpoint
       expect(response).to have_http_status(:bad_request)
     end
+
+    it "clears the session state on error" do
+      call_endpoint
+      expect(session[:token_authority_internal_state]).to be_nil
+    end
   end
 
   describe "POST /create" do
-    subject(:call_endpoint) { post token_authority.authorization_grants_path, params: {state:, approve:} }
+    subject(:call_endpoint) { post token_authority.authorization_grants_path, params: {approve:} }
 
     let_it_be(:user) { create(:user) }
 
     let(:approve) { "true" }
-    let(:state) { authorization_request.to_internal_state_token }
-    let(:authorization_request) { build(:token_authority_authorization_request, token_authority_client:, client_id: token_authority_client.id) }
+    let(:client_state) { "foobar" }
 
     before do
       sign_in(user)
+      start_authorization_flow(token_authority_client, state: client_state)
     end
 
     context "when the client type is public" do

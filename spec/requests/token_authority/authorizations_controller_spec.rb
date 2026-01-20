@@ -16,12 +16,11 @@ RSpec.describe TokenAuthority::AuthorizationsController, type: :request do
   end
 
   shared_examples "redirects successful authorize request" do
-    it "redirects the user to the authorization grant page with the state param" do
+    it "redirects the user to the authorization grant page and stores state in session" do
       call_endpoint
-      redirect_params = Rack::Utils.parse_query(URI.parse(response.location).query)
       aggregate_failures do
-        expect(response.location).to match(token_authority.new_authorization_grant_path)
-        expect(redirect_params["state"]).to match(/\A[a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+\z/)
+        expect(response).to redirect_to(token_authority.new_authorization_grant_path)
+        expect(session[:token_authority_internal_state]).to match(/\A[a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+\z/)
       end
     end
   end

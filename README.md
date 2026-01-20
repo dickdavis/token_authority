@@ -89,8 +89,8 @@ The generated initializer configures TokenAuthority:
 TokenAuthority.configure do |config|
   config.audience_url = ENV.fetch("TOKEN_AUTHORITY_AUDIENCE_URL", "http://localhost:3000/api/")
   config.issuer_url = ENV.fetch("TOKEN_AUTHORITY_ISSUER_URL", "http://localhost:3000/")
-  config.parent_controller = "ApplicationController"
-  config.authorization_grant_layout = "application"
+  config.authenticatable_controller = "ApplicationController"
+  config.consent_page_layout = "application"
   config.error_page_layout = "application"
   config.secret_key = Rails.application.credentials.secret_key_base
   config.user_class = "User"
@@ -100,18 +100,18 @@ end
 | Option | Description |
 |--------|-------------|
 | `audience_url` | The audience URL for JWT tokens (used as the `aud` claim) |
-| `authorization_grant_layout` | Layout for the OAuth consent screen (default: `"application"`) |
+| `authenticatable_controller` | Controller for user-facing endpoints (see [User Authentication](#user-authentication)) |
+| `consent_page_layout` | Layout for the OAuth consent screen (default: `"application"`) |
 | `error_page_layout` | Layout for error pages like invalid redirect URL (default: `"application"`) |
 | `issuer_url` | The issuer URL for JWT tokens (used as the `iss` claim) |
-| `parent_controller` | Parent controller for user-facing endpoints (see [User Authentication](#user-authentication)) |
 | `secret_key` | Secret key for signing JWTs and generating client secrets |
 | `user_class` | Class name of your user model (e.g., `"User"`, `"Account"`) |
 
 ## User Authentication
 
-TokenAuthority requires user authentication for the consent screen where users approve or deny OAuth client access. The `parent_controller` configuration specifies which controller provides the authentication methods.
+TokenAuthority requires user authentication for the consent screen where users approve or deny OAuth client access. The `authenticatable_controller` configuration specifies which controller provides the authentication methods.
 
-The parent controller must implement two methods:
+The authenticatable controller must implement two methods:
 
 | Method | Purpose |
 |--------|---------|
@@ -124,13 +124,13 @@ If you use [Devise](https://github.com/heartcombo/devise), these methods are alr
 
 ```ruby
 TokenAuthority.configure do |config|
-  config.parent_controller = "ApplicationController"
+  config.authenticatable_controller = "ApplicationController"
 end
 ```
 
 ### With Other Authentication Systems
 
-For other authentication systems, implement `authenticate_user!` and `current_user` on your parent controller. You can delegate to your existing authentication methods:
+For other authentication systems, implement `authenticate_user!` and `current_user` on your authenticatable controller. You can delegate to your existing authentication methods:
 
 ```ruby
 class ApplicationController < ActionController::Base
@@ -174,7 +174,7 @@ end
 
 # config/initializers/token_authority.rb
 TokenAuthority.configure do |config|
-  config.parent_controller = "OAuthBaseController"
+  config.authenticatable_controller = "OAuthBaseController"
 end
 ```
 

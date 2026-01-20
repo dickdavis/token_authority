@@ -85,6 +85,33 @@ RSpec.describe TokenAuthority::Client, type: :model do
         expect { model.save! }.to change(model, :public_id).from(nil).to(be_present)
       end
     end
+
+    describe "#set_default_durations" do
+      context "when access_token_duration is not provided" do
+        it "sets the default from configuration" do
+          client = build(:token_authority_client, access_token_duration: nil)
+          client.valid?
+          expect(client.access_token_duration).to eq(TokenAuthority.config.default_access_token_duration)
+        end
+      end
+
+      context "when refresh_token_duration is not provided" do
+        it "sets the default from configuration" do
+          client = build(:token_authority_client, refresh_token_duration: nil)
+          client.valid?
+          expect(client.refresh_token_duration).to eq(TokenAuthority.config.default_refresh_token_duration)
+        end
+      end
+
+      context "when durations are explicitly provided" do
+        it "does not override the provided values" do
+          client = build(:token_authority_client, access_token_duration: 600, refresh_token_duration: 86400)
+          client.valid?
+          expect(client.access_token_duration).to eq(600)
+          expect(client.refresh_token_duration).to eq(86400)
+        end
+      end
+    end
   end
 
   describe "#client_secret" do

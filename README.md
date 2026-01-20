@@ -100,10 +100,14 @@ The generated initializer configures TokenAuthority:
 
 ```ruby
 TokenAuthority.configure do |config|
-  # JWT Configuration
+  # General
+  config.secret_key = Rails.application.credentials.secret_key_base
+
+  # Token
   config.audience_url = ENV.fetch("TOKEN_AUTHORITY_AUDIENCE_URL", "http://localhost:3000/api/")
   config.issuer_url = ENV.fetch("TOKEN_AUTHORITY_ISSUER_URL", "http://localhost:3000/")
-  config.secret_key = Rails.application.credentials.secret_key_base
+  # config.default_access_token_duration = 300 # 5 minutes
+  # config.default_refresh_token_duration = 1_209_600 # 14 days
 
   # User Authentication
   config.authenticatable_controller = "ApplicationController"
@@ -119,13 +123,20 @@ TokenAuthority.configure do |config|
 end
 ```
 
-### JWT Configuration
+### General
+
+| Option | Description |
+|--------|-------------|
+| `secret_key` | Secret key for signing JWTs and generating client secrets |
+
+### Token
 
 | Option | Description |
 |--------|-------------|
 | `audience_url` | The audience URL for JWT tokens (used as the `aud` claim) |
 | `issuer_url` | The issuer URL for JWT tokens (used as the `iss` claim) |
-| `secret_key` | Secret key for signing JWTs and generating client secrets |
+| `default_access_token_duration` | Default duration for access tokens in seconds (default: 300 / 5 minutes) |
+| `default_refresh_token_duration` | Default duration for refresh tokens in seconds (default: 1,209,600 / 14 days) |
 
 ### User Authentication
 

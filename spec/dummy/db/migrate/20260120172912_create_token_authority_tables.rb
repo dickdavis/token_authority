@@ -8,8 +8,8 @@ class CreateTokenAuthorityTables < ActiveRecord::Migration[8.1]
       t.string :name, null: false
       t.string :client_type, null: false, default: "confidential" # "confidential" or "public"
       t.string :redirect_uri, null: false
-      t.bigint :access_token_duration, null: false, default: 300 # 5 minutes in seconds
-      t.bigint :refresh_token_duration, null: false, default: 1_209_600 # 14 days in seconds
+      t.bigint :access_token_duration, null: false
+      t.bigint :refresh_token_duration, null: false
       t.string :client_secret_id # Used for HMAC-based secret generation (confidential clients only)
 
       t.timestamps

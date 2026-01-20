@@ -1,6 +1,12 @@
 Rails.application.routes.draw do
   token_authority_routes
 
+  namespace :api do
+    namespace :v1 do
+      get "users/current", to: "users#current"
+    end
+  end
+
   resources :users, only: %i[new create]
 
   get "sign-in", to: "sessions#new", as: :sign_in

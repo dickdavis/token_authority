@@ -4,10 +4,11 @@ module ActionDispatch
   module Routing
     class Mapper
       ##
-      # Adds the RFC 8414 OAuth 2.0 Authorization Server Metadata route.
+      # Adds OAuth 2.0 metadata routes for both Authorization Server (RFC 8414)
+      # and Protected Resource (RFC 9728).
       #
-      # RFC 8414 requires the metadata endpoint to be at the root level
-      # `/.well-known/oauth-authorization-server` path, not under the engine mount path.
+      # Both RFCs require the metadata endpoints to be at the root level
+      # `/.well-known/` path, not under the engine mount path.
       #
       # @param mount_path [String] the path where TokenAuthority engine is mounted (default: "/oauth")
       #
@@ -23,8 +24,14 @@ module ActionDispatch
       #     mount TokenAuthority::Engine => "/auth"
       #   end
       def token_authority_metadata_routes(mount_path: "/oauth")
+        # RFC 8414: Authorization Server Metadata
         get "/.well-known/oauth-authorization-server",
           to: "token_authority/metadata#show",
+          defaults: {mount_path: mount_path}
+
+        # RFC 9728: Protected Resource Metadata
+        get "/.well-known/oauth-protected-resource",
+          to: "token_authority/resource_metadata#show",
           defaults: {mount_path: mount_path}
       end
     end

@@ -2,7 +2,16 @@
 
 TokenAuthority.configure do |config|
   # ==========================================================================
-  # JWT Configuration
+  # General
+  # ==========================================================================
+
+  # The secret key used for signing JWT tokens and generating client secrets.
+  # This should be a secure, random string. By default, it uses the application's
+  # secret_key_base from credentials or configuration.
+  config.secret_key = Rails.application.credentials.secret_key_base || Rails.application.secret_key_base
+
+  # ==========================================================================
+  # Token
   # ==========================================================================
 
   # The audience URL for JWT tokens. This is typically your API's base URL.
@@ -13,10 +22,13 @@ TokenAuthority.configure do |config|
   # Used as the "iss" (issuer) claim in issued tokens.
   config.issuer_url = ENV.fetch("TOKEN_AUTHORITY_ISSUER_URL", "http://localhost:3000/")
 
-  # The secret key used for signing JWT tokens and generating client secrets.
-  # This should be a secure, random string. By default, it uses the application's
-  # secret_key_base from credentials or configuration.
-  config.secret_key = Rails.application.credentials.secret_key_base || Rails.application.secret_key_base
+  # Default duration for access tokens in seconds (5 minutes).
+  # This value is used when creating new clients without explicit durations.
+  # config.default_access_token_duration = 300
+
+  # Default duration for refresh tokens in seconds (14 days).
+  # This value is used when creating new clients without explicit durations.
+  # config.default_refresh_token_duration = 1_209_600
 
   # ==========================================================================
   # User Authentication

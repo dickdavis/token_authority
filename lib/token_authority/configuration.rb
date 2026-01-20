@@ -2,8 +2,11 @@
 
 module TokenAuthority
   class Configuration
-    # JWT Configuration
-    attr_accessor :audience_url, :issuer_url, :secret_key
+    # General
+    attr_accessor :secret_key
+
+    # Token
+    attr_accessor :audience_url, :issuer_url, :default_access_token_duration, :default_refresh_token_duration
 
     # User Authentication
     attr_accessor :authenticatable_controller, :user_class
@@ -20,10 +23,14 @@ module TokenAuthority
       :resource_documentation, :resource_policy_uri, :resource_tos_uri
 
     def initialize
-      # JWT Configuration
+      # General
+      @secret_key = nil
+
+      # Token
       @audience_url = nil
       @issuer_url = nil
-      @secret_key = nil
+      @default_access_token_duration = 300 # 5 minutes in seconds
+      @default_refresh_token_duration = 1_209_600 # 14 days in seconds
 
       # User Authentication
       @authenticatable_controller = "ApplicationController"

@@ -31,7 +31,15 @@ module TokenAuthority
         template "token_authority.rb", "config/initializers/token_authority.rb"
       end
 
+      def copy_views
+        directory engine_views_path, "app/views/token_authority"
+      end
+
       private
+
+      def engine_views_path
+        File.expand_path("../../../../app/views/token_authority", __dir__)
+      end
 
       def user_table_name
         options[:user_table_name]

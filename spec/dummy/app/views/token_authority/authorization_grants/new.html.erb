@@ -1,0 +1,9 @@
+<div>
+  <h2><%= t('token_authority.authorization_grants.new.title') %></h2>
+  <p><%= t('token_authority.authorization_grants.new.lede') %></p>
+  <p><strong><%= client_name %></strong></p>
+  <div>
+    <%= button_to t('token_authority.authorization_grants.new.reject_cta'), authorization_grants_path, params: { state:, approve: false } %>
+    <%= button_to t('token_authority.authorization_grants.new.approve_cta'), authorization_grants_path, params: { state:, approve: true } %>
+  </div>
+</div>

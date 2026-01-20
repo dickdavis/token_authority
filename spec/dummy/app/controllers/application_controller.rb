@@ -14,11 +14,11 @@ class ApplicationController < ActionController::Base
 
   private
 
-  def authenticate_user
+  def authenticate_user!
     return if current_user.present?
 
     session[:post_sign_in_url] = request.original_url
     session[:post_sign_in_params] = request.params
-    redirect_to sign_in_path
+    redirect_to main_app.sign_in_path
   end
 end

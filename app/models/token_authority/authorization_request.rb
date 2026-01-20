@@ -23,7 +23,7 @@ module TokenAuthority
 
     def self.from_internal_state_token(token)
       attributes = TokenAuthority::JsonWebToken.decode(token)
-      token_authority_client = TokenAuthority::Client.find_by(id: attributes[:token_authority_client])
+      token_authority_client = TokenAuthority::Client.find_by(public_id: attributes[:token_authority_client])
       new(
         **attributes.except(:token_authority_client, :exp).merge(token_authority_client:)
       )
@@ -31,7 +31,7 @@ module TokenAuthority
 
     def to_h
       {
-        token_authority_client: token_authority_client.id,
+        token_authority_client: token_authority_client.public_id,
         client_id:,
         state:,
         code_challenge:,
@@ -57,7 +57,7 @@ module TokenAuthority
 
       errors.add(:client_id, :blank) and return if client_id.blank?
 
-      client = TokenAuthority::Client.find_by(id: client_id)
+      client = TokenAuthority::Client.find_by(public_id: client_id)
       errors.add(:client_id, :unregistered_client) unless client
     end
 

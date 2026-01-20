@@ -58,7 +58,7 @@ RSpec.describe TokenAuthority::Session, type: :model do
 
     let!(:token_authority_session) { create(:token_authority_session, token_authority_authorization_grant:) }
     let(:token_authority_refresh_token) { build(:token_authority_refresh_token, token_authority_session:) }
-    let(:client_id) { token_authority_client.id }
+    let(:client_id) { token_authority_client.public_id }
 
     it_behaves_like "a model that creates TokenAuthority sessions"
 

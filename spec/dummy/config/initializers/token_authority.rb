@@ -58,4 +58,38 @@ TokenAuthority.configure do |config|
   # URL to developer documentation for your OAuth server.
   # Included in the /.well-known/oauth-authorization-server response.
   # config.service_documentation = "https://example.com/docs/oauth"
+
+  # ==========================================================================
+  # Protected Resource Metadata (RFC 9728)
+  # ==========================================================================
+
+  # The protected resource's identifier URL.
+  # Defaults to issuer_url if not set.
+  # config.resource_url = "https://api.example.com/"
+
+  # Scopes accepted by the protected resource.
+  # Falls back to scopes_supported if not set.
+  # config.resource_scopes_supported = ["api:read", "api:write"]
+
+  # List of authorization server issuer URLs that can issue tokens for this resource.
+  # Defaults to the local authorization server (issuer_url) if not set.
+  # config.resource_authorization_servers = ["https://auth.example.com"]
+
+  # Token presentation methods supported by the resource (e.g., "header", "body", "query").
+  # config.resource_bearer_methods_supported = ["header"]
+
+  # URL to the resource's JSON Web Key Set (JWKS).
+  # config.resource_jwks_uri = "https://api.example.com/.well-known/jwks.json"
+
+  # Human-readable name for the protected resource.
+  # config.resource_name = "Example API"
+
+  # URL to developer documentation for the protected resource.
+  # config.resource_documentation = "https://example.com/docs/api"
+
+  # URL to the resource's privacy policy.
+  # config.resource_policy_uri = "https://example.com/privacy"
+
+  # URL to the resource's terms of service.
+  # config.resource_tos_uri = "https://example.com/tos"
 end

@@ -14,6 +14,11 @@ module TokenAuthority
     # Server Metadata (RFC 8414)
     attr_accessor :scopes_supported, :service_documentation
 
+    # Protected Resource Metadata (RFC 9728)
+    attr_accessor :resource_url, :resource_scopes_supported, :resource_authorization_servers,
+      :resource_bearer_methods_supported, :resource_jwks_uri, :resource_name,
+      :resource_documentation, :resource_policy_uri, :resource_tos_uri
+
     def initialize
       # JWT Configuration
       @audience_url = nil
@@ -31,6 +36,17 @@ module TokenAuthority
       # Server Metadata (RFC 8414)
       @scopes_supported = []
       @service_documentation = nil
+
+      # Protected Resource Metadata (RFC 9728)
+      @resource_url = nil
+      @resource_scopes_supported = nil
+      @resource_authorization_servers = nil
+      @resource_bearer_methods_supported = nil
+      @resource_jwks_uri = nil
+      @resource_name = nil
+      @resource_documentation = nil
+      @resource_policy_uri = nil
+      @resource_tos_uri = nil
     end
   end
 

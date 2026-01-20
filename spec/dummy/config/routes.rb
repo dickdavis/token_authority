@@ -1,4 +1,5 @@
 Rails.application.routes.draw do
+  token_authority_metadata_routes
   mount TokenAuthority::Engine => "/oauth"
 
   resources :users, only: %i[new create]

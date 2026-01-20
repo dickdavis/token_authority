@@ -7,7 +7,7 @@ This project aims to implement the OAuth standards specified in the [MCP Authori
 | Status | Standard |
 |--------|----------|
 | ✅ | [OAuth 2.1 IETF DRAFT](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1-13) |
-| ❌ | [OAuth 2.0 Authorization Server Metadata (RFC 8414)](https://datatracker.ietf.org/doc/html/rfc8414) |
+| ✅ | [OAuth 2.0 Authorization Server Metadata (RFC 8414)](https://datatracker.ietf.org/doc/html/rfc8414) |
 | ❌ | [OAuth 2.0 Dynamic Client Registration Protocol (RFC 7591)](https://datatracker.ietf.org/doc/html/rfc7591) |
 | ❌ | [OAuth 2.0 Protected Resource Metadata (RFC 9728)](https://datatracker.ietf.org/doc/html/rfc9728) |
 | ❌ | [OAuth Client ID Metadata Documents](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-client-id-metadata-document-00) |
@@ -75,11 +75,23 @@ Add the engine routes to your `config/routes.rb`:
 
 ```ruby
 Rails.application.routes.draw do
+  token_authority_metadata_routes  # Adds /.well-known/oauth-authorization-server
   mount TokenAuthority::Engine => "/oauth"
 end
 ```
 
-This exposes the OAuth endpoints at `/oauth/authorize`, `/oauth/token`, etc.
+This exposes:
+- RFC 8414 metadata at `/.well-known/oauth-authorization-server`
+- OAuth endpoints at `/oauth/authorize`, `/oauth/token`, etc.
+
+If you mount the engine at a different path, pass the `mount_path` option:
+
+```ruby
+Rails.application.routes.draw do
+  token_authority_metadata_routes(mount_path: "/auth")
+  mount TokenAuthority::Engine => "/auth"
+end
+```
 
 ## Configuration
 
@@ -87,25 +99,53 @@ The generated initializer configures TokenAuthority:
 
 ```ruby
 TokenAuthority.configure do |config|
+  # JWT Configuration
   config.audience_url = ENV.fetch("TOKEN_AUTHORITY_AUDIENCE_URL", "http://localhost:3000/api/")
   config.issuer_url = ENV.fetch("TOKEN_AUTHORITY_ISSUER_URL", "http://localhost:3000/")
+  config.secret_key = Rails.application.credentials.secret_key_base
+
+  # User Authentication
   config.authenticatable_controller = "ApplicationController"
+  config.user_class = "User"
+
+  # UI/Layout
   config.consent_page_layout = "application"
   config.error_page_layout = "application"
-  config.secret_key = Rails.application.credentials.secret_key_base
-  config.user_class = "User"
+
+  # Server Metadata (RFC 8414)
+  # config.scopes_supported = ["read", "write"]
+  # config.service_documentation = "https://example.com/docs/oauth"
 end
 ```
+
+### JWT Configuration
 
 | Option | Description |
 |--------|-------------|
 | `audience_url` | The audience URL for JWT tokens (used as the `aud` claim) |
-| `authenticatable_controller` | Controller for user-facing endpoints (see [User Authentication](#user-authentication)) |
-| `consent_page_layout` | Layout for the OAuth consent screen (default: `"application"`) |
-| `error_page_layout` | Layout for error pages like invalid redirect URL (default: `"application"`) |
 | `issuer_url` | The issuer URL for JWT tokens (used as the `iss` claim) |
 | `secret_key` | Secret key for signing JWTs and generating client secrets |
+
+### User Authentication
+
+| Option | Description |
+|--------|-------------|
+| `authenticatable_controller` | Controller for user-facing endpoints (see [User Authentication](#user-authentication-1)) |
 | `user_class` | Class name of your user model (e.g., `"User"`, `"Account"`) |
+
+### UI/Layout
+
+| Option | Description |
+|--------|-------------|
+| `consent_page_layout` | Layout for the OAuth consent screen (default: `"application"`) |
+| `error_page_layout` | Layout for error pages like invalid redirect URL (default: `"application"`) |
+
+### Server Metadata (RFC 8414)
+
+| Option | Description |
+|--------|-------------|
+| `scopes_supported` | Array of OAuth scopes your server supports (optional) |
+| `service_documentation` | URL to developer documentation (optional) |
 
 ## User Authentication
 

@@ -2,4 +2,5 @@ pre-commit:
   jobs:
     - name: standardrb
       glob: "*.rb"
+      stage_fixed: true
       run: bundle exec standardrb --fix {staged_files}

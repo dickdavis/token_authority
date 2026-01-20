@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_01_19_233307) do
+ActiveRecord::Schema[8.1].define(version: 2026_01_20_172912) do
   create_table "token_authority_authorization_grants", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.datetime "expires_at", null: false
@@ -35,14 +35,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_19_233307) do
   end
 
   create_table "token_authority_clients", force: :cascade do |t|
-    t.bigint "access_token_duration", default: 300, null: false
+    t.bigint "access_token_duration", null: false
     t.string "client_secret_id"
     t.string "client_type", default: "confidential", null: false
     t.datetime "created_at", null: false
     t.string "name", null: false
     t.string "public_id", null: false
     t.string "redirect_uri", null: false
-    t.bigint "refresh_token_duration", default: 1209600, null: false
+    t.bigint "refresh_token_duration", null: false
     t.datetime "updated_at", null: false
     t.index ["client_secret_id"], name: "index_token_authority_clients_on_client_secret_id", unique: true
     t.index ["public_id"], name: "index_token_authority_clients_on_public_id", unique: true

@@ -164,6 +164,37 @@ TokenAuthority.configure do |config|
 end
 ```
 
+## Customizing Views
+
+The install generator copies TokenAuthority's views to your application at `app/views/token_authority/`. These views are intentionally unstyled so you can customize them to match your application's branding.
+
+### Copied Views
+
+| View | Purpose |
+|------|---------|
+| `authorization_grants/new.html.erb` | OAuth consent screen where users approve or deny client access |
+| `client_error.html.erb` | Error page shown when the OAuth client's redirect URL is invalid |
+
+### Styling the Views
+
+Edit the copied views to add your CSS classes, layout structure, and branding:
+
+```erb
+<%# app/views/token_authority/authorization_grants/new.html.erb %>
+<div class="oauth-consent">
+  <h1>Authorize <%= client_name %></h1>
+  <p><%= t("token_authority.authorization_grants.new.lede") %></p>
+
+  <%= form_with url: token_authority.authorization_grants_path, method: :post do |form| %>
+    <%= form.hidden_field :state, value: state %>
+    <%= form.submit t("token_authority.authorization_grants.new.approve"), name: "approve", value: "true", class: "btn btn-primary" %>
+    <%= form.submit t("token_authority.authorization_grants.new.reject"), name: "approve", value: "false", class: "btn btn-secondary" %>
+  <% end %>
+</div>
+```
+
+The views use Rails I18n for text content. You can customize the text by overriding the keys in your locale files. See `config/locales/token_authority.en.yml` in the gem for available keys.
+
 ## Development
 
 Clone the repository and install dependencies:

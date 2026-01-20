@@ -130,7 +130,7 @@ RSpec.describe TokenAuthority::AuthorizationRequest, type: :model do
 
     context "when TokenAuthority client is public" do
       let_it_be(:token_authority_client) { create(:token_authority_client, client_type: "public") }
-      let(:client_id) { token_authority_client.id }
+      let(:client_id) { token_authority_client.public_id }
 
       it_behaves_like "validates response_type param"
       it_behaves_like "validates client_id param"
@@ -141,7 +141,7 @@ RSpec.describe TokenAuthority::AuthorizationRequest, type: :model do
     context "when TokenAuthority client is confidential" do
       let_it_be(:token_authority_client) { create(:token_authority_client, client_type: "confidential") }
 
-      let(:client_id) { token_authority_client.id }
+      let(:client_id) { token_authority_client.public_id }
 
       it_behaves_like "validates response_type param"
       it_behaves_like "validates client_id param maps to a valid client if present"

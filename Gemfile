@@ -4,10 +4,7 @@ source "https://rubygems.org"
 gemspec
 
 gem "puma"
-
 gem "sqlite3"
-
-gem "propshaft"
 
 group :development, :test do
   gem "bcrypt"

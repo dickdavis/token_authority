@@ -366,9 +366,7 @@ User.create!(email: "test@example.com", password: "password")
 TokenAuthority::Client.create!(
   name: "Test Client",
   client_type: "confidential",
-  redirect_uri: "http://localhost:3000/callback",
-  access_token_duration: 3600,
-  refresh_token_duration: 86400
+  redirect_uri: "http://localhost:3000/callback"
 )
 ```
 

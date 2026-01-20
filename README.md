@@ -1,10 +1,20 @@
 # TokenAuthority
 
-Rails engine allowing apps to act as their own OAuth 2.1 provider.
+Rails engine allowing apps to act as their own OAuth 2.1 provider. The goal of this project is to make authorization dead simple for MCP server developers.
+
+This project aims to implement the OAuth standards specified in the [MCP Authorization Specification](https://modelcontextprotocol.io/specification/2025-11-25/basic/authorization#standards-compliance).
+
+| Status | Standard |
+|--------|----------|
+| ✅ | [OAuth 2.1 IETF DRAFT](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1-13) |
+| ❌ | [OAuth 2.0 Authorization Server Metadata (RFC 8414)](https://datatracker.ietf.org/doc/html/rfc8414) |
+| ❌ | [OAuth 2.0 Dynamic Client Registration Protocol (RFC 7591)](https://datatracker.ietf.org/doc/html/rfc7591) |
+| ❌ | [OAuth 2.0 Protected Resource Metadata (RFC 9728)](https://datatracker.ietf.org/doc/html/rfc9728) |
+| ❌ | [OAuth Client ID Metadata Documents](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-client-id-metadata-document-00) |
 
 ## Usage
 
-How to use my plugin.
+TokenAuthority is simple to install and configure. It slots alongside your existing authentication solution easily.
 
 ## Installation
 

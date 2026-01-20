@@ -9,7 +9,7 @@ This project aims to implement the OAuth standards specified in the [MCP Authori
 | ✅ | [OAuth 2.1 IETF DRAFT](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1-13) |
 | ✅ | [OAuth 2.0 Authorization Server Metadata (RFC 8414)](https://datatracker.ietf.org/doc/html/rfc8414) |
 | ❌ | [OAuth 2.0 Dynamic Client Registration Protocol (RFC 7591)](https://datatracker.ietf.org/doc/html/rfc7591) |
-| ❌ | [OAuth 2.0 Protected Resource Metadata (RFC 9728)](https://datatracker.ietf.org/doc/html/rfc9728) |
+| ✅ | [OAuth 2.0 Protected Resource Metadata (RFC 9728)](https://datatracker.ietf.org/doc/html/rfc9728) |
 | ❌ | [OAuth Client ID Metadata Documents](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-client-id-metadata-document-00) |
 
 ## Usage
@@ -75,13 +75,14 @@ Add the engine routes to your `config/routes.rb`:
 
 ```ruby
 Rails.application.routes.draw do
-  token_authority_metadata_routes  # Adds /.well-known/oauth-authorization-server
+  token_authority_metadata_routes  # Adds /.well-known/ metadata endpoints
   mount TokenAuthority::Engine => "/oauth"
 end
 ```
 
 This exposes:
-- RFC 8414 metadata at `/.well-known/oauth-authorization-server`
+- RFC 8414 Authorization Server Metadata at `/.well-known/oauth-authorization-server`
+- RFC 9728 Protected Resource Metadata at `/.well-known/oauth-protected-resource`
 - OAuth endpoints at `/oauth/authorize`, `/oauth/token`, etc.
 
 If you mount the engine at a different path, pass the `mount_path` option:
@@ -146,6 +147,20 @@ end
 |--------|-------------|
 | `scopes_supported` | Array of OAuth scopes your server supports (optional) |
 | `service_documentation` | URL to developer documentation (optional) |
+
+### Protected Resource Metadata (RFC 9728)
+
+| Option | Description |
+|--------|-------------|
+| `resource_url` | The protected resource's identifier URL (defaults to `issuer_url`) |
+| `resource_scopes_supported` | Scopes accepted by the resource (falls back to `scopes_supported`) |
+| `resource_authorization_servers` | List of authorization server issuer URLs (defaults to local AS) |
+| `resource_bearer_methods_supported` | Token presentation methods (e.g., `["header"]`) |
+| `resource_jwks_uri` | URL to the resource's JSON Web Key Set |
+| `resource_name` | Human-readable name for the resource |
+| `resource_documentation` | URL to developer documentation |
+| `resource_policy_uri` | URL to the resource's privacy policy |
+| `resource_tos_uri` | URL to the resource's terms of service |
 
 ## User Authentication
 

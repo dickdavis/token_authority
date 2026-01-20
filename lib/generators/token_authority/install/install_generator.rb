@@ -35,8 +35,8 @@ module TokenAuthority
         directory engine_views_path, "app/views/token_authority"
       end
 
-      def add_metadata_route
-        route "token_authority_metadata_routes"
+      def add_routes
+        route "token_authority_routes"
       end
 
       private

@@ -12,7 +12,12 @@ gem "propshaft"
 group :development, :test do
   gem "bcrypt"
   gem "debug"
+  gem "factory_bot_rails"
+  gem "faker"
   gem "rspec-rails"
+  gem "shoulda-matchers"
+  gem "test-prof"
+  gem "timecop"
 end
 
 group :development do

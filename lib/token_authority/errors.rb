@@ -66,4 +66,46 @@ module TokenAuthority
   ##
   # Error for when client provides an unsupported grant type param.
   class UnsupportedGrantTypeError < StandardError; end
+
+  # RFC 7591 Dynamic Client Registration errors
+
+  ##
+  # Error for when one or more redirect_uris are invalid.
+  class InvalidRedirectUrisError < StandardError
+    def initialize(msg = "One or more redirect_uris are invalid")
+      super
+    end
+  end
+
+  ##
+  # Error for when client metadata is invalid.
+  class InvalidClientMetadataError < StandardError
+    def initialize(msg = "Client metadata is invalid")
+      super
+    end
+  end
+
+  ##
+  # Error for when software statement is invalid or could not be verified.
+  class InvalidSoftwareStatementError < StandardError
+    def initialize(msg = "Software statement is invalid or could not be verified")
+      super
+    end
+  end
+
+  ##
+  # Error for when software statement is not approved for use.
+  class UnapprovedSoftwareStatementError < StandardError
+    def initialize(msg = "Software statement is not approved for use with this authorization server")
+      super
+    end
+  end
+
+  ##
+  # Error for when initial access token is invalid or missing.
+  class InvalidInitialAccessTokenError < StandardError
+    def initialize(msg = "Initial access token is invalid or missing")
+      super
+    end
+  end
 end

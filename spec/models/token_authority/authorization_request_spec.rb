@@ -102,7 +102,7 @@ RSpec.describe TokenAuthority::AuthorizationRequest, type: :model do
     shared_examples "validates redirect_uri param" do
       it "validates redirect_uri param" do
         aggregate_failures do
-          expect(model).to allow_value(token_authority_client.redirect_uri).for(:redirect_uri)
+          expect(model).to allow_value(token_authority_client.primary_redirect_uri).for(:redirect_uri)
           expect(model).not_to allow_value(nil).for(:redirect_uri)
           expect(model).not_to allow_value("invalid-redirect-uri").for(:redirect_uri)
         end

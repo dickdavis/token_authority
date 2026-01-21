@@ -17,5 +17,13 @@ module TokenAuthority
         request.request_parameters["token_type_hint"] == token_type_hint
       end
     end
+
+    ##
+    # Provides a route constraint for dynamic client registration (RFC 7591)
+    DynamicRegistrationEnabledConstraint = Struct.new(:nothing) do
+      def matches?(_request)
+        TokenAuthority.config.rfc_7591_enabled
+      end
+    end
   end
 end

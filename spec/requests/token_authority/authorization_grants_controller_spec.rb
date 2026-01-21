@@ -10,7 +10,7 @@ RSpec.describe TokenAuthority::AuthorizationGrantsController, type: :request do
       state:,
       code_challenge: "code_challenge",
       code_challenge_method: "S256",
-      redirect_uri: client.redirect_uri,
+      redirect_uri: client.primary_redirect_uri,
       response_type: "code"
     }
 

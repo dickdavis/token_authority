@@ -110,7 +110,7 @@ module TokenAuthority
     end
 
     def validate_redirect_uris_match
-      errors.add(:redirect_uri, :invalid) unless token_authority_client.redirect_uri == redirect_uri
+      errors.add(:redirect_uri, :invalid) unless token_authority_client.redirect_uri_registered?(redirect_uri)
     end
 
     def valid_token_authority_client?

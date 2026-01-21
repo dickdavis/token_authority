@@ -104,4 +104,48 @@ TokenAuthority.configure do |config|
 
   # URL to the resource's terms of service.
   # config.rfc_9728_resource_tos_uri = "https://example.com/tos"
+
+  # ==========================================================================
+  # Dynamic Client Registration (RFC 7591)
+  # ==========================================================================
+
+  # Enable dynamic client registration endpoint (/register).
+  # When enabled, clients can register programmatically via POST requests.
+  # Disabled by default for security - enable only if you need this feature.
+  # config.rfc_7591_enabled = false
+
+  # Require an initial access token for client registration.
+  # When enabled, registration requests must include a Bearer token.
+  # config.rfc_7591_require_initial_access_token = false
+
+  # Validator proc for initial access tokens.
+  # Must return true if the token is valid, false otherwise.
+  # Example:
+  # config.rfc_7591_initial_access_token_validator = ->(token) {
+  #   token == ENV["REGISTRATION_ACCESS_TOKEN"]
+  # }
+
+  # Allowed grant types for dynamically registered clients.
+  # config.rfc_7591_allowed_grant_types = %w[authorization_code refresh_token]
+
+  # Allowed response types for dynamically registered clients.
+  # config.rfc_7591_allowed_response_types = %w[code]
+
+  # Allowed token endpoint authentication methods.
+  # Options: none, client_secret_basic, client_secret_post, client_secret_jwt, private_key_jwt
+  # config.rfc_7591_allowed_token_endpoint_auth_methods = %w[none client_secret_basic client_secret_post client_secret_jwt private_key_jwt]
+
+  # Client secret expiration duration in seconds (nil = never expires).
+  # config.rfc_7591_client_secret_expiration = nil
+
+  # JWKS for verifying software statements (signed JWTs with client metadata).
+  # Set to a JWKS hash to enable software statement verification.
+  # config.rfc_7591_software_statement_jwks = nil
+
+  # Require software statements for client registration.
+  # When enabled, registration requests must include a valid software_statement.
+  # config.rfc_7591_software_statement_required = false
+
+  # Cache TTL in seconds for fetched JWKS from jwks_uri (default: 1 hour).
+  # config.rfc_7591_jwks_cache_ttl = 3600
 end

@@ -6,7 +6,7 @@ code_verifier = SecureRandom.base64(55).tr("+/", "-_").tr("=", "")
 code_challenge = Digest::SHA256.base64digest(code_verifier).tr("+/", "-_").tr("=", "")
 client = TokenAuthority::Client.where(client_type: "public").first
 client_id = client.public_id
-redirect_uri = client.redirect_uri
+redirect_uri = client.primary_redirect_uri
 
 puts <<~TEXT
   Open this URL in your browser and sign in to approve the authorization:

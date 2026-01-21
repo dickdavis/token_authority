@@ -20,8 +20,25 @@ en:
         client_secret_id: 'Client secret ID'
         client_type: 'Client type'
         name: 'Name'
-        redirect_uri: 'Redirect URI'
+        redirect_uris: 'Redirect URIs'
         refresh_token_duration: 'Refresh token duration'
+        token_endpoint_auth_method: 'Token endpoint auth method'
+        grant_types: 'Grant types'
+        response_types: 'Response types'
+        scope: 'Scope'
+        client_uri: 'Client URI'
+        logo_uri: 'Logo URI'
+        tos_uri: 'Terms of service URI'
+        policy_uri: 'Policy URI'
+        contacts: 'Contacts'
+        jwks_uri: 'JWKS URI'
+        jwks: 'JWKS'
+        software_id: 'Software ID'
+        software_version: 'Software version'
+        software_statement: 'Software statement'
+        client_id_issued_at: 'Client ID issued at'
+        client_secret_expires_at: 'Client secret expires at'
+        dynamically_registered: 'Dynamically registered'
       token_authority/session:
         access_token_jti: 'Access token JTI'
         client_id: 'Client ID'
@@ -53,9 +70,12 @@ en:
               blank: 'must be provided if sent in the original authorization request'
               invalid: 'must be a supported code challenge method'
         token_authority/client:
-          redirect_uri:
-            invalid_http_scheme: 'must contain valid HTTP(S) scheme in URI'
-            invalid_uri: 'must be a valid URI'
+          attributes:
+            redirect_uris:
+              invalid_http_scheme: 'must contain valid HTTP(S) scheme in all URIs'
+              invalid_uri: 'must contain valid URIs'
+          base:
+            jwks_required_for_private_key_jwt: 'JWKS or JWKS URI is required when using private_key_jwt authentication'
         token_authority/session:
           access_token_jti:
             invalid: 'must be a valid UUID'

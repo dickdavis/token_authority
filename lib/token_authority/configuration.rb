@@ -23,6 +23,19 @@ module TokenAuthority
       :rfc_9728_bearer_methods_supported, :rfc_9728_jwks_uri, :rfc_9728_resource_name,
       :rfc_9728_resource_documentation, :rfc_9728_resource_policy_uri, :rfc_9728_resource_tos_uri
 
+    # Dynamic Client Registration (RFC 7591)
+    attr_accessor :rfc_7591_enabled,
+      :rfc_7591_require_initial_access_token,
+      :rfc_7591_initial_access_token_validator,
+      :rfc_7591_allowed_grant_types,
+      :rfc_7591_allowed_response_types,
+      :rfc_7591_allowed_scopes,
+      :rfc_7591_allowed_token_endpoint_auth_methods,
+      :rfc_7591_client_secret_expiration,
+      :rfc_7591_software_statement_jwks,
+      :rfc_7591_software_statement_required,
+      :rfc_7591_jwks_cache_ttl
+
     def initialize
       # General
       @secret_key = nil
@@ -55,6 +68,19 @@ module TokenAuthority
       @rfc_9728_resource_documentation = nil
       @rfc_9728_resource_policy_uri = nil
       @rfc_9728_resource_tos_uri = nil
+
+      # Dynamic Client Registration (RFC 7591)
+      @rfc_7591_enabled = false
+      @rfc_7591_require_initial_access_token = false
+      @rfc_7591_initial_access_token_validator = nil
+      @rfc_7591_allowed_grant_types = %w[authorization_code refresh_token]
+      @rfc_7591_allowed_response_types = %w[code]
+      @rfc_7591_allowed_scopes = nil
+      @rfc_7591_allowed_token_endpoint_auth_methods = %w[none client_secret_basic client_secret_post client_secret_jwt private_key_jwt]
+      @rfc_7591_client_secret_expiration = nil
+      @rfc_7591_software_statement_jwks = nil
+      @rfc_7591_software_statement_required = false
+      @rfc_7591_jwks_cache_ttl = 3600
     end
   end
 

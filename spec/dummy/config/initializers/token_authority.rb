@@ -104,4 +104,41 @@ TokenAuthority.configure do |config|
 
   # URL to the resource's terms of service.
   # config.rfc_9728_resource_tos_uri = "https://example.com/tos"
+
+  # ==========================================================================
+  # Dynamic Client Registration (RFC 7591)
+  # ==========================================================================
+
+  # Enable dynamic client registration endpoint (/oauth/register).
+  # When enabled, clients can register programmatically without manual setup.
+  config.rfc_7591_enabled = true
+
+  # Require an initial access token to register clients.
+  # When true, registration requests must include a valid Bearer token.
+  # config.rfc_7591_require_initial_access_token = false
+
+  # Validator proc for initial access tokens.
+  # Called with the token string, should return true if valid.
+  # config.rfc_7591_initial_access_token_validator = ->(token) { token == "secret" }
+
+  # Allowed grant types for dynamically registered clients.
+  # config.rfc_7591_allowed_grant_types = %w[authorization_code refresh_token]
+
+  # Allowed response types for dynamically registered clients.
+  # config.rfc_7591_allowed_response_types = %w[code]
+
+  # Allowed token endpoint authentication methods.
+  # config.rfc_7591_allowed_token_endpoint_auth_methods = %w[none client_secret_basic client_secret_post client_secret_jwt private_key_jwt]
+
+  # Client secret expiration in seconds (nil = never expires).
+  # config.rfc_7591_client_secret_expiration = nil
+
+  # JWKS for verifying software statements (JWT::JWK::Set or nil).
+  # config.rfc_7591_software_statement_jwks = nil
+
+  # Require software statements for registration.
+  # config.rfc_7591_software_statement_required = false
+
+  # Cache TTL for fetched JWKS in seconds.
+  # config.rfc_7591_jwks_cache_ttl = 3600
 end

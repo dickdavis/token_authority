@@ -50,9 +50,10 @@ class CreateTokenAuthorityTables < ActiveRecord::Migration<%= migration_version 
       t.datetime :expires_at, null: false
       t.boolean :redeemed, null: false, default: false
       t.references :token_authority_client,
-        null: false,
+        null: true, # Nullable for URL-based clients (Client Metadata Document)
         foreign_key: { to_table: :token_authority_clients },
         index: { name: "index_ta_auth_grants_on_client_id" }
+      t.string :client_id_url # URL for URL-based client IDs (Client Metadata Document)
       t.<%= user_foreign_key_type %> :user_id
 
       t.timestamps
@@ -103,5 +104,18 @@ class CreateTokenAuthorityTables < ActiveRecord::Migration<%= migration_version 
 
     add_index :token_authority_jwks_caches, :uri_hash, unique: true
     add_index :token_authority_jwks_caches, :expires_at
+
+    # Client Metadata Document Cache - stores fetched metadata documents
+    create_table :token_authority_client_metadata_document_caches do |t|
+      t.string :uri_hash, null: false      # SHA256 hash of the URI for lookups
+      t.string :uri, null: false           # Original URI for debugging/display
+      t.json :metadata, null: false        # The cached metadata document
+      t.datetime :expires_at, null: false  # When this cache entry expires
+
+      t.timestamps
+    end
+
+    add_index :token_authority_client_metadata_document_caches, :uri_hash, unique: true, name: "index_ta_client_metadata_caches_on_uri_hash"
+    add_index :token_authority_client_metadata_document_caches, :expires_at, name: "index_ta_client_metadata_caches_on_expires_at"
   end
 end

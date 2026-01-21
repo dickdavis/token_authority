@@ -7,7 +7,7 @@ code_challenge = Digest::SHA256.base64digest(code_verifier).tr("+/", "-_").tr("=
 client = TokenAuthority::Client.where(client_type: "confidential").first
 client_id = client.public_id
 client_secret = client.client_secret
-redirect_uri = client.redirect_uri
+redirect_uri = client.primary_redirect_uri
 
 puts <<~TEXT
   Open this URL in your browser and sign in to approve the authorization:

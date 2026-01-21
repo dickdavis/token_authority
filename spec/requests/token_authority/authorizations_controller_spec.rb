@@ -8,7 +8,7 @@ RSpec.describe TokenAuthority::AuthorizationsController, type: :request do
       call_endpoint
       redirect_params = Rack::Utils.parse_query(URI.parse(response.location).query)
       aggregate_failures do
-        expect(response.location).to match(token_authority_client.redirect_uri)
+        expect(response.location).to match(token_authority_client.primary_redirect_uri)
         expect(redirect_params["error"]).to eq("invalid_request")
         expect(redirect_params["state"]).to eq(state)
       end
@@ -35,7 +35,7 @@ RSpec.describe TokenAuthority::AuthorizationsController, type: :request do
     let(:state) { "foobar" }
     let(:code_challenge) { "code_challenge" }
     let(:code_challenge_method) { "S256" }
-    let(:redirect_uri) { token_authority_client.redirect_uri }
+    let(:redirect_uri) { token_authority_client.primary_redirect_uri }
     let(:response_type) { "code" }
 
     context "when the client type is public" do

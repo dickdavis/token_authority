@@ -109,7 +109,7 @@ RSpec.describe TokenAuthority::SessionsController, type: :request do
     end
 
     context "when the params include a valid redirect_uri" do
-      let(:redirect_uri) { token_authority_client.redirect_uri }
+      let(:redirect_uri) { token_authority_client.primary_redirect_uri }
 
       it "does not respond with HTTP status bad request and error invalid_request as JSON" do
         call_endpoint
@@ -230,7 +230,7 @@ RSpec.describe TokenAuthority::SessionsController, type: :request do
 
       let(:client_id) { token_authority_client.public_id }
       let(:code_verifier) { "code_verifier" }
-      let(:redirect_uri) { token_authority_client.redirect_uri }
+      let(:redirect_uri) { token_authority_client.primary_redirect_uri }
 
       it_behaves_like "requires a valid code param"
       it_behaves_like "requires a valid client_id param"
@@ -272,7 +272,7 @@ RSpec.describe TokenAuthority::SessionsController, type: :request do
           token_authority_authorization_grant.reload.token_authority_challenge.update!(
             code_challenge: nil,
             code_challenge_method: nil,
-            redirect_uri: token_authority_client.redirect_uri
+            redirect_uri: token_authority_client.primary_redirect_uri
           )
         end
 
@@ -299,7 +299,7 @@ RSpec.describe TokenAuthority::SessionsController, type: :request do
         end
 
         context "when the params include a valid redirect_uri" do
-          let(:redirect_uri) { token_authority_client.redirect_uri }
+          let(:redirect_uri) { token_authority_client.primary_redirect_uri }
 
           it_behaves_like "generates an OAuth session"
 

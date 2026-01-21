@@ -99,7 +99,7 @@ module TokenAuthority
     end
 
     def token_authority_client
-      @token_authority_client ||= token_authority_authorization_grant.token_authority_client
+      @token_authority_client ||= token_authority_authorization_grant.resolved_client
     end
 
     def token_authority_challenge

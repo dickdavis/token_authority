@@ -44,10 +44,6 @@ Configure TokenAuthority in the generated initializer. The following represents 
 TokenAuthority.configure do |config|
   # The secret key used for encryption/decryption
   config.secret_key = Rails.application.credentials.secret_key_base
-  # The model that represents a user in the application
-  config.user_class = "User"
-  # The base controller with authentication methods to inherit from
-  config.authenticatable_controller = "ApplicationController"
   # The URI for the protected resource (to be included in tokens and metadata)
   config.rfc_9068_audience_url = "https://example.com/api/"
   # The URI for the authorization server (to be included in tokens and metadata)

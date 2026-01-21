@@ -36,7 +36,8 @@ module TokenAuthority
     def refresh
       token = TokenAuthority::RefreshToken.from_token(params[:refresh_token])
       token_authority_session = TokenAuthority::Session.find_by(refresh_token_jti: token.jti)
-      client_id = params[:client_id].presence || token_authority_session.token_authority_authorization_grant.token_authority_client.public_id
+      client_id = params[:client_id].presence ||
+        token_authority_session.token_authority_authorization_grant.resolved_client.public_id
 
       access_token, refresh_token, expiration = token_authority_session.refresh(token:, client_id:).deconstruct
 

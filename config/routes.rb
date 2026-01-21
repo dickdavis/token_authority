@@ -2,6 +2,11 @@ TokenAuthority::Engine.routes.draw do
   get "authorize", to: "authorizations#authorize"
   resources :authorization_grants, path: "authorization-grants", only: %i[new create]
 
+  # Dynamic Client Registration (RFC 7591)
+  constraints(TokenAuthority::Routing::DynamicRegistrationEnabledConstraint.new) do
+    post "register", to: "clients#create"
+  end
+
   # Token endpoint with grant_type constraints
   constraints(TokenAuthority::Routing::GrantTypeConstraint.new("refresh_token")) do
     post "token", to: "sessions#refresh", as: :refresh_session

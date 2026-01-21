@@ -27,7 +27,7 @@ RSpec.describe TokenAuthority::AuthorizationServerMetadata, type: :model do
         expect(result[:revocation_endpoint]).to eq("https://example.com/oauth/revoke")
         expect(result[:response_types_supported]).to eq(["code"])
         expect(result[:grant_types_supported]).to eq(["authorization_code", "refresh_token"])
-        expect(result[:token_endpoint_auth_methods_supported]).to eq(["client_secret_basic", "none"])
+        expect(result[:token_endpoint_auth_methods_supported]).to eq(TokenAuthority.config.rfc_7591_allowed_token_endpoint_auth_methods)
         expect(result[:code_challenge_methods_supported]).to eq(["S256"])
       end
     end

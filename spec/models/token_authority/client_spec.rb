@@ -47,19 +47,55 @@ RSpec.describe TokenAuthority::Client, type: :model do
       end
     end
 
-    describe "redirection_uri" do
-      it { is_expected.to validate_presence_of(:redirect_uri) }
+    describe "redirection_uris" do
+      it { is_expected.to validate_presence_of(:redirect_uris) }
 
-      it "adds an error if redirect_uri is not a valid URI" do
-        model.redirect_uri = "foobar"
+      it "adds an error if redirect_uris contains an invalid URI" do
+        model.redirect_uris = ["foobar"]
         model.valid?
-        expect(model.errors).to include(:redirect_uri)
+        expect(model.errors).to include(:redirect_uris)
       end
 
-      it "does not add an error if redirect_uri is a valid URI" do
-        model.redirect_uri = "http://localhost:3000/"
+      it "does not add an error if redirect_uris contains valid URIs" do
+        model.redirect_uris = ["http://localhost:3000/", "https://example.com/callback"]
         model.valid?
-        expect(model.errors).not_to include(:redirect_uri)
+        expect(model.errors).not_to include(:redirect_uris)
+      end
+    end
+
+    describe "token_endpoint_auth_method" do
+      it "validates inclusion in SUPPORTED_AUTH_METHODS" do
+        aggregate_failures do
+          expect(model).to allow_value("none").for(:token_endpoint_auth_method)
+          expect(model).to allow_value("client_secret_basic").for(:token_endpoint_auth_method)
+          expect(model).to allow_value("client_secret_post").for(:token_endpoint_auth_method)
+          expect(model).to allow_value("client_secret_jwt").for(:token_endpoint_auth_method)
+          expect(model).to allow_value("private_key_jwt").for(:token_endpoint_auth_method)
+          expect(model).not_to allow_value("invalid_method").for(:token_endpoint_auth_method)
+        end
+      end
+    end
+
+    describe "jwks requirement for private_key_jwt" do
+      before { model.token_endpoint_auth_method = "private_key_jwt" }
+
+      it "is invalid without jwks or jwks_uri" do
+        model.jwks = nil
+        model.jwks_uri = nil
+        model.valid?
+        expect(model.errors[:base]).to be_present
+      end
+
+      it "is valid with jwks" do
+        model.jwks = {"keys" => []}
+        model.valid?
+        expect(model.errors[:base]).to be_empty
+      end
+
+      it "is valid with jwks_uri" do
+        model.jwks_uri = "https://example.com/.well-known/jwks.json"
+        model.valid?
+        expect(model.errors[:base]).to be_empty
       end
     end
   end

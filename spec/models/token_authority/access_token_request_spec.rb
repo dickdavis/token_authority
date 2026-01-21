@@ -76,7 +76,7 @@ RSpec.describe TokenAuthority::AccessTokenRequest, type: :model do
     shared_examples "validates redirect_uri param" do
       it "validates redirect_uri param" do
         aggregate_failures do
-          expect(model).to allow_value(token_authority_client.redirect_uri).for(:redirect_uri)
+          expect(model).to allow_value(token_authority_client.primary_redirect_uri).for(:redirect_uri)
           expect(model).not_to allow_value("invalid-redirect-uri").for(:redirect_uri)
         end
       end
@@ -148,7 +148,7 @@ RSpec.describe TokenAuthority::AccessTokenRequest, type: :model do
       end
 
       context "when redirect_uri is provided but not provided in authorization request" do
-        let(:challenge_redirect_uri) { token_authority_client.redirect_uri }
+        let(:challenge_redirect_uri) { token_authority_client.primary_redirect_uri }
 
         it "adds an error" do
           expect(model).not_to be_valid
@@ -156,8 +156,8 @@ RSpec.describe TokenAuthority::AccessTokenRequest, type: :model do
       end
 
       context "when redirect_uri is provided in both the access token and authorization requests" do
-        let(:redirect_uri) { token_authority_client.redirect_uri }
-        let(:challenge_redirect_uri) { token_authority_client.redirect_uri }
+        let(:redirect_uri) { token_authority_client.primary_redirect_uri }
+        let(:challenge_redirect_uri) { token_authority_client.primary_redirect_uri }
 
         it_behaves_like "validates redirect_uri param"
       end

@@ -43,11 +43,13 @@ TokenAuthority.configure do |config|
   # For other authentication systems, either:
   # 1. Implement these methods on ApplicationController, or
   # 2. Set this to a controller that provides these methods
-  config.authenticatable_controller = "ApplicationController"
+  # Default: "ApplicationController"
+  # config.authenticatable_controller = "ApplicationController"
 
   # The class name of your user model. This is used for the belongs_to association
   # in TokenAuthority::AuthorizationGrant.
-  config.user_class = "User"
+  # Default: "User"
+  # config.user_class = "User"
 
   # ==========================================================================
   # UI/Layout

@@ -11,11 +11,11 @@ module TokenAuthority
     private
 
     def create_token_authority_session(grant:)
-      token_authority_client = grant.token_authority_client
-      access_token_expiration = token_authority_client.access_token_duration.seconds.from_now.to_i
+      client = grant.resolved_client
+      access_token_expiration = client.access_token_duration.seconds.from_now.to_i
       access_token = TokenAuthority::AccessToken.default(user_id:, exp: access_token_expiration)
 
-      refresh_token_expiration = token_authority_client.refresh_token_duration.seconds.from_now.to_i
+      refresh_token_expiration = client.refresh_token_duration.seconds.from_now.to_i
       refresh_token = TokenAuthority::RefreshToken.default(exp: refresh_token_expiration)
 
       token_authority_session = grant.token_authority_sessions.new(

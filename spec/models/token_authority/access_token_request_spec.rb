@@ -162,5 +162,48 @@ RSpec.describe TokenAuthority::AccessTokenRequest, type: :model do
         it_behaves_like "validates redirect_uri param"
       end
     end
+
+    context "when authorization grant uses a URL-based client" do
+      let(:client_id_url) { "https://example.com/oauth-client" }
+      let(:metadata) do
+        {
+          "client_id" => client_id_url,
+          "client_name" => "Example Client",
+          "redirect_uris" => ["https://example.com/callback"]
+        }
+      end
+      let(:token_authority_authorization_grant) do
+        create(
+          :token_authority_authorization_grant,
+          token_authority_client: nil,
+          client_id_url: client_id_url,
+          code_challenge: Base64.urlsafe_encode64(Digest::SHA256.digest("code_verifier"), padding: false),
+          code_challenge_method: "S256",
+          redirect_uri: "https://example.com/callback"
+        )
+      end
+      let(:code_verifier) { "code_verifier" }
+      let(:redirect_uri) { "https://example.com/callback" }
+
+      before do
+        allow(TokenAuthority::ClientIdResolver).to receive(:resolve)
+          .with(client_id_url)
+          .and_return(TokenAuthority::ClientMetadataDocument.new(metadata))
+      end
+
+      it "resolves the client via resolved_client and validates as public client" do
+        expect(model).to be_valid
+      end
+
+      it "requires code_verifier for URL-based clients (always public)" do
+        model.code_verifier = nil
+        expect(model).not_to be_valid
+      end
+
+      it "requires redirect_uri for URL-based clients (always public)" do
+        model.redirect_uri = nil
+        expect(model).not_to be_valid
+      end
+    end
   end
 end

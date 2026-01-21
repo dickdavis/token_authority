@@ -155,6 +155,36 @@ RSpec.describe TokenAuthority::Session, type: :model do
         end
       end
     end
+
+    context "when the authorization grant uses a URL-based client" do
+      let(:client_id_url) { "https://example.com/oauth-client" }
+      let(:metadata) do
+        {
+          "client_id" => client_id_url,
+          "client_name" => "Example Client",
+          "redirect_uris" => ["https://example.com/callback"]
+        }
+      end
+      let(:token_authority_authorization_grant) do
+        create(:token_authority_authorization_grant, redeemed: true, token_authority_client: nil, client_id_url: client_id_url)
+      end
+      let!(:token_authority_session) { create(:token_authority_session, token_authority_authorization_grant:) }
+      let(:token_authority_refresh_token) { build(:token_authority_refresh_token, token_authority_session:) }
+      let(:client_id) { client_id_url }
+
+      before do
+        allow(TokenAuthority::ClientIdResolver).to receive(:resolve)
+          .with(client_id_url)
+          .and_return(TokenAuthority::ClientMetadataDocument.new(metadata))
+      end
+
+      it "refreshes the TokenAuthority session using resolved_client" do
+        aggregate_failures do
+          expect { method_call }.to change(token_authority_session, :status).from("created").to("refreshed")
+          expect(described_class.count).to eq(2)
+        end
+      end
+    end
   end
 
   describe "revocation" do

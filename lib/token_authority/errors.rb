@@ -108,4 +108,30 @@ module TokenAuthority
       super
     end
   end
+
+  # Client Metadata Document errors
+
+  ##
+  # Error for when the client_id URL is invalid (not HTTPS, has fragment, etc.)
+  class InvalidClientMetadataDocumentUrlError < StandardError
+    def initialize(msg = "Client ID URL is invalid")
+      super
+    end
+  end
+
+  ##
+  # Error for when fetching the client metadata document fails.
+  class ClientMetadataDocumentFetchError < StandardError
+    def initialize(msg = "Failed to fetch client metadata document")
+      super
+    end
+  end
+
+  ##
+  # Error for when the client metadata document content is invalid.
+  class InvalidClientMetadataDocumentError < StandardError
+    def initialize(msg = "Client metadata document is invalid")
+      super
+    end
+  end
 end

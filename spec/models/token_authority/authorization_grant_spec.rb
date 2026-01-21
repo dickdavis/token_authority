@@ -8,9 +8,91 @@ RSpec.describe TokenAuthority::AuthorizationGrant, type: :model do
   describe "associations" do
     specify(:aggregate_failures) do
       expect(model).to belong_to(:user)
-      expect(model).to belong_to(:token_authority_client)
+      expect(model).to belong_to(:token_authority_client).optional
       expect(model).to have_many(:token_authority_sessions)
       expect(model).to have_one(:token_authority_challenge).optional
+    end
+  end
+
+  describe "validations" do
+    describe "must_have_client_identifier" do
+      context "when token_authority_client is present" do
+        it "is valid" do
+          grant = build(:token_authority_authorization_grant, token_authority_client: create(:token_authority_client))
+          expect(grant).to be_valid
+        end
+      end
+
+      context "when client_id_url is present" do
+        it "is valid" do
+          grant = build(:token_authority_authorization_grant, token_authority_client: nil, client_id_url: "https://example.com/oauth-client")
+          expect(grant).to be_valid
+        end
+      end
+
+      context "when neither token_authority_client nor client_id_url is present" do
+        it "is invalid" do
+          grant = build(:token_authority_authorization_grant, token_authority_client: nil, client_id_url: nil)
+
+          aggregate_failures do
+            expect(grant).not_to be_valid
+            expect(grant.errors[:base]).to include(I18n.t("activerecord.errors.models.token_authority/authorization_grant.attributes.base.must_have_client_identifier"))
+          end
+        end
+      end
+    end
+  end
+
+  describe "#resolved_client" do
+    context "when token_authority_client is present" do
+      let(:client) { create(:token_authority_client) }
+      let(:grant) { create(:token_authority_authorization_grant, token_authority_client: client) }
+
+      it "returns the token_authority_client" do
+        expect(grant.resolved_client).to eq(client)
+      end
+    end
+
+    context "when client_id_url is present" do
+      let(:client_id_url) { "https://example.com/oauth-client" }
+      let(:metadata) do
+        {
+          "client_id" => client_id_url,
+          "client_name" => "Example Client",
+          "redirect_uris" => ["https://example.com/callback"]
+        }
+      end
+      let(:grant) { create(:token_authority_authorization_grant, token_authority_client: nil, client_id_url: client_id_url) }
+
+      before do
+        allow(TokenAuthority::ClientIdResolver).to receive(:resolve)
+          .with(client_id_url)
+          .and_return(TokenAuthority::ClientMetadataDocument.new(metadata))
+      end
+
+      it "returns a ClientMetadataDocument" do
+        result = grant.resolved_client
+
+        aggregate_failures do
+          expect(result).to be_a(TokenAuthority::ClientMetadataDocument)
+          expect(result.public_id).to eq(client_id_url)
+        end
+      end
+
+      it "memoizes the result" do
+        grant.resolved_client
+        grant.resolved_client
+
+        expect(TokenAuthority::ClientIdResolver).to have_received(:resolve).once
+      end
+    end
+
+    context "when neither is present" do
+      let(:grant) { build(:token_authority_authorization_grant, token_authority_client: nil, client_id_url: nil) }
+
+      it "returns nil" do
+        expect(grant.resolved_client).to be_nil
+      end
     end
   end
 
@@ -62,6 +144,30 @@ RSpec.describe TokenAuthority::AuthorizationGrant, type: :model do
 
     context "when the token authority client has a confidential client type" do
       let_it_be(:token_authority_client) { create(:token_authority_client, client_type: "confidential") }
+
+      it_behaves_like "a model that creates TokenAuthority sessions"
+      it_behaves_like "updates the redeemed attribute"
+    end
+
+    context "when using a URL-based client" do
+      let(:client_id_url) { "https://example.com/oauth-client" }
+      let(:metadata) do
+        {
+          "client_id" => client_id_url,
+          "client_name" => "Example Client",
+          "redirect_uris" => ["https://example.com/callback"]
+        }
+      end
+      let(:token_authority_authorization_grant) do
+        create(:token_authority_authorization_grant, token_authority_client: nil, client_id_url: client_id_url)
+      end
+      let!(:token_authority_challenge) { create(:token_authority_challenge, token_authority_authorization_grant:) }
+
+      before do
+        allow(TokenAuthority::ClientIdResolver).to receive(:resolve)
+          .with(client_id_url)
+          .and_return(TokenAuthority::ClientMetadataDocument.new(metadata))
+      end
 
       it_behaves_like "a model that creates TokenAuthority sessions"
       it_behaves_like "updates the redeemed attribute"

@@ -437,6 +437,32 @@ RSpec.describe TokenAuthority::SessionsController, type: :request do
       it_behaves_like "does not refresh a revoked session"
       it_behaves_like "does not refresh an already refreshed session"
     end
+
+    context "when using a URL-based client" do
+      subject(:call_endpoint) { post token_authority.refresh_session_path, params: }
+
+      let(:client_id_url) { "https://example.com/oauth-client" }
+      let(:metadata) do
+        {
+          "client_id" => client_id_url,
+          "client_name" => "Example Client",
+          "redirect_uris" => ["https://example.com/callback"]
+        }
+      end
+      let(:token_authority_authorization_grant) do
+        create(:token_authority_authorization_grant, user:, token_authority_client: nil, client_id_url: client_id_url)
+      end
+      let(:client_id) { client_id_url }
+
+      before do
+        allow(TokenAuthority::ClientIdResolver).to receive(:resolve)
+          .with(client_id_url)
+          .and_return(TokenAuthority::ClientMetadataDocument.new(metadata))
+      end
+
+      it_behaves_like "generates an OAuth session"
+      it_behaves_like "requires a valid refresh_token param"
+    end
   end
 
   describe "POST /token (grant_type={ NOT `authorization_code` or `refresh_token` })" do

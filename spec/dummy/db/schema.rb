@@ -10,13 +10,14 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_01_21_050503) do
+ActiveRecord::Schema[8.1].define(version: 2026_01_21_150256) do
   create_table "token_authority_authorization_grants", force: :cascade do |t|
+    t.string "client_id_url"
     t.datetime "created_at", null: false
     t.datetime "expires_at", null: false
     t.string "public_id", null: false
     t.boolean "redeemed", default: false, null: false
-    t.integer "token_authority_client_id", null: false
+    t.integer "token_authority_client_id"
     t.datetime "updated_at", null: false
     t.bigint "user_id"
     t.index ["public_id"], name: "index_token_authority_authorization_grants_on_public_id", unique: true
@@ -32,6 +33,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_21_050503) do
     t.integer "token_authority_authorization_grant_id", null: false
     t.datetime "updated_at", null: false
     t.index ["token_authority_authorization_grant_id"], name: "index_ta_challenges_on_auth_grant_id"
+  end
+
+  create_table "token_authority_client_metadata_document_caches", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.datetime "expires_at", null: false
+    t.json "metadata", null: false
+    t.datetime "updated_at", null: false
+    t.string "uri", null: false
+    t.string "uri_hash", null: false
+    t.index ["expires_at"], name: "index_ta_client_metadata_caches_on_expires_at"
+    t.index ["uri_hash"], name: "index_ta_client_metadata_caches_on_uri_hash", unique: true
   end
 
   create_table "token_authority_clients", force: :cascade do |t|

@@ -26,7 +26,9 @@ module TokenAuthority
     end
 
     def load_token_authority_client(id: nil)
-      @token_authority_client = TokenAuthority::Client.find_by(public_id: id)
+      @token_authority_client = TokenAuthority::ClientIdResolver.resolve(id)
+    rescue TokenAuthority::ClientNotFoundError
+      @token_authority_client = nil
     end
 
     def http_basic_auth_successful?

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_01_20_172912) do
+ActiveRecord::Schema[8.1].define(version: 2026_01_21_050503) do
   create_table "token_authority_authorization_grants", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.datetime "expires_at", null: false
@@ -36,16 +36,45 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_20_172912) do
 
   create_table "token_authority_clients", force: :cascade do |t|
     t.bigint "access_token_duration", null: false
+    t.datetime "client_id_issued_at"
+    t.datetime "client_secret_expires_at"
     t.string "client_secret_id"
     t.string "client_type", default: "confidential", null: false
+    t.string "client_uri"
+    t.json "contacts"
     t.datetime "created_at", null: false
+    t.boolean "dynamically_registered", default: false, null: false
+    t.json "grant_types"
+    t.json "jwks"
+    t.string "jwks_uri"
+    t.string "logo_uri"
     t.string "name", null: false
+    t.string "policy_uri"
     t.string "public_id", null: false
-    t.string "redirect_uri", null: false
+    t.json "redirect_uris", null: false
     t.bigint "refresh_token_duration", null: false
+    t.json "response_types"
+    t.string "scope"
+    t.string "software_id"
+    t.text "software_statement"
+    t.string "software_version"
+    t.string "token_endpoint_auth_method", default: "client_secret_basic", null: false
+    t.string "tos_uri"
     t.datetime "updated_at", null: false
     t.index ["client_secret_id"], name: "index_token_authority_clients_on_client_secret_id", unique: true
     t.index ["public_id"], name: "index_token_authority_clients_on_public_id", unique: true
+    t.index ["software_id"], name: "index_token_authority_clients_on_software_id"
+  end
+
+  create_table "token_authority_jwks_caches", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.datetime "expires_at", null: false
+    t.json "jwks", null: false
+    t.datetime "updated_at", null: false
+    t.string "uri", null: false
+    t.string "uri_hash", null: false
+    t.index ["expires_at"], name: "index_token_authority_jwks_caches_on_expires_at"
+    t.index ["uri_hash"], name: "index_token_authority_jwks_caches_on_uri_hash", unique: true
   end
 
   create_table "token_authority_sessions", force: :cascade do |t|

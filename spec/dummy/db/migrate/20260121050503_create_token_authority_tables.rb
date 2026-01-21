@@ -7,16 +7,42 @@ class CreateTokenAuthorityTables < ActiveRecord::Migration[8.1]
       t.string :public_id, null: false # Public-facing identifier (UUID)
       t.string :name, null: false
       t.string :client_type, null: false, default: "confidential" # "confidential" or "public"
-      t.string :redirect_uri, null: false
+      t.json :redirect_uris, null: false # Array of redirect URIs
       t.bigint :access_token_duration, null: false
       t.bigint :refresh_token_duration, null: false
       t.string :client_secret_id # Used for HMAC-based secret generation (confidential clients only)
+
+      # RFC 7591 client metadata
+      t.string :token_endpoint_auth_method, null: false, default: "client_secret_basic"
+      t.json :grant_types                  # Array, default: ["authorization_code"]
+      t.json :response_types               # Array, default: ["code"]
+      t.string :scope                      # space-delimited scope string
+
+      # Human-readable metadata
+      t.string :client_uri
+      t.string :logo_uri
+      t.string :tos_uri
+      t.string :policy_uri
+      t.json :contacts                     # Array of email addresses
+
+      # Technical metadata (for JWT auth methods)
+      t.string :jwks_uri
+      t.json :jwks                         # JWKS object (inline)
+      t.string :software_id
+      t.string :software_version
+      t.text :software_statement           # Original software statement JWT (if provided)
+
+      # Registration metadata
+      t.datetime :client_id_issued_at
+      t.datetime :client_secret_expires_at
+      t.boolean :dynamically_registered, null: false, default: false
 
       t.timestamps
     end
 
     add_index :token_authority_clients, :public_id, unique: true
     add_index :token_authority_clients, :client_secret_id, unique: true
+    add_index :token_authority_clients, :software_id
 
     # Authorization Grants - authorization codes issued during OAuth flow
     create_table :token_authority_authorization_grants do |t|
@@ -64,5 +90,18 @@ class CreateTokenAuthorityTables < ActiveRecord::Migration[8.1]
 
     add_index :token_authority_sessions, :access_token_jti, unique: true
     add_index :token_authority_sessions, :refresh_token_jti, unique: true
+
+    # JWKS Cache - stores fetched JWKS from remote URIs
+    create_table :token_authority_jwks_caches do |t|
+      t.string :uri_hash, null: false      # SHA256 hash of the URI for lookups
+      t.string :uri, null: false           # Original URI for debugging/display
+      t.json :jwks, null: false            # The cached JWKS data
+      t.datetime :expires_at, null: false  # When this cache entry expires
+
+      t.timestamps
+    end
+
+    add_index :token_authority_jwks_caches, :uri_hash, unique: true
+    add_index :token_authority_jwks_caches, :expires_at
   end
 end

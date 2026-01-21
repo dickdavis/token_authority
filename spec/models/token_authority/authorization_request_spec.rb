@@ -161,5 +161,127 @@ RSpec.describe TokenAuthority::AuthorizationRequest, type: :model do
         it_behaves_like "validates PKCE params"
       end
     end
+
+    context "when TokenAuthority client is a URL-based ClientMetadataDocument" do
+      let(:client_id_url) { "https://example.com/oauth-client" }
+      let(:metadata) do
+        {
+          "client_id" => client_id_url,
+          "client_name" => "Example Client",
+          "redirect_uris" => ["https://example.com/callback"]
+        }
+      end
+      let(:token_authority_client) { TokenAuthority::ClientMetadataDocument.new(metadata) }
+      let(:client_id) { client_id_url }
+      let(:redirect_uri) { "https://example.com/callback" }
+
+      it_behaves_like "validates response_type param"
+      it_behaves_like "validates PKCE params"
+
+      it "validates client_id matches the URL" do
+        aggregate_failures do
+          expect(model).to be_valid
+          model.client_id = "https://other.example.com/client"
+          expect(model).not_to be_valid
+          expect(model.errors[:client_id]).to include(I18n.t("activemodel.errors.models.token_authority/authorization_request.attributes.client_id.mismatched"))
+        end
+      end
+
+      it "requires client_id to be present" do
+        model.client_id = nil
+        expect(model).not_to be_valid
+      end
+
+      it "validates redirect_uri is registered" do
+        aggregate_failures do
+          expect(model).to allow_value("https://example.com/callback").for(:redirect_uri)
+          expect(model).not_to allow_value("https://evil.com/callback").for(:redirect_uri)
+        end
+      end
+    end
+  end
+
+  describe ".from_internal_state_token" do
+    let_it_be(:token_authority_client) { create(:token_authority_client, client_type: "public") }
+    let(:authorization_request) do
+      described_class.new(
+        token_authority_client: token_authority_client,
+        client_id: token_authority_client.public_id,
+        code_challenge: "challenge",
+        code_challenge_method: "S256",
+        redirect_uri: token_authority_client.primary_redirect_uri,
+        response_type: "code",
+        state: "some-state"
+      )
+    end
+    let(:token) { authorization_request.to_internal_state_token }
+
+    context "with a registered client" do
+      it "reconstructs the authorization request" do
+        result = described_class.from_internal_state_token(token)
+
+        aggregate_failures do
+          expect(result.token_authority_client).to eq(token_authority_client)
+          expect(result.client_id).to eq(token_authority_client.public_id)
+          expect(result.code_challenge).to eq("challenge")
+          expect(result.state).to eq("some-state")
+        end
+      end
+    end
+
+    context "with a URL-based client" do
+      let(:client_id_url) { "https://example.com/oauth-client" }
+      let(:metadata) do
+        {
+          "client_id" => client_id_url,
+          "client_name" => "Example Client",
+          "redirect_uris" => ["https://example.com/callback"]
+        }
+      end
+      let(:url_based_client) { TokenAuthority::ClientMetadataDocument.new(metadata) }
+      let(:authorization_request) do
+        described_class.new(
+          token_authority_client: url_based_client,
+          client_id: client_id_url,
+          code_challenge: "challenge",
+          code_challenge_method: "S256",
+          redirect_uri: "https://example.com/callback",
+          response_type: "code",
+          state: "some-state"
+        )
+      end
+
+      before do
+        allow(TokenAuthority::ClientIdResolver).to receive(:resolve)
+          .with(client_id_url)
+          .and_return(TokenAuthority::ClientMetadataDocument.new(metadata))
+      end
+
+      it "reconstructs the authorization request with a ClientMetadataDocument" do
+        result = described_class.from_internal_state_token(token)
+
+        aggregate_failures do
+          expect(result.token_authority_client).to be_a(TokenAuthority::ClientMetadataDocument)
+          expect(result.token_authority_client.public_id).to eq(client_id_url)
+          expect(result.client_id).to eq(client_id_url)
+        end
+      end
+    end
+
+    context "when client cannot be resolved" do
+      before do
+        allow(TokenAuthority::ClientIdResolver).to receive(:resolve)
+          .and_raise(TokenAuthority::ClientNotFoundError)
+      end
+
+      it "returns an invalid authorization request with nil client" do
+        result = described_class.from_internal_state_token(token)
+
+        aggregate_failures do
+          expect(result.token_authority_client).to be_nil
+          expect(result).not_to be_valid
+        end
+      end
+    end
   end
 end

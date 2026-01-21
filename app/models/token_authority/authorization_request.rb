@@ -23,10 +23,12 @@ module TokenAuthority
 
     def self.from_internal_state_token(token)
       attributes = TokenAuthority::JsonWebToken.decode(token)
-      token_authority_client = TokenAuthority::Client.find_by(public_id: attributes[:token_authority_client])
+      token_authority_client = TokenAuthority::ClientIdResolver.resolve(attributes[:token_authority_client])
       new(
         **attributes.except(:token_authority_client, :exp).merge(token_authority_client:)
       )
+    rescue TokenAuthority::ClientNotFoundError
+      new(**attributes.except(:token_authority_client, :exp).merge(token_authority_client: nil))
     end
 
     def to_h
@@ -52,7 +54,16 @@ module TokenAuthority
     end
 
     def client_id_must_be_valid
-      return unless token_authority_client.is_a?(TokenAuthority::Client)
+      return unless valid_token_authority_client?
+
+      # For URL-based clients, client_id must match the URL
+      if token_authority_client.is_a?(TokenAuthority::ClientMetadataDocument)
+        errors.add(:client_id, :blank) and return if client_id.blank?
+        errors.add(:client_id, :mismatched) and return if client_id != token_authority_client.public_id
+        return
+      end
+
+      # For registered clients
       return if token_authority_client.confidential_client_type? && client_id.blank?
 
       errors.add(:client_id, :blank) and return if client_id.blank?
@@ -62,11 +73,14 @@ module TokenAuthority
     end
 
     def pkce_params_must_be_valid
-      return unless token_authority_client.is_a?(TokenAuthority::Client)
+      return unless valid_token_authority_client?
 
-      validate_public_pkce_params if token_authority_client.public_client_type?
-
-      validate_confidential_pkce_params
+      # URL-based clients are always public and must use PKCE
+      if token_authority_client.public_client_type?
+        validate_public_pkce_params
+      else
+        validate_confidential_pkce_params
+      end
     end
 
     def validate_public_pkce_params
@@ -114,7 +128,8 @@ module TokenAuthority
     end
 
     def valid_token_authority_client?
-      token_authority_client.is_a?(TokenAuthority::Client)
+      token_authority_client.is_a?(TokenAuthority::Client) ||
+        token_authority_client.is_a?(TokenAuthority::ClientMetadataDocument)
     end
   end
 end

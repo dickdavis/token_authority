@@ -8,6 +8,7 @@ en:
     attributes:
       token_authority/authorization_grant:
         token_authority_client_id: 'TokenAuthority client ID'
+        client_id_url: 'Client ID URL'
         redeemed: 'Redeemed'
         user_id: 'User ID'
       token_authority/challenge:
@@ -55,6 +56,8 @@ en:
               blank: 'must be linked to a client'
             user_id:
               blank: 'must be linked to a user'
+            base:
+              must_have_client_identifier: 'must have either a registered client or a client ID URL'
         token_authority/challenge:
           attributes:
             code_challenge:
@@ -152,6 +155,7 @@ en:
           attributes:
             client_id:
               blank: 'must be provided as a param in the request to authorize when client is public'
+              mismatched: 'does not match the client ID URL'
               unregistered_client: 'does not map to a registered client'
             code_challenge:
               required_if_other_pkce_params_present: 'must be provided as a param in the request to authorize if other PKCE params were sent'

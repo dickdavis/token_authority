@@ -7,7 +7,7 @@ module TokenAuthority
     include TokenAuthority::SessionCreatable
 
     belongs_to :user, class_name: TokenAuthority.config.user_class
-    belongs_to :token_authority_client, class_name: "TokenAuthority::Client"
+    belongs_to :token_authority_client, class_name: "TokenAuthority::Client", optional: true
     has_many :token_authority_sessions,
       class_name: "TokenAuthority::Session",
       foreign_key: :token_authority_authorization_grant_id,
@@ -21,8 +21,18 @@ module TokenAuthority
 
     accepts_nested_attributes_for :token_authority_challenge
 
+    validate :must_have_client_identifier
+
     before_validation :generate_expires_at
     before_create :generate_public_id
+
+    # Returns the client object, whether it's a registered Client or a URL-based ClientMetadataDocument
+    def resolved_client
+      return token_authority_client if token_authority_client.present?
+      return nil if client_id_url.blank?
+
+      @resolved_client ||= TokenAuthority::ClientIdResolver.resolve(client_id_url)
+    end
 
     def active_token_authority_session
       token_authority_sessions.created_status.order(created_at: :desc).first
@@ -37,6 +47,12 @@ module TokenAuthority
     end
 
     private
+
+    def must_have_client_identifier
+      return if token_authority_client.present? || client_id_url.present?
+
+      errors.add(:base, :must_have_client_identifier)
+    end
 
     def generate_expires_at
       self.expires_at ||= 5.minutes.from_now

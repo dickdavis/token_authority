@@ -148,4 +148,41 @@ TokenAuthority.configure do |config|
 
   # Cache TTL in seconds for fetched JWKS from jwks_uri (default: 1 hour).
   # config.rfc_7591_jwks_cache_ttl = 3600
+
+  # ==========================================================================
+  # Client Metadata Document (draft-ietf-oauth-client-id-metadata-document)
+  # ==========================================================================
+
+  # URL-based client identifiers allow clients to use HTTPS URLs as their client_id.
+  # The authorization server fetches client metadata from the URL at runtime.
+  # This enables lightweight, decentralized client registration.
+  #
+  # SECURITY CONSIDERATION: By default, any HTTPS URL can be used as a client_id,
+  # meaning any server on the internet can act as an OAuth client to your
+  # authorization server. This is appropriate for MCP servers and open ecosystems.
+  # For restricted access, configure allowed_hosts to limit which domains can
+  # host client metadata documents.
+  #
+  # Example for production with restricted access:
+  #   config.client_metadata_document_allowed_hosts = ["trusted-partner.com", "*.mycompany.com"]
+
+  # Enable URL-based client identifiers (default: true).
+  # config.client_metadata_document_enabled = true
+
+  # Allowed hosts for client metadata document URLs (default: nil = all hosts).
+  # config.client_metadata_document_allowed_hosts = nil
+
+  # Blocked hosts for client metadata document URLs (default: []).
+  # Example: ["internal.example.com", "*.local"]
+  # config.client_metadata_document_blocked_hosts = []
+
+  # Cache TTL in seconds for fetched metadata documents (default: 1 hour).
+  # config.client_metadata_document_cache_ttl = 3600
+
+  # Maximum response size in bytes (default: 5KB).
+  # config.client_metadata_document_max_response_size = 5120
+
+  # Connection and read timeouts in seconds (default: 5 each).
+  # config.client_metadata_document_connect_timeout = 5
+  # config.client_metadata_document_read_timeout = 5
 end

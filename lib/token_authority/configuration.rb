@@ -36,6 +36,15 @@ module TokenAuthority
       :rfc_7591_software_statement_required,
       :rfc_7591_jwks_cache_ttl
 
+    # Client Metadata Document (draft-ietf-oauth-client-id-metadata-document)
+    attr_accessor :client_metadata_document_enabled,
+      :client_metadata_document_cache_ttl,
+      :client_metadata_document_max_response_size,
+      :client_metadata_document_allowed_hosts,
+      :client_metadata_document_blocked_hosts,
+      :client_metadata_document_connect_timeout,
+      :client_metadata_document_read_timeout
+
     def initialize
       # General
       @secret_key = nil
@@ -81,6 +90,15 @@ module TokenAuthority
       @rfc_7591_software_statement_jwks = nil
       @rfc_7591_software_statement_required = false
       @rfc_7591_jwks_cache_ttl = 3600
+
+      # Client Metadata Document (draft-ietf-oauth-client-id-metadata-document)
+      @client_metadata_document_enabled = true
+      @client_metadata_document_cache_ttl = 3600
+      @client_metadata_document_max_response_size = 5120
+      @client_metadata_document_allowed_hosts = nil
+      @client_metadata_document_blocked_hosts = []
+      @client_metadata_document_connect_timeout = 5
+      @client_metadata_document_read_timeout = 5
     end
   end
 

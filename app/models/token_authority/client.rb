@@ -76,6 +76,11 @@ module TokenAuthority
       redirect_uris&.first
     end
 
+    # Check if this is a URL-based client (always false for registered clients)
+    def url_based?
+      false
+    end
+
     private
 
     def redirect_uris_are_valid_uris

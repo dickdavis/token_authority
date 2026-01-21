@@ -235,4 +235,10 @@ RSpec.describe TokenAuthority::Client, type: :model do
       end
     end
   end
+
+  describe "#url_based?" do
+    it "returns false" do
+      expect(model.url_based?).to be false
+    end
+  end
 end

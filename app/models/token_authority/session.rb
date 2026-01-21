@@ -29,7 +29,7 @@ module TokenAuthority
       raise TokenAuthority::InvalidGrantError unless token.valid?
 
       # Detect stolen refresh token and replay attacks, and then revoke current active token authority session
-      unless created_status? && client_id == token_authority_authorization_grant.token_authority_client.public_id
+      unless created_status? && client_id == token_authority_authorization_grant.resolved_client.public_id
         session = token_authority_authorization_grant.active_token_authority_session || self
         session.update(status: "revoked")
         raise TokenAuthority::RevokedSessionError.new(

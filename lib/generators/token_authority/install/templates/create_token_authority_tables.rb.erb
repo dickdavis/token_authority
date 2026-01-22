@@ -68,6 +68,7 @@ class CreateTokenAuthorityTables < ActiveRecord::Migration<%= migration_version 
       t.string :code_challenge
       t.string :code_challenge_method, default: "S256"
       t.string :redirect_uri
+      t.json :resources, null: false, default: []  # RFC 8707 resource indicators
       t.references :token_authority_authorization_grant,
         null: false,
         foreign_key: { to_table: :token_authority_authorization_grants },

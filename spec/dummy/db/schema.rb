@@ -30,6 +30,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_21_150256) do
     t.string "code_challenge_method", default: "S256"
     t.datetime "created_at", null: false
     t.string "redirect_uri"
+    t.json "resources", default: [], null: false
     t.integer "token_authority_authorization_grant_id", null: false
     t.datetime "updated_at", null: false
     t.index ["token_authority_authorization_grant_id"], name: "index_ta_challenges_on_auth_grant_id"

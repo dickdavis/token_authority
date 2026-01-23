@@ -34,7 +34,7 @@ module TokenAuthority
 
       notify_event("authentication.token.succeeded",
         session_id: oauth_session.id,
-        token_scopes: access_token.scope)
+        scopes: access_token.scope)
     rescue JWT::DecodeError, ActiveModel::UnknownAttributeError
       raise TokenAuthority::InvalidAccessTokenError
     end

@@ -49,7 +49,7 @@ module TokenAuthority
         notify_event("token.exchange.completed",
           client_id: params[:client_id],
           session_id: token_authority_session&.id,
-          access_token_expires_in: expiration)
+          expires_in: expiration)
 
         response_body = {access_token:, refresh_token:, token_type: "bearer", expires_in: expiration, scope:}.compact
         render json: response_body
@@ -155,7 +155,7 @@ module TokenAuthority
     def revoke
       notify_event("token.revocation.requested",
         client_id: @token_authority_client&.public_id,
-        token_type_hint: params[:token_type_hint])
+        type_hint: params[:token_type_hint])
 
       token = TokenAuthority::JsonWebToken.decode(params[:token])
       token_authority_session = TokenAuthority::Session.find_by(access_token_jti: token[:jti]) ||
@@ -175,7 +175,7 @@ module TokenAuthority
     def revoke_access_token
       notify_event("token.revocation.requested",
         client_id: @token_authority_client&.public_id,
-        token_type_hint: "access_token")
+        type_hint: "access_token")
 
       token = TokenAuthority::AccessToken.from_token(params[:token])
       token_authority_session = TokenAuthority::Session.find_by(access_token_jti: token.jti)
@@ -194,7 +194,7 @@ module TokenAuthority
     def revoke_refresh_token
       notify_event("token.revocation.requested",
         client_id: @token_authority_client&.public_id,
-        token_type_hint: "refresh_token")
+        type_hint: "refresh_token")
 
       token = TokenAuthority::RefreshToken.from_token(params[:token])
       token_authority_session = TokenAuthority::Session.find_by(refresh_token_jti: token.jti)

@@ -25,63 +25,53 @@ module TokenAuthority
         token_authority_authorization_grant: @authorization_grant,
         code_verifier: params[:code_verifier],
         redirect_uri: params[:redirect_uri],
-        resources:
+        resources:,
+        scope: params[:scope]
       )
 
       if access_token_request.valid?
-        access_token, refresh_token, expiration = @authorization_grant.redeem(
-          resources: access_token_request.effective_resources
+        access_token, refresh_token, expiration, scope = @authorization_grant.redeem(
+          resources: access_token_request.effective_resources,
+          scopes: access_token_request.effective_scopes
         ).deconstruct
-        render json: {access_token:, refresh_token:, token_type: "bearer", expires_in: expiration}
+        response_body = {access_token:, refresh_token:, token_type: "bearer", expires_in: expiration, scope:}.compact
+        render json: response_body
       elsif access_token_request.errors.where(:resources).any?
         render_token_request_error(error: "invalid_target")
+      elsif access_token_request.errors.where(:scope).any?
+        render_token_request_error(error: "invalid_scope")
       else
         render_token_request_error(error: "invalid_request")
       end
     end
 
     def refresh
+      token = TokenAuthority::RefreshToken.from_token(params[:refresh_token])
       resources = Array(params[:resource]).presence || []
 
-      token = TokenAuthority::RefreshToken.from_token(params[:refresh_token])
-      token_authority_session = TokenAuthority::Session.find_by(refresh_token_jti: token.jti)
-      client_id = params[:client_id].presence ||
-        token_authority_session.token_authority_authorization_grant.resolved_client.public_id
-
-      # Validate resources for refresh (if provided)
-      if resources.any?
-        # If resources are provided but feature is disabled, reject
-        unless TokenAuthority.config.rfc_8707_enabled?
-          render_token_request_error(error: "invalid_target") and return
-        end
-
-        granted_resources = token_authority_session.token_authority_authorization_grant
-          .token_authority_challenge&.resources || []
-
-        unless TokenAuthority::ResourceUriValidator.valid_all?(resources)
-          render_token_request_error(error: "invalid_target") and return
-        end
-
-        unless TokenAuthority::ResourceUriValidator.allowed_all?(resources)
-          render_token_request_error(error: "invalid_target") and return
-        end
-
-        unless TokenAuthority::ResourceUriValidator.subset?(resources, granted_resources)
-          render_token_request_error(error: "invalid_target") and return
-        end
-      end
-
-      # Use requested resources or fall back to granted resources
-      effective_resources = resources.any? ? resources :
-        (token_authority_session.token_authority_authorization_grant.token_authority_challenge&.resources || [])
-
-      access_token, refresh_token, expiration = token_authority_session.refresh(
+      refresh_token_request = TokenAuthority::RefreshTokenRequest.new(
         token:,
-        client_id:,
-        resources: effective_resources
-      ).deconstruct
+        client_id: params[:client_id],
+        resources:,
+        scope: params[:scope]
+      )
 
-      render json: {access_token:, refresh_token:, token_type: "bearer", expires_in: expiration}
+      if refresh_token_request.valid?
+        access_token, refresh_token, expiration, scope = refresh_token_request.token_authority_session.refresh(
+          token:,
+          client_id: refresh_token_request.resolved_client_id,
+          resources: refresh_token_request.effective_resources,
+          scopes: refresh_token_request.effective_scopes
+        ).deconstruct
+        response_body = {access_token:, refresh_token:, token_type: "bearer", expires_in: expiration, scope:}.compact
+        render json: response_body
+      elsif refresh_token_request.errors.where(:resources).any?
+        render_token_request_error(error: "invalid_target")
+      elsif refresh_token_request.errors.where(:scope).any?
+        render_token_request_error(error: "invalid_scope")
+      else
+        render_token_request_error(error: "invalid_request")
+      end
     rescue JWT::DecodeError
       render_token_request_error(error: "invalid_request")
     rescue TokenAuthority::RevokedSessionError => error

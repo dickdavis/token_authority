@@ -31,6 +31,7 @@ module TokenAuthority
     validate :token_endpoint_auth_method_is_allowed
     validate :grant_types_are_allowed
     validate :response_types_are_consistent
+    validate :scopes_are_allowed
     validate :contacts_are_valid_emails
     validate :jwks_and_jwks_uri_mutually_exclusive
     validate :jwks_required_for_private_key_jwt
@@ -92,6 +93,17 @@ module TokenAuthority
       if grant_types.include?("authorization_code") && !response_types.include?("code")
         errors.add(:response_types, "must include 'code' when grant_types includes 'authorization_code'")
       end
+    end
+
+    def scopes_are_allowed
+      return if scope.blank?
+
+      allowed = TokenAuthority.config.rfc_7591_allowed_scopes
+      return if allowed.blank? # If no restrictions configured, allow all
+
+      requested_scopes = scope.to_s.split(/\s+/).reject(&:blank?)
+      disallowed = requested_scopes - allowed
+      errors.add(:scope, "contains disallowed scopes: #{disallowed.join(", ")}") if disallowed.any?
     end
 
     def contacts_are_valid_emails

@@ -51,4 +51,53 @@ RSpec.describe TokenAuthority::AuthorizationGrantsHelper, type: :helper do
       end
     end
   end
+
+  describe "#scope_display_name" do
+    let(:scope) { "read" }
+
+    context "when no scopes are configured" do
+      before do
+        allow(TokenAuthority.config).to receive(:scopes).and_return({})
+      end
+
+      it "returns the scope as-is" do
+        expect(helper.scope_display_name(scope)).to eq(scope)
+      end
+    end
+
+    context "when scopes are configured with display names" do
+      let(:configured_scopes) do
+        {
+          "read" => "Read access",
+          "write" => "Write access"
+        }
+      end
+
+      before do
+        allow(TokenAuthority.config).to receive(:scopes).and_return(configured_scopes)
+      end
+
+      it "returns the configured display name for a mapped scope" do
+        expect(helper.scope_display_name("read")).to eq("Read access")
+      end
+
+      it "returns the configured display name for another mapped scope" do
+        expect(helper.scope_display_name("write")).to eq("Write access")
+      end
+
+      it "returns the scope as-is for an unmapped scope" do
+        expect(helper.scope_display_name("admin")).to eq("admin")
+      end
+    end
+
+    context "when scopes config is nil" do
+      before do
+        allow(TokenAuthority.config).to receive(:scopes).and_return(nil)
+      end
+
+      it "returns the scope as-is" do
+        expect(helper.scope_display_name(scope)).to eq(scope)
+      end
+    end
+  end
 end

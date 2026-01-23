@@ -56,13 +56,13 @@ RSpec.describe TokenAuthority::AuthorizationServerMetadata, type: :model do
       end
     end
 
-    context "when scopes_supported is configured" do
+    context "when scopes is configured" do
       before do
-        TokenAuthority.config.rfc_8414_scopes_supported = ["read", "write"]
+        TokenAuthority.config.scopes = {"read" => "Read access", "write" => "Write access"}
       end
 
       after do
-        TokenAuthority.config.rfc_8414_scopes_supported = []
+        TokenAuthority.config.scopes = nil
       end
 
       it "includes scopes_supported in the response" do
@@ -70,9 +70,9 @@ RSpec.describe TokenAuthority::AuthorizationServerMetadata, type: :model do
       end
     end
 
-    context "when scopes_supported is empty" do
+    context "when scopes is empty" do
       before do
-        TokenAuthority.config.rfc_8414_scopes_supported = []
+        TokenAuthority.config.scopes = nil
       end
 
       it "omits scopes_supported from the response" do

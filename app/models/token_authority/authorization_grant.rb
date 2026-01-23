@@ -6,6 +6,8 @@ module TokenAuthority
   class AuthorizationGrant < ApplicationRecord
     include TokenAuthority::SessionCreatable
 
+    VALID_CODE_CHALLENGE_METHODS = %w[S256].freeze
+
     belongs_to :user, class_name: TokenAuthority.config.user_class
     belongs_to :token_authority_client, class_name: "TokenAuthority::Client", optional: true
     has_many :token_authority_sessions,
@@ -13,14 +15,8 @@ module TokenAuthority
       foreign_key: :token_authority_authorization_grant_id,
       inverse_of: :token_authority_authorization_grant,
       dependent: :destroy
-    has_one :token_authority_challenge,
-      class_name: "TokenAuthority::Challenge",
-      foreign_key: :token_authority_authorization_grant_id,
-      inverse_of: :token_authority_authorization_grant,
-      dependent: :destroy
 
-    accepts_nested_attributes_for :token_authority_challenge
-
+    validates :code_challenge_method, inclusion: {in: VALID_CODE_CHALLENGE_METHODS}, allow_nil: true
     validate :must_have_client_identifier
 
     before_validation :generate_expires_at
@@ -38,8 +34,8 @@ module TokenAuthority
       token_authority_sessions.created_status.order(created_at: :desc).first
     end
 
-    def redeem(resources: [])
-      create_token_authority_session(grant: self, resources:) do
+    def redeem(resources: [], scopes: [])
+      create_token_authority_session(grant: self, resources:, scopes:) do
         update(redeemed: true)
       end
     rescue TokenAuthority::ServerError => error

@@ -6,6 +6,7 @@ module TokenAuthority
   class AuthorizationRequest
     include ActiveModel::Model
     include ActiveModel::Validations
+    include TokenAuthority::Scopeable
 
     VALID_CODE_CHALLENGE_METHODS = ["S256"].freeze
     VALID_RESPONSE_TYPES = ["code"].freeze
@@ -13,6 +14,7 @@ module TokenAuthority
     attr_accessor :token_authority_client, :client_id,
       :code_challenge, :code_challenge_method,
       :redirect_uri, :response_type, :state, :resources
+    attr_reader :scope
 
     validates :response_type, presence: true, inclusion: {in: VALID_RESPONSE_TYPES}
 
@@ -21,6 +23,7 @@ module TokenAuthority
     validate :pkce_params_must_be_valid
     validate :redirect_uri_must_be_valid
     validate :resources_must_be_valid
+    validate :scope_must_be_valid
 
     def self.from_internal_state_token(token)
       attributes = TokenAuthority::JsonWebToken.decode(token)
@@ -41,7 +44,8 @@ module TokenAuthority
         code_challenge_method:,
         redirect_uri:,
         response_type:,
-        resources: resources || []
+        resources: resources || [],
+        scope:
       }
     end
 
@@ -161,6 +165,31 @@ module TokenAuthority
       unless TokenAuthority::ResourceUriValidator.allowed_all?(normalized_resources)
         errors.add(:resources, :not_allowed)
       end
+    end
+
+    def scope_must_be_valid
+      # Check if scope is required
+      if TokenAuthority.config.require_scope && scope.blank?
+        errors.add(:scope, :required)
+        return
+      end
+
+      return if scope.blank?
+
+      # If scopes are provided but feature is disabled, reject them
+      unless TokenAuthority.config.scopes_enabled?
+        errors.add(:scope, :not_allowed)
+        return
+      end
+
+      # Validate all scope tokens
+      unless valid_scope_tokens?
+        errors.add(:scope, :invalid)
+        return
+      end
+
+      # Check against allowed scopes list
+      errors.add(:scope, :not_allowed) unless allowed_scopes?
     end
   end
 end

@@ -43,11 +43,13 @@ TokenAuthority.configure do |config|
   # For other authentication systems, either:
   # 1. Implement these methods on ApplicationController, or
   # 2. Set this to a controller that provides these methods
-  config.authenticatable_controller = "ApplicationController"
+  # Default: "ApplicationController"
+  # config.authenticatable_controller = "ApplicationController"
 
   # The class name of your user model. This is used for the belongs_to association
   # in TokenAuthority::AuthorizationGrant.
-  config.user_class = "User"
+  # Default: "User"
+  # config.user_class = "User"
 
   # ==========================================================================
   # UI/Layout
@@ -63,13 +65,12 @@ TokenAuthority.configure do |config|
   # Server Metadata (RFC 8414)
   # ==========================================================================
 
-  # OAuth scopes supported by your authorization server.
-  # Included in the /.well-known/oauth-authorization-server response.
-  # config.rfc_8414_scopes_supported = ["read", "write"]
-
   # URL to developer documentation for your OAuth server.
   # Included in the /.well-known/oauth-authorization-server response.
   # config.rfc_8414_service_documentation = "https://example.com/docs/oauth"
+
+  # Note: scopes_supported in the metadata response is automatically derived
+  # from the keys of config.scopes (see Scopes section below).
 
   # ==========================================================================
   # Protected Resource Metadata (RFC 9728)
@@ -80,7 +81,7 @@ TokenAuthority.configure do |config|
   # config.rfc_9728_resource = "https://api.example.com/"
 
   # Scopes accepted by the protected resource.
-  # Falls back to rfc_8414_scopes_supported if not set.
+  # Falls back to config.scopes keys if not set.
   # config.rfc_9728_scopes_supported = ["api:read", "api:write"]
 
   # List of authorization server issuer URLs that can issue tokens for this resource.
@@ -104,6 +105,27 @@ TokenAuthority.configure do |config|
 
   # URL to the resource's terms of service.
   # config.rfc_9728_resource_tos_uri = "https://example.com/tos"
+
+  # ==========================================================================
+  # Scopes
+  # ==========================================================================
+
+  # Configure allowed scopes with human-friendly display names.
+  # Keys are the scope strings (used as the allowlist), values are display names
+  # shown on the consent screen.
+  #
+  # Set to nil or {} to disable scope validation entirely.
+  # When configured, only these scopes are allowed in authorization requests.
+  config.scopes = {
+    "read" => "Read your data",
+    "write" => "Create and modify your data",
+    "delete" => "Delete your data",
+    "profile" => "View your profile information"
+  }
+
+  # Require the scope parameter in authorization requests.
+  # When true, clients must specify at least one scope.
+  # config.require_scope = false
 
   # ==========================================================================
   # Resource Indicators (RFC 8707)
@@ -166,4 +188,41 @@ TokenAuthority.configure do |config|
 
   # Cache TTL in seconds for fetched JWKS from jwks_uri (default: 1 hour).
   # config.rfc_7591_jwks_cache_ttl = 3600
+
+  # ==========================================================================
+  # Client Metadata Document (draft-ietf-oauth-client-id-metadata-document)
+  # ==========================================================================
+
+  # URL-based client identifiers allow clients to use HTTPS URLs as their client_id.
+  # The authorization server fetches client metadata from the URL at runtime.
+  # This enables lightweight, decentralized client registration.
+  #
+  # SECURITY CONSIDERATION: By default, any HTTPS URL can be used as a client_id,
+  # meaning any server on the internet can act as an OAuth client to your
+  # authorization server. This is appropriate for MCP servers and open ecosystems.
+  # For restricted access, configure allowed_hosts to limit which domains can
+  # host client metadata documents.
+  #
+  # Example for production with restricted access:
+  #   config.client_metadata_document_allowed_hosts = ["trusted-partner.com", "*.mycompany.com"]
+
+  # Enable URL-based client identifiers (default: true).
+  # config.client_metadata_document_enabled = true
+
+  # Allowed hosts for client metadata document URLs (default: nil = all hosts).
+  # config.client_metadata_document_allowed_hosts = nil
+
+  # Blocked hosts for client metadata document URLs (default: []).
+  # Example: ["internal.example.com", "*.local"]
+  # config.client_metadata_document_blocked_hosts = []
+
+  # Cache TTL in seconds for fetched metadata documents (default: 1 hour).
+  # config.client_metadata_document_cache_ttl = 3600
+
+  # Maximum response size in bytes (default: 5KB).
+  # config.client_metadata_document_max_response_size = 5120
+
+  # Connection and read timeouts in seconds (default: 5 each).
+  # config.client_metadata_document_connect_timeout = 5
+  # config.client_metadata_document_read_timeout = 5
 end

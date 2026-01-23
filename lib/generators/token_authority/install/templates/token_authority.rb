@@ -65,13 +65,12 @@ TokenAuthority.configure do |config|
   # Server Metadata (RFC 8414)
   # ==========================================================================
 
-  # OAuth scopes supported by your authorization server.
-  # Included in the /.well-known/oauth-authorization-server response.
-  # config.rfc_8414_scopes_supported = ["read", "write"]
-
   # URL to developer documentation for your OAuth server.
   # Included in the /.well-known/oauth-authorization-server response.
   # config.rfc_8414_service_documentation = "https://example.com/docs/oauth"
+
+  # Note: scopes_supported in the metadata response is automatically derived
+  # from the keys of config.scopes (see Scopes section below).
 
   # ==========================================================================
   # Protected Resource Metadata (RFC 9728)
@@ -82,7 +81,7 @@ TokenAuthority.configure do |config|
   # config.rfc_9728_resource = "https://api.example.com/"
 
   # Scopes accepted by the protected resource.
-  # Falls back to rfc_8414_scopes_supported if not set.
+  # Falls back to config.scopes keys if not set.
   # config.rfc_9728_scopes_supported = ["api:read", "api:write"]
 
   # List of authorization server issuer URLs that can issue tokens for this resource.
@@ -106,6 +105,25 @@ TokenAuthority.configure do |config|
 
   # URL to the resource's terms of service.
   # config.rfc_9728_resource_tos_uri = "https://example.com/tos"
+
+  # ==========================================================================
+  # Scopes
+  # ==========================================================================
+
+  # Configure allowed scopes with human-friendly display names.
+  # Keys are the scope strings (used as the allowlist), values are display names
+  # shown on the consent screen.
+  #
+  # Set to nil or {} to disable scope validation entirely.
+  # When configured, only these scopes are allowed in authorization requests.
+  # config.scopes = {
+  #   "read" => "Read access to your data",
+  #   "write" => "Write access to your data"
+  # }
+
+  # Require the scope parameter in authorization requests.
+  # When true, clients must specify at least one scope.
+  # config.require_scope = false
 
   # ==========================================================================
   # Resource Indicators (RFC 8707)

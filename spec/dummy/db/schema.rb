@@ -10,30 +10,24 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_01_21_150256) do
+ActiveRecord::Schema[8.1].define(version: 2026_01_23_043538) do
   create_table "token_authority_authorization_grants", force: :cascade do |t|
     t.string "client_id_url"
+    t.string "code_challenge"
+    t.string "code_challenge_method", default: "S256"
     t.datetime "created_at", null: false
     t.datetime "expires_at", null: false
     t.string "public_id", null: false
     t.boolean "redeemed", default: false, null: false
+    t.string "redirect_uri"
+    t.json "resources", default: [], null: false
+    t.json "scopes", default: [], null: false
     t.integer "token_authority_client_id"
     t.datetime "updated_at", null: false
     t.bigint "user_id"
     t.index ["public_id"], name: "index_token_authority_authorization_grants_on_public_id", unique: true
     t.index ["token_authority_client_id"], name: "index_ta_auth_grants_on_client_id"
     t.index ["user_id"], name: "index_ta_auth_grants_on_user_id"
-  end
-
-  create_table "token_authority_challenges", force: :cascade do |t|
-    t.string "code_challenge"
-    t.string "code_challenge_method", default: "S256"
-    t.datetime "created_at", null: false
-    t.string "redirect_uri"
-    t.json "resources", default: [], null: false
-    t.integer "token_authority_authorization_grant_id", null: false
-    t.datetime "updated_at", null: false
-    t.index ["token_authority_authorization_grant_id"], name: "index_ta_challenges_on_auth_grant_id"
   end
 
   create_table "token_authority_client_metadata_document_caches", force: :cascade do |t|
@@ -114,6 +108,5 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_21_150256) do
 
   add_foreign_key "token_authority_authorization_grants", "token_authority_clients"
   add_foreign_key "token_authority_authorization_grants", "users"
-  add_foreign_key "token_authority_challenges", "token_authority_authorization_grants"
   add_foreign_key "token_authority_sessions", "token_authority_authorization_grants"
 end

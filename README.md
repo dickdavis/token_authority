@@ -49,6 +49,12 @@ TokenAuthority.configure do |config|
   config.rfc_9068_audience_url = "https://example.com/api/"
   # The URI for the authorization server (to be included in tokens and metadata)
   config.rfc_9068_issuer_url = "https://example.com/"
+  # Define available scopes and their descriptions (shown on consent screen)
+  config.scopes = {
+    "read" => "Read your data",
+    "write" => "Create and modify your data",
+    "delete" => "Delete your data"
+  }
 end
 ```
 
@@ -93,15 +99,28 @@ If you use [Devise](https://github.com/heartcombo/devise), these methods are alr
 Use the `TokenAuthentication` concern to validate access tokens:
 
 ```ruby
-class Api::V1::ResourcesController < ActionController::API
+class Api::V1::UsersController < ActionController::API
   include TokenAuthority::TokenAuthentication
 
-  def index
-    user = user_from_token # Retrieve the user associated with the access token
-    render json: user.resources
+  before_action :require_read_scope
+
+  def current
+    render json: { id: token_user.id, email: token_user.email }
+  end
+
+  private
+
+  def require_read_scope
+    return if token_scope.include?("read")
+
+    render json: { error: "insufficient_scope" }, status: :forbidden
   end
 end
 ```
+
+The concern automatically validates the access token on every request and provides:
+- `token_user` - Returns the authenticated user
+- `token_scope` - Returns an array of scope tokens (e.g., `["read", "write"]`), or `[]` if no scopes
 
 See [Protecting API Endpoints](https://github.com/dickdavis/token_authority/wiki/Protecting-API-Endpoints) for error handling details.
 

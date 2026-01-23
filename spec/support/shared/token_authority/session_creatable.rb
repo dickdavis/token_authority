@@ -111,3 +111,58 @@ RSpec.shared_examples "a model that creates TokenAuthority sessions with RFC 870
     end
   end
 end
+
+RSpec.shared_examples "a model that creates TokenAuthority sessions with scopes" do
+  context "when scopes are provided" do
+    context "with a single scope" do
+      let(:scopes) { ["read"] }
+
+      it "returns the scope as a string" do
+        results = method_call_with_scopes
+        expect(results.scope).to eq("read")
+      end
+
+      it "sets the scope claim in the access token" do
+        results = method_call_with_scopes
+        token = TokenAuthority::JsonWebToken.decode(results.access_token)
+        expect(token[:scope]).to eq("read")
+      end
+
+      it "sets the scope claim in the refresh token" do
+        results = method_call_with_scopes
+        token = TokenAuthority::JsonWebToken.decode(results.refresh_token)
+        expect(token[:scope]).to eq("read")
+      end
+    end
+
+    context "with multiple scopes" do
+      let(:scopes) { ["read", "write", "delete"] }
+
+      it "returns the scopes as a space-separated string" do
+        results = method_call_with_scopes
+        expect(results.scope).to eq("read write delete")
+      end
+
+      it "sets the scope claim in the access token as a space-separated string" do
+        results = method_call_with_scopes
+        token = TokenAuthority::JsonWebToken.decode(results.access_token)
+        expect(token[:scope]).to eq("read write delete")
+      end
+
+      it "sets the scope claim in the refresh token as a space-separated string" do
+        results = method_call_with_scopes
+        token = TokenAuthority::JsonWebToken.decode(results.refresh_token)
+        expect(token[:scope]).to eq("read write delete")
+      end
+    end
+  end
+
+  context "when no scopes are provided" do
+    let(:scopes) { [] }
+
+    it "returns nil for scope" do
+      results = method_call_with_scopes
+      expect(results.scope).to be_nil
+    end
+  end
+end

@@ -76,6 +76,29 @@ RSpec.describe TokenAuthority::AccessToken, type: :model do
         end
       end
     end
+
+    context "with scopes parameter" do
+      context "when scopes is empty" do
+        it "does not set scope claim" do
+          access_token = described_class.default(exp:, user_id:, scopes: [])
+          expect(access_token.scope).to be_nil
+        end
+      end
+
+      context "when scopes is provided" do
+        it "sets scope as space-delimited string" do
+          access_token = described_class.default(exp:, user_id:, scopes: ["read", "write"])
+          expect(access_token.scope).to eq("read write")
+        end
+      end
+
+      context "when scopes has a single value" do
+        it "sets scope to that single value" do
+          access_token = described_class.default(exp:, user_id:, scopes: ["read"])
+          expect(access_token.scope).to eq("read")
+        end
+      end
+    end
   end
 
   describe ".from_token" do
@@ -98,6 +121,20 @@ RSpec.describe TokenAuthority::AccessToken, type: :model do
           user_id: model.user_id
         }
       )
+    end
+
+    context "when scope is present" do
+      let(:model_with_scope) do
+        described_class.default(
+          exp: 1.hour.from_now.to_i,
+          user_id: create(:user).id,
+          scopes: ["read", "write"]
+        )
+      end
+
+      it "includes scope in the hash" do
+        expect(model_with_scope.to_h[:scope]).to eq("read write")
+      end
     end
   end
 

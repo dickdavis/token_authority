@@ -44,7 +44,7 @@ module TokenAuthority
     end
 
     def scopes_supported
-      config.rfc_9728_scopes_supported.presence || config.rfc_8414_scopes_supported || []
+      config.rfc_9728_scopes_supported.presence || config.scopes&.keys || []
     end
 
     def bearer_methods_supported

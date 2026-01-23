@@ -7,6 +7,7 @@
 #
 # Features demonstrated:
 #   - Client Metadata Documents (draft-ietf-oauth-client-id-metadata-document)
+#   - OAuth Scopes for permission control
 #   - Resource Indicators (RFC 8707) for audience binding
 #   - PKCE with S256 (required for public clients)
 #
@@ -132,6 +133,52 @@ def select_resources(available_resources)
   end
 end
 
+def display_configured_scopes
+  scopes = TokenAuthority.config.scopes
+
+  if scopes.nil? || scopes.empty?
+    puts "OAuth Scopes: DISABLED"
+    puts "  No scopes configured."
+    return {}
+  end
+
+  puts "OAuth Scopes: ENABLED"
+  puts
+  puts "Configured scopes:"
+  scopes.each_with_index do |(scope, description), index|
+    puts "  [#{index + 1}] #{scope}"
+    puts "      #{description}"
+  end
+
+  scopes
+end
+
+def select_scopes(available_scopes)
+  return nil if available_scopes.empty?
+
+  puts
+  puts "Enter scopes to request:"
+  puts "  - Press Enter for no scopes"
+  puts "  - Enter numbers (comma-separated) to select specific scopes"
+  puts "  - Or type scope names directly (space-separated)"
+  print "> "
+  input = gets&.chomp&.strip
+
+  return nil if input.nil? || input.empty?
+
+  # Check if input looks like numbers (comma-separated)
+  if input.match?(/^[\d,\s]+$/)
+    indices = input.split(",").map { |s| s.strip.to_i - 1 }
+    scope_keys = available_scopes.keys
+    selected = indices.select { |i| i >= 0 && i < scope_keys.length }
+      .map { |i| scope_keys[i] }
+    selected.join(" ")
+  else
+    # Treat as space-separated scope names
+    input
+  end
+end
+
 # =============================================================================
 # STEP 1: Collect Client Information
 # =============================================================================
@@ -182,10 +229,30 @@ else
 end
 
 # =============================================================================
+# STEP 2: Scopes
+# =============================================================================
+
+section "STEP 2: OAuth Scopes"
+
+puts "Scopes define what permissions the client is requesting. Users will see"
+puts "the scope descriptions on the consent screen."
+puts
+
+available_scopes = display_configured_scopes
+selected_scope = select_scopes(available_scopes)
+
+puts
+if selected_scope && !selected_scope.empty?
+  puts "Selected scopes: #{selected_scope}"
+else
+  puts "No scopes selected."
+end
+
+# =============================================================================
 # STEP 3: Generate PKCE Parameters
 # =============================================================================
 
-section "STEP 2: Generate PKCE Parameters"
+section "STEP 3: Generate PKCE Parameters"
 
 puts "URL-based clients are always PUBLIC clients and REQUIRE PKCE with S256."
 puts
@@ -199,10 +266,10 @@ puts "  Code Challenge: #{pkce[:challenge]}"
 puts "  Method:         #{pkce[:method]}"
 
 # =============================================================================
-# STEP 3: Build Authorization URL
+# STEP 4: Build Authorization URL
 # =============================================================================
 
-section "STEP 3: Authorization Request"
+section "STEP 4: Authorization Request"
 
 auth_params = {
   client_id: client_id,
@@ -212,6 +279,9 @@ auth_params = {
   code_challenge_method: pkce[:method],
   state: SecureRandom.hex(16)
 }
+
+# Add scope parameter if selected
+auth_params[:scope] = selected_scope if selected_scope && !selected_scope.empty?
 
 # Add resource parameters (RFC 8707)
 # Note: Multiple resources are sent as repeated 'resource' params
@@ -230,6 +300,9 @@ puts "  response_type:         code"
 puts "  code_challenge:        #{pkce[:challenge]}"
 puts "  code_challenge_method: S256"
 puts "  state:                 #{auth_params[:state]}"
+if selected_scope && !selected_scope.empty?
+  puts "  scope:                 #{selected_scope}"
+end
 if selected_resources.any?
   puts "  resource:              #{selected_resources.join(", ")}"
 end
@@ -250,10 +323,10 @@ else
 end
 
 # =============================================================================
-# STEP 4: Token Exchange
+# STEP 5: Token Exchange
 # =============================================================================
 
-section "STEP 4: Token Exchange"
+section "STEP 5: Token Exchange"
 
 puts "After user authorizes, you'll be redirected with an authorization code."
 puts
@@ -356,19 +429,27 @@ puts "  Access Token:  #{access_token[0..50]}..."
 puts "  Refresh Token: #{refresh_token[0..50]}..." if refresh_token
 puts "  Token Type:    #{token_response["token_type"]}"
 puts "  Expires In:    #{token_response["expires_in"]} seconds"
+puts "  Scope:         #{token_response["scope"]}" if token_response["scope"]
 
 # Decode and display JWT claims
 jwt_payload = decode_jwt_payload(access_token)
 if jwt_payload
-  subsection "JWT Access Token Claims (RFC 8707 Audience Binding)"
+  subsection "JWT Access Token Claims"
 
   puts "Key claims from the access token:"
   puts
   puts "  iss (issuer):   #{jwt_payload["iss"]}"
   puts "  sub (subject):  #{jwt_payload["sub"]}"
   puts "  aud (audience): #{jwt_payload["aud"].is_a?(Array) ? jwt_payload["aud"].join(", ") : jwt_payload["aud"]}"
+  puts "  scope:          #{jwt_payload["scope"] || "(none)"}"
   puts "  exp (expires):  #{Time.at(jwt_payload["exp"]).utc}" if jwt_payload["exp"]
   puts "  jti (token id): #{jwt_payload["jti"]}"
+
+  if jwt_payload["scope"]
+    puts
+    puts "The 'scope' claim contains the permissions granted to this token."
+    puts "Resource servers should validate required scopes before allowing access."
+  end
 
   if token_resources.any?
     puts
@@ -379,32 +460,41 @@ if jwt_payload
 end
 
 # =============================================================================
-# STEP 5: Using the Access Token
+# STEP 6: Using the Access Token
 # =============================================================================
 
-section "STEP 5: Using the Access Token"
+section "STEP 6: Using the Access Token"
 
 puts "Example API request with the access token:"
 puts
 puts <<~CURL
-  curl -X GET #{BASE_URL}/api/some-endpoint \\
+  curl -X GET #{BASE_URL}/api/v1/users/current \\
     -H "Authorization: Bearer #{access_token}"
 CURL
+
+puts
+puts "Note: The /api/v1/users/current endpoint requires the 'read' scope."
+if jwt_payload && jwt_payload["scope"]&.include?("read")
+  puts "Your token includes 'read' scope, so this request should succeed."
+else
+  puts "Your token does NOT include 'read' scope, so this request will return 403 Forbidden."
+end
 
 if token_resources.any?
   puts
   puts "The resource server at #{token_resources.first} should:"
   puts "  1. Decode and verify the JWT signature"
   puts "  2. Check that its resource URI is in the 'aud' claim"
-  puts "  3. Reject tokens not audience-bound to it"
+  puts "  3. Validate required scopes are present"
+  puts "  4. Reject tokens not meeting these requirements"
 end
 
 # =============================================================================
-# STEP 6: Refreshing Tokens
+# STEP 7: Refreshing Tokens
 # =============================================================================
 
 if refresh_token
-  section "STEP 6: Refreshing Tokens"
+  section "STEP 7: Refreshing Tokens"
 
   puts "For public clients, refresh tokens are rotated on each use."
   puts
@@ -437,10 +527,16 @@ section "URL-Based Client Authorization Complete"
 puts "This script demonstrated the OAuth flow with a URL-based client_id:"
 puts
 puts "  1. Client metadata fetched from: #{client_id}"
-puts "  2. Resource Indicators (RFC 8707) for audience binding"
-puts "  3. PKCE with S256 (required for public clients)"
-puts "  4. Token exchange without client secret"
+puts "  2. OAuth Scopes for permission control"
+puts "  3. Resource Indicators (RFC 8707) for audience binding"
+puts "  4. PKCE with S256 (required for public clients)"
+puts "  5. Token exchange without client secret"
 puts
+if selected_scope && !selected_scope.empty?
+  puts "Scopes requested: #{selected_scope}"
+  puts "The access token's 'scope' claim contains these permissions."
+  puts
+end
 if token_resources.any?
   puts "RFC 8707 Resource Indicators used:"
   token_resources.each { |r| puts "  - #{r}" }
@@ -457,4 +553,5 @@ puts "  - PKCE is mandatory"
 puts
 puts "For more information, see:"
 puts "  - Client Metadata: https://datatracker.ietf.org/doc/html/draft-ietf-oauth-client-id-metadata-document"
+puts "  - OAuth Scopes: https://datatracker.ietf.org/doc/html/rfc6749#section-3.3"
 puts "  - Resource Indicators: https://www.rfc-editor.org/rfc/rfc8707.html"

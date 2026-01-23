@@ -2,6 +2,14 @@
   <h2><%= t('token_authority.authorization_grants.new.title') %></h2>
   <p><%= t('token_authority.authorization_grants.new.lede') %></p>
   <p><strong><%= client_name %></strong></p>
+  <% if scopes.any? %>
+    <p><%= t('token_authority.authorization_grants.new.scopes_heading') %></p>
+    <ul>
+      <% scopes.each do |scope| %>
+        <li><%= scope_display_name(scope) %></li>
+      <% end %>
+    </ul>
+  <% end %>
   <% if resources.any? %>
     <p><%= t('token_authority.authorization_grants.new.resources_heading') %></p>
     <ul>

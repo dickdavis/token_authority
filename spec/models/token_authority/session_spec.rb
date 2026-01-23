@@ -70,6 +70,14 @@ RSpec.describe TokenAuthority::Session, type: :model do
       it_behaves_like "a model that creates TokenAuthority sessions with RFC 8707 resources"
     end
 
+    describe "scopes" do
+      let(:method_call_with_scopes) do
+        token_authority_session.refresh(token: token_authority_refresh_token, client_id:, scopes:)
+      end
+
+      it_behaves_like "a model that creates TokenAuthority sessions with scopes"
+    end
+
     context "when the TokenAuthority session is in created status" do
       it "refreshes the TokenAuthority session" do
         aggregate_failures do

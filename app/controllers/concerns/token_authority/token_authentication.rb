@@ -7,6 +7,8 @@ module TokenAuthority
     extend ActiveSupport::Concern
 
     included do
+      before_action :decode_token
+
       rescue_from TokenAuthority::MissingAuthorizationHeaderError, with: :missing_auth_header_response
       rescue_from TokenAuthority::InvalidAccessTokenError, with: :invalid_token_response
       rescue_from TokenAuthority::UnauthorizedAccessTokenError, with: :unauthorized_token_response
@@ -14,7 +16,7 @@ module TokenAuthority
 
     private
 
-    def user_from_token
+    def decode_token
       bearer_token_header = request.headers["AUTHORIZATION"]
       raise TokenAuthority::MissingAuthorizationHeaderError if bearer_token_header.blank?
 
@@ -26,9 +28,17 @@ module TokenAuthority
       raise TokenAuthority::UnauthorizedAccessTokenError unless oauth_session.created_status?
       raise TokenAuthority::UnauthorizedAccessTokenError unless access_token.valid?
 
-      TokenAuthority.config.user_class.constantize.find(access_token.user_id)
+      @decoded_token = access_token
     rescue JWT::DecodeError, ActiveModel::UnknownAttributeError
       raise TokenAuthority::InvalidAccessTokenError
+    end
+
+    def token_user
+      @token_user ||= TokenAuthority.config.user_class.constantize.find(@decoded_token.user_id)
+    end
+
+    def token_scope
+      @token_scope ||= @decoded_token.scope&.split || []
     end
 
     def missing_auth_header_response

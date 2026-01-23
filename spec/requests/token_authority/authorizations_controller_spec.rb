@@ -37,13 +37,26 @@ RSpec.describe TokenAuthority::AuthorizationsController, type: :request do
     end
   end
 
+  shared_examples "handles an invalid_scope error" do
+    it "redirects to the client redirect uri with the `invalid_scope` error and state params" do
+      call_endpoint
+      redirect_params = Rack::Utils.parse_query(URI.parse(response.location).query)
+      aggregate_failures do
+        expect(response.location).to match(token_authority_client.primary_redirect_uri)
+        expect(redirect_params["error"]).to eq("invalid_scope")
+        expect(redirect_params["state"]).to eq(state)
+      end
+    end
+  end
+
   describe "GET /authorize" do
     subject(:call_endpoint) { get token_authority.authorize_path, params: }
 
     let(:params) do
-      {client_id:, state:, code_challenge:, code_challenge_method:, redirect_uri:, response_type:, resource:}.compact
+      {client_id:, state:, code_challenge:, code_challenge_method:, redirect_uri:, response_type:, resource:, scope:}.compact
     end
     let(:resource) { nil }
+    let(:scope) { nil }
     let(:client_id) { token_authority_client.public_id }
     let(:state) { "foobar" }
     let(:code_challenge) { "code_challenge" }
@@ -187,6 +200,78 @@ RSpec.describe TokenAuthority::AuthorizationsController, type: :request do
             let(:resource) { "https://api.example.com" }
 
             it_behaves_like "handles an invalid_target error"
+          end
+        end
+      end
+
+      context "with scopes" do
+        let(:configured_scopes) do
+          {
+            "read" => "Read access",
+            "write" => "Write access",
+            "delete" => "Delete access"
+          }
+        end
+
+        before do
+          allow(TokenAuthority.config).to receive(:scopes).and_return(configured_scopes)
+        end
+
+        context "when a valid scope is provided" do
+          let(:scope) { "read" }
+
+          it_behaves_like "redirects successful authorize request"
+
+          it "stores the scope in the internal state" do
+            call_endpoint
+            internal_state = session[:token_authority_internal_state]
+            decoded = TokenAuthority::JsonWebToken.decode(internal_state)
+            expect(decoded[:scope]).to eq(["read"])
+          end
+        end
+
+        context "when multiple valid scopes are provided" do
+          let(:scope) { "read write" }
+
+          it_behaves_like "redirects successful authorize request"
+
+          it "stores all scopes in the internal state" do
+            call_endpoint
+            internal_state = session[:token_authority_internal_state]
+            decoded = TokenAuthority::JsonWebToken.decode(internal_state)
+            expect(decoded[:scope]).to match_array(["read", "write"])
+          end
+        end
+
+        context "when an invalid scope is provided" do
+          let(:scope) { "invalid_scope" }
+
+          it_behaves_like "handles an invalid_scope error"
+        end
+
+        context "when scope is required but not provided" do
+          before do
+            allow(TokenAuthority.config).to receive(:require_scope).and_return(true)
+          end
+
+          it_behaves_like "handles an invalid_scope error"
+        end
+
+        context "when scopes are disabled (no scopes configured)" do
+          before do
+            allow(TokenAuthority.config).to receive(:scopes).and_return(nil)
+          end
+
+          context "when no scope is provided" do
+            let(:scope) { nil }
+
+            it_behaves_like "redirects successful authorize request"
+          end
+
+          context "when a scope is provided" do
+            let(:scope) { "read" }
+
+            it_behaves_like "handles an invalid_scope error"
           end
         end
       end

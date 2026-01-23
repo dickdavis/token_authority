@@ -12,7 +12,7 @@ module TokenAuthority
   #   include TokenAuthority::EventLogging
   #
   #   # In instance methods:
-  #   notify_event("security.session.revoked", session_id: id, user_id: user_id)
+  #   notify_event("security.session.revoked", session_id: id, client_id: client_id)
   #   debug_event("validation.pkce.started", code_challenge: challenge)
   #
   #   # In class methods:

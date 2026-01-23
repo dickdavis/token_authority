@@ -500,8 +500,7 @@ RSpec.describe TokenAuthority::SessionsController, type: :request do
         expect { call_endpoint }
           .to emit_event("token_authority.security.token.theft_detected")
           .with_payload(
-            client_id: token_authority_authorization_grant.token_authority_client.public_id,
-            user_id: user.id
+            client_id: token_authority_authorization_grant.token_authority_client.public_id
           )
       end
     end
@@ -540,8 +539,7 @@ RSpec.describe TokenAuthority::SessionsController, type: :request do
         expect { call_endpoint }
           .to emit_event("token_authority.security.token.theft_detected")
           .with_payload(
-            client_id: token_authority_authorization_grant.token_authority_client.public_id,
-            user_id: user.id
+            client_id: token_authority_authorization_grant.token_authority_client.public_id
           )
       end
     end

@@ -5,7 +5,7 @@ module TokenAuthority
   # Concern for emitting structured event logs from controllers.
   # Extends the base EventLogging module with controller-specific features.
   #
-  # Automatically adds request_id and ip_address to all event payloads.
+  # Automatically adds request_id to all event payloads.
   #
   # Usage:
   #   include TokenAuthority::ControllerEventLogging
@@ -23,7 +23,7 @@ module TokenAuthority
     private
 
     # Emit a production event using Rails.event.notify
-    # Automatically includes request_id and ip_address from the current request
+    # Automatically includes request_id from the current request
     # @param event_name [String] The event name (will be prefixed with "token_authority.")
     # @param payload [Hash] The event payload
     def notify_event(event_name, **payload)
@@ -34,7 +34,7 @@ module TokenAuthority
     end
 
     # Emit a debug event using Rails.event.debug
-    # Automatically includes request_id and ip_address from the current request
+    # Automatically includes request_id from the current request
     # @param event_name [String] The event name (will be prefixed with "token_authority.")
     # @param payload [Hash] The event payload
     def debug_event(event_name, **payload)
@@ -56,7 +56,6 @@ module TokenAuthority
     def build_controller_payload(payload)
       base = {timestamp: Time.current.iso8601(6)}
       base[:request_id] = request.request_id if request.respond_to?(:request_id) && request.request_id.present?
-      base[:ip_address] = request.remote_ip if request.respond_to?(:remote_ip)
       base.merge(payload)
     end
   end

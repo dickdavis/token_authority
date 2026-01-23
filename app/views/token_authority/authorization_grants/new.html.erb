@@ -19,7 +19,7 @@
     </ul>
   <% end %>
   <div>
-    <%= button_to t('token_authority.authorization_grants.new.reject_cta'), authorization_grants_path, params: { approve: false } %>
-    <%= button_to t('token_authority.authorization_grants.new.approve_cta'), authorization_grants_path, params: { approve: true } %>
+    <%= button_to t('token_authority.authorization_grants.new.reject_cta'), authorization_grants_path, params: { approve: false }, data: { turbo: false } %>
+    <%= button_to t('token_authority.authorization_grants.new.approve_cta'), authorization_grants_path, params: { approve: true }, data: { turbo: false } %>
   </div>
 </div>

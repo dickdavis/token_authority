@@ -116,6 +116,9 @@ en:
         redirect_uri: 'Redirect URI'
         response_type: 'Response type'
         state: 'State'
+        resources: 'Resources'
+      token_authority/access_token_request:
+        resources: 'Resources'
       token_authority/refresh_token:
         aud: 'Audience (aud)'
         exp: 'Expires at (exp)'
@@ -151,6 +154,10 @@ en:
               blank: 'must be provided as a param in the access token request'
               mismatched: 'does not match the redirect_uri from the authorize request'
               present_in_authorize: 'must be provided if sent in the original authorization request'
+            resources:
+              invalid_uri: 'must contain valid absolute URIs with http/https scheme and no fragments'
+              not_allowed: 'must only contain allowed resource URIs'
+              not_subset: 'must be a subset of the originally granted resources'
         token_authority/authorization_request:
           attributes:
             client_id:
@@ -173,6 +180,11 @@ en:
               blank: 'must be provided as a param in the request to authorize'
               invalid: 'must be a supported response type'
             state:
+            resources:
+              required: 'must be provided when resource indicators are required'
+              invalid_uri: 'must contain valid absolute URIs with http/https scheme and no fragments'
+              not_allowed: 'must only contain allowed resource URIs'
+              not_subset: 'must be a subset of the originally granted resources'
         token_authority/refresh_token:
           attributes:
             aud:
@@ -191,6 +203,7 @@ en:
       new:
         title: 'Authorize this Client'
         lede: 'Confirm that you wish to grant access to this client.'
+        resources_heading: 'This application is requesting access to:'
         approve_cta: 'Approve'
         reject_cta: 'Reject'
     client_error:

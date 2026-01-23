@@ -322,6 +322,120 @@ RSpec.describe TokenAuthority::AuthorizationRequest, type: :model do
         end
       end
     end
+
+    context "with scope support" do
+      let_it_be(:token_authority_client) { create(:token_authority_client, client_type: "public") }
+      let(:scope) { nil }
+      let(:model) do
+        described_class.new(
+          token_authority_client: token_authority_client,
+          client_id: token_authority_client.public_id,
+          code_challenge: "challenge",
+          code_challenge_method: "S256",
+          redirect_uri: token_authority_client.primary_redirect_uri,
+          response_type: "code",
+          state: "some-state",
+          scope: scope
+        )
+      end
+
+      before do
+        allow(TokenAuthority.config).to receive(:scopes).and_return(
+          {"read" => "Read access", "write" => "Write access"}
+        )
+        allow(TokenAuthority.config).to receive(:scopes_enabled?).and_return(true)
+        allow(TokenAuthority.config).to receive(:require_scope).and_return(false)
+      end
+
+      context "when scope is nil" do
+        let(:scope) { nil }
+
+        it "is valid" do
+          expect(model).to be_valid
+        end
+      end
+
+      context "when scope is an empty array" do
+        let(:scope) { [] }
+
+        it "is valid" do
+          expect(model).to be_valid
+        end
+      end
+
+      context "when scope is valid and allowed" do
+        let(:scope) { ["read", "write"] }
+
+        it "is valid" do
+          expect(model).to be_valid
+        end
+      end
+
+      context "when scope contains invalid token" do
+        let(:scope) { ["read", "invalid scope"] }
+
+        it "is invalid with invalid error" do
+          expect(model).not_to be_valid
+          expect(model.errors[:scope]).to include(
+            I18n.t("activemodel.errors.models.token_authority/authorization_request.attributes.scope.invalid")
+          )
+        end
+      end
+
+      context "when scope contains disallowed scope" do
+        let(:scope) { ["read", "admin"] }
+
+        it "is invalid with not_allowed error" do
+          expect(model).not_to be_valid
+          expect(model.errors[:scope]).to include(
+            I18n.t("activemodel.errors.models.token_authority/authorization_request.attributes.scope.not_allowed")
+          )
+        end
+      end
+
+      context "when require_scope is true" do
+        before do
+          allow(TokenAuthority.config).to receive(:require_scope).and_return(true)
+        end
+
+        context "when scope is empty" do
+          let(:scope) { [] }
+
+          it "is invalid with required error" do
+            expect(model).not_to be_valid
+            expect(model.errors[:scope]).to include(
+              I18n.t("activemodel.errors.models.token_authority/authorization_request.attributes.scope.required")
+            )
+          end
+        end
+      end
+
+      context "when scopes are disabled (no scopes configured)" do
+        before do
+          allow(TokenAuthority.config).to receive(:scopes).and_return(nil)
+          allow(TokenAuthority.config).to receive(:scopes_enabled?).and_return(false)
+        end
+
+        context "when no scope is provided" do
+          let(:scope) { nil }
+
+          it "is valid" do
+            expect(model).to be_valid
+          end
+        end
+
+        context "when scope is provided" do
+          let(:scope) { ["read"] }
+
+          it "is invalid with not_allowed error" do
+            expect(model).not_to be_valid
+            expect(model.errors[:scope]).to include(
+              I18n.t("activemodel.errors.models.token_authority/authorization_request.attributes.scope.not_allowed")
+            )
+          end
+        end
+      end
+    end
   end
 
   describe ".from_internal_state_token" do
@@ -427,6 +541,27 @@ RSpec.describe TokenAuthority::AuthorizationRequest, type: :model do
         expect(result.resources).to eq(["https://api.example.com", "https://api2.example.com"])
       end
     end
+
+    context "with scope" do
+      let(:authorization_request) do
+        described_class.new(
+          token_authority_client: token_authority_client,
+          client_id: token_authority_client.public_id,
+          code_challenge: "challenge",
+          code_challenge_method: "S256",
+          redirect_uri: token_authority_client.primary_redirect_uri,
+          response_type: "code",
+          state: "some-state",
+          scope: ["read", "write"]
+        )
+      end
+
+      it "preserves scope through serialization and deserialization" do
+        result = described_class.from_internal_state_token(token)
+
+        expect(result.scope).to eq(["read", "write"])
+      end
+    end
   end
 
   describe "#to_h" do
@@ -457,6 +592,38 @@ RSpec.describe TokenAuthority::AuthorizationRequest, type: :model do
 
       it "includes resources in the hash" do
         expect(authorization_request.to_h[:resources]).to eq(["https://api.example.com"])
+      end
+    end
+  end
+
+  describe "#to_h scope handling" do
+    let_it_be(:token_authority_client) { create(:token_authority_client, client_type: "public") }
+    let(:authorization_request) do
+      described_class.new(
+        token_authority_client: token_authority_client,
+        client_id: token_authority_client.public_id,
+        code_challenge: "challenge",
+        code_challenge_method: "S256",
+        redirect_uri: token_authority_client.primary_redirect_uri,
+        response_type: "code",
+        state: "some-state",
+        scope: scope
+      )
+    end
+
+    context "when scope is nil" do
+      let(:scope) { nil }
+
+      it "includes empty array for scope" do
+        expect(authorization_request.to_h[:scope]).to eq([])
+      end
+    end
+
+    context "when scope is provided" do
+      let(:scope) { ["read", "write"] }
+
+      it "includes scope in the hash" do
+        expect(authorization_request.to_h[:scope]).to eq(["read", "write"])
       end
     end
   end

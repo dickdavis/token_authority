@@ -26,7 +26,8 @@ module TokenAuthority
         redirect_uri: params[:redirect_uri],
         response_type: params[:response_type],
         state:,
-        resources:
+        resources:,
+        scope: params[:scope]
       )
 
       if authorization_request.valid?
@@ -36,6 +37,10 @@ module TokenAuthority
         head :bad_request and return
       elsif authorization_request.errors.where(:resources).any?
         params_for_redirect = {error: :invalid_target, state:}.compact
+        url = @token_authority_client.url_for_redirect(params: params_for_redirect.compact)
+        redirect_to url, allow_other_host: true
+      elsif authorization_request.errors.where(:scope).any?
+        params_for_redirect = {error: :invalid_scope, state:}.compact
         url = @token_authority_client.url_for_redirect(params: params_for_redirect.compact)
         redirect_to url, allow_other_host: true
       else

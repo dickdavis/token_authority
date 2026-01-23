@@ -2,6 +2,10 @@
 
 module TokenAuthority
   ##
+  # Error for when the configuration is invalid.
+  class ConfigurationError < StandardError; end
+
+  ##
   # Error for when the OAuth client is mismatched.
   class ClientMismatchError < StandardError; end
 

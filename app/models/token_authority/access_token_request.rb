@@ -8,6 +8,7 @@ module TokenAuthority
     include ActiveModel::Validations
     include TokenAuthority::Resourceable
     include TokenAuthority::Scopeable
+    include TokenAuthority::EventLogging
 
     attr_accessor :code_verifier, :token_authority_authorization_grant, :redirect_uri
 
@@ -50,6 +51,10 @@ module TokenAuthority
     end
 
     def validate_code_verifier_for_public
+      debug_event("validation.pkce.started",
+        client_type: "public",
+        has_code_verifier: code_verifier.present?)
+
       errors.add(:code_verifier, :blank) and return if code_verifier.blank?
 
       validate_code_verifier_matches_code_challenge
@@ -57,6 +62,11 @@ module TokenAuthority
 
     def validate_code_verifier_for_confidential
       return unless challenge_required?
+
+      debug_event("validation.pkce.started",
+        client_type: "confidential",
+        has_code_verifier: code_verifier.present?,
+        challenge_params_present: challenge_params_present_in_authorize?)
 
       if code_verifier.blank? && challenge_params_present_in_authorize?
         errors.add(:code_verifier, :present_in_authorize) and return
@@ -75,7 +85,13 @@ module TokenAuthority
 
     def validate_code_verifier_matches_code_challenge
       challenge = Base64.urlsafe_encode64(Digest::SHA256.digest(code_verifier), padding: false)
-      errors.add(:code_verifier, :does_not_validate_code_challenge) unless token_authority_authorization_grant.code_challenge == challenge
+      valid = token_authority_authorization_grant.code_challenge == challenge
+
+      debug_event("validation.pkce.completed",
+        valid: valid,
+        code_challenge_method: token_authority_authorization_grant.code_challenge_method)
+
+      errors.add(:code_verifier, :does_not_validate_code_challenge) unless valid
     end
 
     def redirect_uri_must_be_valid

@@ -7,6 +7,8 @@ module TokenAuthority
     extend ActiveSupport::Concern
 
     included do
+      include TokenAuthority::ControllerEventLogging
+
       before_action :decode_token
 
       rescue_from TokenAuthority::MissingAuthorizationHeaderError, with: :missing_auth_header_response
@@ -29,6 +31,11 @@ module TokenAuthority
       raise TokenAuthority::UnauthorizedAccessTokenError unless access_token.valid?
 
       @decoded_token = access_token
+
+      notify_event("authentication.token.succeeded",
+        user_id: access_token.user_id,
+        session_id: oauth_session.id,
+        token_scopes: access_token.scope)
     rescue JWT::DecodeError, ActiveModel::UnknownAttributeError
       raise TokenAuthority::InvalidAccessTokenError
     end
@@ -42,14 +49,23 @@ module TokenAuthority
     end
 
     def missing_auth_header_response
+      notify_event("authentication.token.failed",
+        failure_reason: "missing_authorization_header")
+
       render json: {error: I18n.t("token_authority.errors.missing_auth_header")}, status: :unauthorized
     end
 
     def invalid_token_response
+      notify_event("authentication.token.failed",
+        failure_reason: "invalid_token_format")
+
       render json: {error: I18n.t("token_authority.errors.invalid_token")}, status: :unauthorized
     end
 
     def unauthorized_token_response
+      notify_event("authentication.token.failed",
+        failure_reason: "unauthorized_token")
+
       render json: {error: I18n.t("token_authority.errors.unauthorized_token")}, status: :unauthorized
     end
   end

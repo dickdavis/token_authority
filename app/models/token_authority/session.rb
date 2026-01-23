@@ -5,6 +5,7 @@ module TokenAuthority
   # Models a token authority session with minimal data from session.
   class Session < ApplicationRecord
     include TokenAuthority::SessionCreatable
+    include TokenAuthority::EventLogging
 
     STATUS_ENUM_VALUES = {
       created: "created",
@@ -47,11 +48,24 @@ module TokenAuthority
       raise TokenAuthority::ServerError, error.message
     end
 
-    def revoke_self_and_active_session
+    def revoke_self_and_active_session(reason: "revocation_requested", request_id: nil)
+      related_session_ids = []
       ActiveRecord::Base.transaction do
         update(status: "revoked")
-        token_authority_authorization_grant.active_token_authority_session&.update(status: "revoked")
+        active_session = token_authority_authorization_grant.active_token_authority_session
+        if active_session && active_session.id != id
+          active_session.update(status: "revoked")
+          related_session_ids << active_session.id
+        end
       end
+
+      notify_event("security.session.revoked",
+        request_id: request_id,
+        session_id: id,
+        user_id: user_id,
+        client_id: token_authority_authorization_grant.resolved_client&.public_id,
+        reason: reason,
+        related_session_ids: related_session_ids)
     end
 
     def self.revoke_for_token(jti:)

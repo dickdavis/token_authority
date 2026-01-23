@@ -38,6 +38,11 @@ RSpec.describe TokenAuthority::ClientsController, type: :request do
         expect(response).to have_http_status(:created)
       end
 
+      it "emits client registration completed event" do
+        expect { call_endpoint }
+          .to emit_event("token_authority.client.registration.completed")
+      end
+
       it "returns the client_id and client_secret" do
         call_endpoint
         body = response.parsed_body
@@ -94,6 +99,12 @@ RSpec.describe TokenAuthority::ClientsController, type: :request do
             expect(response.parsed_body["error"]).to eq("invalid_client_metadata")
           end
         end
+
+        it "emits client registration failed event" do
+          expect { call_endpoint }
+            .to emit_event("token_authority.client.registration.failed")
+            .with_payload(error_type: "invalid_client_metadata")
+        end
       end
 
       context "with missing redirect_uris" do
@@ -110,6 +121,12 @@ RSpec.describe TokenAuthority::ClientsController, type: :request do
             expect(response).to have_http_status(:bad_request)
             expect(response.parsed_body["error"]).to eq("invalid_client_metadata")
           end
+        end
+
+        it "emits client registration failed event" do
+          expect { call_endpoint }
+            .to emit_event("token_authority.client.registration.failed")
+            .with_payload(error_type: "invalid_client_metadata")
         end
       end
 

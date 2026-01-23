@@ -14,6 +14,12 @@ RSpec.describe TokenAuthority::SessionsController, type: :request do
           expect(response.parsed_body).to eq({"error" => "invalid_grant"})
         end
       end
+
+      it "emits token exchange failed event" do
+        expect { call_endpoint }
+          .to emit_event("token_authority.token.exchange.failed")
+          .with_payload(error_type: "invalid_grant")
+      end
     end
 
     context "when the authorization grant has already been redeemed" do
@@ -25,6 +31,12 @@ RSpec.describe TokenAuthority::SessionsController, type: :request do
           expect(response).to have_http_status(:bad_request)
           expect(response.parsed_body).to eq({"error" => "invalid_grant"})
         end
+      end
+
+      it "emits token exchange failed event" do
+        expect { call_endpoint }
+          .to emit_event("token_authority.token.exchange.failed")
+          .with_payload(error_type: "invalid_grant")
       end
     end
   end
@@ -80,6 +92,33 @@ RSpec.describe TokenAuthority::SessionsController, type: :request do
           end
         end
       end
+    end
+  end
+
+  shared_examples "emits token exchange events" do
+    it "emits token.exchange.requested and token.exchange.completed events" do
+      expect { call_endpoint }.to emit_events(
+        "token_authority.token.exchange.requested",
+        "token_authority.token.exchange.completed"
+      )
+    end
+  end
+
+  shared_examples "emits token refresh events" do
+    it "emits token.refresh.requested and token.refresh.completed events" do
+      expect { call_endpoint }.to emit_events(
+        "token_authority.token.refresh.requested",
+        "token_authority.token.refresh.completed"
+      )
+    end
+  end
+
+  shared_examples "emits token revocation events" do
+    it "emits token.revocation.requested and token.revocation.completed events" do
+      expect { call_endpoint }.to emit_events(
+        "token_authority.token.revocation.requested",
+        "token_authority.token.revocation.completed"
+      )
     end
   end
 
@@ -237,6 +276,7 @@ RSpec.describe TokenAuthority::SessionsController, type: :request do
       it_behaves_like "requires a valid client_id param"
       it_behaves_like "requires a valid redirect_uri param"
       it_behaves_like "generates an OAuth session"
+      it_behaves_like "emits token exchange events"
       it_behaves_like "implements PKCE"
       it_behaves_like "requires PKCE"
 
@@ -455,6 +495,15 @@ RSpec.describe TokenAuthority::SessionsController, type: :request do
             )
           )
       end
+
+      it "emits token theft detected event" do
+        expect { call_endpoint }
+          .to emit_event("token_authority.security.token.theft_detected")
+          .with_payload(
+            client_id: token_authority_authorization_grant.token_authority_client.public_id,
+            user_id: user.id
+          )
+      end
     end
 
     shared_examples "does not refresh an already refreshed session" do
@@ -485,6 +534,16 @@ RSpec.describe TokenAuthority::SessionsController, type: :request do
             )
           )
       end
+
+      it "emits token theft detected event" do
+        create(:token_authority_session, token_authority_authorization_grant:) # active session
+        expect { call_endpoint }
+          .to emit_event("token_authority.security.token.theft_detected")
+          .with_payload(
+            client_id: token_authority_authorization_grant.token_authority_client.public_id,
+            user_id: user.id
+          )
+      end
     end
 
     context "when the client type is public" do
@@ -497,6 +556,7 @@ RSpec.describe TokenAuthority::SessionsController, type: :request do
 
       it_behaves_like "requires a valid client_id param"
       it_behaves_like "generates an OAuth session"
+      it_behaves_like "emits token refresh events"
       it_behaves_like "requires a valid refresh_token param"
       it_behaves_like "does not refresh a revoked session"
       it_behaves_like "does not refresh an already refreshed session"
@@ -684,6 +744,8 @@ RSpec.describe TokenAuthority::SessionsController, type: :request do
 
       let(:client_id) { token_authority_client.public_id }
 
+      it_behaves_like "emits token revocation events"
+
       it "invokes the domain logic for revocation via generic lookup" do
         allow(TokenAuthority::Session).to receive(:revoke_for_token).and_return(true)
         call_endpoint
@@ -705,6 +767,7 @@ RSpec.describe TokenAuthority::SessionsController, type: :request do
       include_context "with an authenticated client", :post, :token_authority_revoke_path
 
       it_behaves_like "an endpoint that requires client authentication"
+      it_behaves_like "emits token revocation events"
 
       it "invokes the domain logic for revocation via generic lookup" do
         allow(TokenAuthority::Session).to receive(:revoke_for_token).and_return(true)
@@ -734,6 +797,8 @@ RSpec.describe TokenAuthority::SessionsController, type: :request do
 
       let(:client_id) { token_authority_client.public_id }
 
+      it_behaves_like "emits token revocation events"
+
       it "invokes the domain logic for revocation via access token lookup" do
         allow(TokenAuthority::Session).to receive(:revoke_for_access_token).and_return(true)
         call_endpoint
@@ -755,6 +820,7 @@ RSpec.describe TokenAuthority::SessionsController, type: :request do
       include_context "with an authenticated client", :post, :token_authority_revoke_access_token_path
 
       it_behaves_like "an endpoint that requires client authentication"
+      it_behaves_like "emits token revocation events"
 
       it "invokes the domain logic for revocation via access token lookup" do
         allow(TokenAuthority::Session).to receive(:revoke_for_access_token).and_return(true)
@@ -784,6 +850,8 @@ RSpec.describe TokenAuthority::SessionsController, type: :request do
 
       let(:client_id) { token_authority_client.public_id }
 
+      it_behaves_like "emits token revocation events"
+
       it "invokes the domain logic for revocation via refresh token lookup" do
         allow(TokenAuthority::Session).to receive(:revoke_for_refresh_token).and_return(true)
         call_endpoint
@@ -805,6 +873,7 @@ RSpec.describe TokenAuthority::SessionsController, type: :request do
       include_context "with an authenticated client", :post, :token_authority_revoke_refresh_token_path
 
       it_behaves_like "an endpoint that requires client authentication"
+      it_behaves_like "emits token revocation events"
 
       it "invokes the domain logic for revocation via refresh token lookup" do
         allow(TokenAuthority::Session).to receive(:revoke_for_refresh_token).and_return(true)

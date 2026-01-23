@@ -221,6 +221,12 @@ RSpec.describe TokenAuthority::Session, type: :model do
             expect(described_class.where(status: "revoked").count).to eq(1)
           end
         end
+
+        it "emits session revoked event" do
+          expect { method_call }
+            .to emit_event("token_authority.security.session.revoked")
+            .with_payload(session_id: token_authority_session.id)
+        end
       end
 
       context "when the TokenAuthority session is not the active TokenAuthority session" do
@@ -239,6 +245,16 @@ RSpec.describe TokenAuthority::Session, type: :model do
             expect(alt_token_authority_session.reload.status).to eq("created")
             expect(described_class.where(status: "revoked").count).to eq(2)
           end
+        end
+
+        it "emits session revoked event with related session ids" do
+          active_token_authority_session = create(:token_authority_session, token_authority_authorization_grant:)
+          expect { method_call }
+            .to emit_event("token_authority.security.session.revoked")
+            .with_payload(
+              session_id: token_authority_session.id,
+              related_session_ids: [active_token_authority_session.id]
+            )
         end
       end
     end

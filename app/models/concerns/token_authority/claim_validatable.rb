@@ -21,8 +21,8 @@ module TokenAuthority
     extend ActiveSupport::Concern
 
     # JWT claims that should trigger session revocation when invalid.
-    # These represent security violations like wrong audience or issuer.
-    REVOCABLE_CLAIMS = %i[aud iss user_id].freeze
+    # These represent security violations like wrong audience, issuer, or subject.
+    REVOCABLE_CLAIMS = %i[aud iss sub].freeze
 
     # JWT claims that should trigger session expiration when invalid.
     # Currently only includes the exp (expiration time) claim.

@@ -8,8 +8,7 @@ module TokenAuthority
   # (JWT ID) is stored in the Session model for revocation lookups.
   #
   # The tokens follow RFC 9068 JWT Profile for OAuth Access Tokens, including
-  # standard claims (iss, aud, exp, iat, jti) plus custom claims like user_id
-  # and scope.
+  # standard claims (iss, sub, aud, exp, iat, jti, client_id) plus the scope claim.
   #
   # This is an ActiveModel object (not ActiveRecord) that provides validation
   # and serialization of JWT claims without database persistence.
@@ -18,6 +17,7 @@ module TokenAuthority
   #   token = TokenAuthority::AccessToken.default(
   #     exp: 5.minutes.from_now,
   #     user_id: 42,
+  #     client_id: "550e8400-e29b-41d4-a716-446655440000",
   #     resources: ["https://api.example.com"],
   #     scopes: ["read", "write"]
   #   )
@@ -31,17 +31,22 @@ module TokenAuthority
   class AccessToken
     include TokenAuthority::ClaimValidatable
 
-    # @!attribute [rw] user_id
-    #   The ID of the user this token grants access for.
-    #   @return [Integer]
-    attr_accessor :user_id
+    # @!attribute [rw] sub
+    #   The subject identifier (resource owner) per RFC 9068.
+    #   @return [String]
+    attr_accessor :sub
+
+    # @!attribute [rw] client_id
+    #   The OAuth client identifier per RFC 9068/RFC 8693.
+    #   @return [String]
+    attr_accessor :client_id
 
     # @!attribute [rw] scope
     #   Space-separated list of OAuth scopes granted to this token.
     #   @return [String, nil]
     attr_accessor :scope
 
-    validates :user_id, presence: true, comparison: {equal_to: :user_id_from_token_authority_session}
+    validates :sub, presence: true, comparison: {equal_to: :sub_from_token_authority_session}
 
     # Creates a new access token with default claims per RFC 9068.
     #
@@ -49,7 +54,8 @@ module TokenAuthority
     # otherwise falls back to the configured default audience URL.
     #
     # @param exp [Time, Integer] token expiration time
-    # @param user_id [Integer] the user ID
+    # @param user_id [Integer] the user ID (converted to string for sub claim)
+    # @param client_id [String] the OAuth client identifier
     # @param resources [Array<String>] resource indicators (RFC 8707)
     # @param scopes [Array<String>] OAuth scopes to include
     #
@@ -59,10 +65,11 @@ module TokenAuthority
     #   token = AccessToken.default(
     #     exp: 5.minutes.from_now,
     #     user_id: 123,
+    #     client_id: "550e8400-e29b-41d4-a716-446655440000",
     #     resources: ["https://api.example.com"],
     #     scopes: ["read", "write"]
     #   )
-    def self.default(exp:, user_id:, resources: [], scopes: [])
+    def self.default(exp:, user_id:, client_id:, resources: [], scopes: [])
       # Use resources for aud claim if provided, otherwise fall back to config
       aud = if resources.any?
         (resources.size == 1) ? resources.first : resources
@@ -78,7 +85,8 @@ module TokenAuthority
         iat: Time.zone.now.to_i,
         iss: TokenAuthority.config.rfc_9068_issuer_url,
         jti: SecureRandom.uuid,
-        user_id:,
+        sub: user_id.to_s,
+        client_id:,
         scope: scope_claim
       )
     end
@@ -93,7 +101,7 @@ module TokenAuthority
     #
     # @example
     #   token = AccessToken.from_token(jwt_string)
-    #   user_id = token.user_id
+    #   subject = token.sub
     def self.from_token(token)
       new(TokenAuthority::JsonWebToken.decode(token))
     end
@@ -104,7 +112,7 @@ module TokenAuthority
     #
     # @return [Hash] the JWT claims
     def to_h
-      {aud:, exp:, iat:, iss:, jti:, user_id:, scope:}.compact
+      {aud:, exp:, iat:, iss:, jti:, sub:, client_id:, scope:}.compact
     end
 
     # Encodes the token as a signed JWT string.
@@ -116,12 +124,12 @@ module TokenAuthority
 
     private
 
-    # Returns the user_id from the associated session for validation.
+    # Returns the subject (user_id as string) from the associated session for validation.
     #
-    # @return [Integer, nil]
+    # @return [String, nil]
     # @api private
-    def user_id_from_token_authority_session
-      token_authority_session&.user_id
+    def sub_from_token_authority_session
+      token_authority_session&.user_id&.to_s
     end
   end
 end

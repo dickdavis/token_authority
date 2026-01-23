@@ -78,7 +78,7 @@ module TokenAuthority
 
       instrument("session.create") do
         access_token_expiration = client.access_token_duration.seconds.from_now.to_i
-        access_token = TokenAuthority::AccessToken.default(user_id:, exp: access_token_expiration, resources:, scopes:)
+        access_token = TokenAuthority::AccessToken.default(user_id:, client_id: client.public_id, exp: access_token_expiration, resources:, scopes:)
 
         refresh_token_expiration = client.refresh_token_duration.seconds.from_now.to_i
         refresh_token = TokenAuthority::RefreshToken.default(exp: refresh_token_expiration, resources:, scopes:)

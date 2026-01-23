@@ -84,7 +84,7 @@ module TokenAuthority
     # @return [User] the user from the configured user_class
     # @api private
     def token_user
-      @token_user ||= TokenAuthority.config.user_class.constantize.find(@decoded_token.user_id)
+      @token_user ||= TokenAuthority.config.user_class.constantize.find(@decoded_token.sub)
     end
 
     # Returns the scopes granted in the authenticated token.

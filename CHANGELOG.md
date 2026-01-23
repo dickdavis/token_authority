@@ -10,6 +10,9 @@
 - Implemented support for OAuth 2.0 Resource Indicators (RFC 8707).
 - Implemented configuration.
 - Implemented install generator with templates.
+- Implemented structured event logging.
+- Implemented instrumentation.
+- Added documentation.
 
 ## [0.1.0] - 2026-01-19
 

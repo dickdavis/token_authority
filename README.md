@@ -143,6 +143,20 @@ Event logging is enabled by default. Events are automatically logged to `Rails.l
 
 See [Event Logging](https://github.com/dickdavis/token_authority/wiki/Event-Logging) for the full event reference and custom subscriber examples.
 
+### Instrumentation
+
+TokenAuthority emits `ActiveSupport::Notifications` instrumentation events for performance monitoring. These events provide timing data that APM tools (New Relic, Datadog, Skylight) automatically capture.
+
+Instrumentation is enabled by default. Events are automatically logged to `Rails.logger`:
+
+```
+[TokenAuthority::Instrumentation] token_authority.session.create (15.2ms)
+[TokenAuthority::Instrumentation] token_authority.jwt.encode (0.4ms) token_size=312
+[TokenAuthority::Instrumentation] token_authority.client.resolve (0.5ms) client_type="registered"
+```
+
+See [Instrumentation](https://github.com/dickdavis/token_authority/wiki/Instrumentation) for the full event reference and custom subscriber examples.
+
 ### Learn More
 
 - [Installation Guide](https://github.com/dickdavis/token_authority/wiki/Installation-Guide) - Generator options, custom table names
@@ -151,6 +165,7 @@ See [Event Logging](https://github.com/dickdavis/token_authority/wiki/Event-Logg
 - [Protecting API Endpoints](https://github.com/dickdavis/token_authority/wiki/Protecting-API-Endpoints) - Error handling, validation details
 - [Customizing Views](https://github.com/dickdavis/token_authority/wiki/Customizing-Views) - Styling consent screens
 - [Event Logging](https://github.com/dickdavis/token_authority/wiki/Event-Logging) - Structured events for monitoring
+- [Instrumentation](https://github.com/dickdavis/token_authority/wiki/Instrumentation) - Performance monitoring with ActiveSupport::Notifications
 
 ## Development
 

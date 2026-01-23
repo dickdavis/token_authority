@@ -195,6 +195,12 @@ Run the linter:
 bundle exec standardrb
 ```
 
+Generate documentation:
+
+```bash
+bundle exec yard
+```
+
 For manual testing with the dummy app, see [Manual Testing](https://github.com/dickdavis/token_authority/wiki/Manual-Testing).
 
 ### Releasing

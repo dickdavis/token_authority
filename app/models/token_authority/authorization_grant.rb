@@ -1,8 +1,27 @@
 # frozen_string_literal: true
 
 module TokenAuthority
-  ##
-  # Models an authorization grant.
+  # Represents an OAuth authorization grant (authorization code).
+  #
+  # An authorization grant is created after a user consents to allow a client
+  # application access. It contains a one-time-use authorization code and PKCE
+  # challenge parameters for public clients.
+  #
+  # The grant can be associated with either:
+  # - A registered Client (stored in database)
+  # - A URL-based ClientMetadataDocument (fetched via client_id_url)
+  #
+  # Grants have a short expiration time (5 minutes by default) and can only
+  # be redeemed once. After redemption, they create a Session with access
+  # and refresh tokens.
+  #
+  # @example Redeeming a grant
+  #   session = authorization_grant.redeem(
+  #     resources: ["https://api.example.com"],
+  #     scopes: ["read", "write"]
+  #   )
+  #
+  # @since 0.2.0
   class AuthorizationGrant < ApplicationRecord
     include TokenAuthority::SessionCreatable
 
@@ -22,7 +41,16 @@ module TokenAuthority
     before_validation :generate_expires_at
     before_create :generate_public_id
 
-    # Returns the client object, whether it's a registered Client or a URL-based ClientMetadataDocument
+    # Returns the client associated with this grant.
+    #
+    # Resolves to either a registered Client or a URL-based ClientMetadataDocument
+    # depending on which association is populated. URL-based clients are fetched
+    # and cached on first access.
+    #
+    # @return [TokenAuthority::Client, TokenAuthority::ClientMetadataDocument, nil]
+    #   the client object, or nil if neither association exists
+    #
+    # @see TokenAuthority::ClientIdResolver
     def resolved_client
       return token_authority_client if token_authority_client.present?
       return nil if client_id_url.blank?
@@ -30,10 +58,38 @@ module TokenAuthority
       @resolved_client ||= TokenAuthority::ClientIdResolver.resolve(client_id_url)
     end
 
+    # Returns the most recent active session for this grant.
+    #
+    # After a grant is redeemed, subsequent refresh operations create new sessions
+    # with "created" status while marking old sessions as "refreshed". This method
+    # returns the current active session.
+    #
+    # @return [TokenAuthority::Session, nil] the active session, or nil if none exists
     def active_token_authority_session
       token_authority_sessions.created_status.order(created_at: :desc).first
     end
 
+    # Redeems the authorization code to create a new token session.
+    #
+    # This is the final step in the authorization code flow. The grant must not
+    # have been redeemed previously, and PKCE verification (if applicable) must
+    # pass before redemption succeeds.
+    #
+    # After successful redemption, the grant is marked as redeemed and a new
+    # Session is created with access and refresh tokens.
+    #
+    # @param resources [Array<String>] resource indicators for the token session
+    # @param scopes [Array<String>] scopes for the token session
+    #
+    # @return [TokenAuthority::Session] the newly created session
+    #
+    # @raise [TokenAuthority::ServerError] if session creation fails
+    #
+    # @example
+    #   session = grant.redeem(
+    #     resources: ["https://api.example.com"],
+    #     scopes: ["read", "write"]
+    #   )
     def redeem(resources: [], scopes: [])
       instrument("grant.redeem") do
         create_token_authority_session(grant: self, resources:, scopes:) do

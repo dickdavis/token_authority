@@ -1,12 +1,31 @@
 # frozen_string_literal: true
 
 module TokenAuthority
-  ##
-  # Provides support for validating token claims
+  # Provides JWT claim validation for token models.
+  #
+  # This concern adds ActiveModel validation for standard JWT claims (aud, exp, iat,
+  # iss, jti) and integrates with the Session model to automatically update session
+  # status when tokens fail validation.
+  #
+  # When validation fails for revocable claims (aud, iss, user_id), the associated
+  # session is marked as revoked. When validation fails for expirable claims (exp),
+  # the session is marked as expired.
+  #
+  # @example Including in a token model
+  #   class MyToken
+  #     include TokenAuthority::ClaimValidatable
+  #   end
+  #
+  # @since 0.2.0
   module ClaimValidatable
     extend ActiveSupport::Concern
 
+    # JWT claims that should trigger session revocation when invalid.
+    # These represent security violations like wrong audience or issuer.
     REVOCABLE_CLAIMS = %i[aud iss user_id].freeze
+
+    # JWT claims that should trigger session expiration when invalid.
+    # Currently only includes the exp (expiration time) claim.
     EXPIRABLE_CLAIMS = %i[exp].freeze
 
     included do

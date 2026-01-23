@@ -1,8 +1,31 @@
 # frozen_string_literal: true
 
 module TokenAuthority
-  ##
-  # Concern for authenticating OAuth clients via HTTP Basic Auth or public client ID.
+  # Provides OAuth client authentication for controllers.
+  #
+  # This concern handles authentication of OAuth clients during authorization
+  # and token requests. It supports both confidential clients (using HTTP Basic
+  # authentication with client_id and client_secret) and public clients (using
+  # only client_id).
+  #
+  # The concern automatically:
+  # - Resolves client_id to either a registered Client or URL-based ClientMetadataDocument
+  # - Validates HTTP Basic credentials for confidential clients
+  # - Emits authentication events for monitoring and security auditing
+  # - Handles authentication errors with appropriate HTTP responses
+  #
+  # @example Using in a controller
+  #   class MyController < ApplicationController
+  #     include TokenAuthority::ClientAuthentication
+  #
+  #     before_action :authenticate_client
+  #
+  #     def my_action
+  #       # @token_authority_client is now available
+  #     end
+  #   end
+  #
+  # @since 0.2.0
   module ClientAuthentication
     extend ActiveSupport::Concern
 
@@ -31,6 +54,21 @@ module TokenAuthority
 
     private
 
+    # Authenticates an OAuth client.
+    #
+    # Public clients are authenticated by client_id alone. Confidential clients
+    # must provide valid credentials via HTTP Basic authentication.
+    #
+    # Sets @token_authority_client instance variable on successful authentication.
+    #
+    # @param id [String, nil] the client_id (uses params[:client_id] if not provided)
+    #
+    # @return [void]
+    #
+    # @raise [TokenAuthority::ClientMismatchError] if HTTP Basic credentials don't match params
+    # @raise [TokenAuthority::ClientNotFoundError] if client cannot be found
+    #
+    # @api private
     def authenticate_client(id: nil)
       client_id = id || params[:client_id]
       load_token_authority_client(id: client_id)
@@ -59,12 +97,30 @@ module TokenAuthority
       request_http_basic_authentication
     end
 
+    # Loads the client by ID using the ClientIdResolver.
+    #
+    # Sets @token_authority_client to nil if client is not found.
+    #
+    # @param id [String, nil] the client identifier
+    #
+    # @return [void]
+    # @api private
     def load_token_authority_client(id: nil)
       @token_authority_client = TokenAuthority::ClientIdResolver.resolve(id)
     rescue TokenAuthority::ClientNotFoundError
       @token_authority_client = nil
     end
 
+    # Attempts to authenticate using HTTP Basic credentials.
+    #
+    # Verifies that the client_id in Basic auth matches params[:client_id] if present,
+    # and validates the client_secret.
+    #
+    # @return [Boolean] true if authentication succeeds
+    #
+    # @raise [TokenAuthority::ClientMismatchError] if IDs don't match
+    # @raise [TokenAuthority::ClientNotFoundError] if client not found
+    # @api private
     def http_basic_auth_successful?
       authenticate_with_http_basic do |public_id, client_secret|
         @token_authority_client = TokenAuthority::Client.find_by(public_id:)

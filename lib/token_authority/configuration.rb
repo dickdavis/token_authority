@@ -1,71 +1,269 @@
 # frozen_string_literal: true
 
 module TokenAuthority
+  # Configuration class for TokenAuthority engine settings.
+  #
+  # This class manages all configuration options for the OAuth 2.1 provider,
+  # including JWT settings, user authentication integration, UI customization,
+  # and RFC-specific feature flags.
+  #
+  # Configuration is typically set in a Rails initializer using a configure block
+  # that yields this configuration object.
+  #
+  # @example Basic configuration
+  #   TokenAuthority.configure do |config|
+  #     config.secret_key = Rails.application.credentials.secret_key_base
+  #     config.user_class = "User"
+  #     config.rfc_9068_audience_url = "https://api.example.com"
+  #     config.rfc_9068_issuer_url = "https://example.com"
+  #   end
+  #
+  # @example Enabling scopes
+  #   TokenAuthority.configure do |config|
+  #     config.scopes = {
+  #       "read" => "Read access to your data",
+  #       "write" => "Write access to your data"
+  #     }
+  #     config.require_scope = true
+  #   end
+  #
+  # @since 0.2.0
   class Configuration
-    # General
+    # @!attribute [rw] secret_key
+    #   The secret key used for JWT signing and HMAC operations.
+    #   This should be a secure random string, typically derived from Rails credentials.
+    #   @return [String] the secret key
     attr_accessor :secret_key
 
-    # JWT Access Tokens (RFC 9068)
-    attr_accessor :rfc_9068_audience_url, :rfc_9068_issuer_url,
-      :rfc_9068_default_access_token_duration, :rfc_9068_default_refresh_token_duration
+    # @!attribute [rw] rfc_9068_audience_url
+    #   The default audience (aud) claim for JWT access tokens per RFC 9068.
+    #   Identifies the intended recipient of the token (typically the API server).
+    #   @return [String, nil] the audience URL
+    attr_accessor :rfc_9068_audience_url
 
-    # User Authentication
-    attr_accessor :authenticatable_controller, :user_class
+    # @!attribute [rw] rfc_9068_issuer_url
+    #   The issuer (iss) claim for JWT access tokens per RFC 9068.
+    #   Identifies the authorization server that issued the token.
+    #   @return [String, nil] the issuer URL
+    attr_accessor :rfc_9068_issuer_url
 
-    # UI/Layout
-    attr_accessor :consent_page_layout, :error_page_layout
+    # @!attribute [rw] rfc_9068_default_access_token_duration
+    #   Default lifetime for access tokens in seconds.
+    #   @return [Integer] duration in seconds (default: 300)
+    attr_accessor :rfc_9068_default_access_token_duration
 
-    # Server Metadata (RFC 8414)
+    # @!attribute [rw] rfc_9068_default_refresh_token_duration
+    #   Default lifetime for refresh tokens in seconds.
+    #   @return [Integer] duration in seconds (default: 1,209,600)
+    attr_accessor :rfc_9068_default_refresh_token_duration
+
+    # @!attribute [rw] authenticatable_controller
+    #   The controller class name that provides authentication methods.
+    #   Must implement `authenticate_user!` and `current_user` methods.
+    #   @return [String] controller class name (default: "ApplicationController")
+    attr_accessor :authenticatable_controller
+
+    # @!attribute [rw] user_class
+    #   The user model class name in the host application.
+    #   @return [String] user class name (default: "User")
+    attr_accessor :user_class
+
+    # @!attribute [rw] consent_page_layout
+    #   The layout to use for the OAuth consent screen.
+    #   @return [String] layout name (default: "application")
+    attr_accessor :consent_page_layout
+
+    # @!attribute [rw] error_page_layout
+    #   The layout to use for OAuth error pages.
+    #   @return [String] layout name (default: "application")
+    attr_accessor :error_page_layout
+
+    # @!attribute [rw] rfc_8414_service_documentation
+    #   URL for service documentation in authorization server metadata per RFC 8414.
+    #   @return [String, nil] documentation URL
     attr_accessor :rfc_8414_service_documentation
 
-    # Scopes
-    # scopes: Hash mapping scope strings to display names
-    #   - nil or {} = scopes disabled
-    #   - { "read" => "Read access", "write" => "Write access" } = only these scopes allowed
-    # require_scope: Whether the scope param is required (default: false)
-    attr_accessor :scopes, :require_scope
+    # @!attribute [rw] scopes
+    #   Hash mapping scope strings to human-readable descriptions.
+    #   Set to nil or empty hash to disable scopes.
+    #   @example
+    #     config.scopes = {
+    #       "read" => "Read access to your data",
+    #       "write" => "Write access to your data"
+    #     }
+    #   @return [Hash{String => String}, nil] scope mappings
+    attr_accessor :scopes
 
-    # Protected Resource Metadata (RFC 9728)
-    attr_accessor :rfc_9728_resource, :rfc_9728_scopes_supported, :rfc_9728_authorization_servers,
-      :rfc_9728_bearer_methods_supported, :rfc_9728_jwks_uri, :rfc_9728_resource_name,
-      :rfc_9728_resource_documentation, :rfc_9728_resource_policy_uri, :rfc_9728_resource_tos_uri
+    # @!attribute [rw] require_scope
+    #   Whether clients must include a scope parameter in authorization requests.
+    #   @return [Boolean] true if scope is required (default: false)
+    attr_accessor :require_scope
 
-    # Dynamic Client Registration (RFC 7591)
-    attr_accessor :rfc_7591_enabled,
-      :rfc_7591_require_initial_access_token,
-      :rfc_7591_initial_access_token_validator,
-      :rfc_7591_allowed_grant_types,
-      :rfc_7591_allowed_response_types,
-      :rfc_7591_allowed_scopes,
-      :rfc_7591_allowed_token_endpoint_auth_methods,
-      :rfc_7591_client_secret_expiration,
-      :rfc_7591_software_statement_jwks,
-      :rfc_7591_software_statement_required,
-      :rfc_7591_jwks_cache_ttl
+    # @!attribute [rw] rfc_9728_resource
+    #   The resource URI for protected resource metadata per RFC 9728.
+    #   @return [String, nil] resource URI
+    attr_accessor :rfc_9728_resource
 
-    # Client Metadata Document (draft-ietf-oauth-client-id-metadata-document)
-    attr_accessor :client_metadata_document_enabled,
-      :client_metadata_document_cache_ttl,
-      :client_metadata_document_max_response_size,
-      :client_metadata_document_allowed_hosts,
-      :client_metadata_document_blocked_hosts,
-      :client_metadata_document_connect_timeout,
-      :client_metadata_document_read_timeout
+    # @!attribute [rw] rfc_9728_scopes_supported
+    #   Array of OAuth scopes supported by the protected resource per RFC 9728.
+    #   @return [Array<String>, nil] supported scopes
+    attr_accessor :rfc_9728_scopes_supported
 
-    # Resource Indicators (RFC 8707)
-    # rfc_8707_resources: Hash mapping resource URIs to display names
-    #   - nil or {} = resource indicators disabled
-    #   - { "https://api.example.com" => "Main API" } = only these resources allowed
-    # rfc_8707_require_resource: Whether the resource param is required (default: false)
-    attr_accessor :rfc_8707_resources, :rfc_8707_require_resource
+    # @!attribute [rw] rfc_9728_authorization_servers
+    #   Array of authorization server issuer URLs per RFC 9728.
+    #   @return [Array<String>, nil] authorization server URLs
+    attr_accessor :rfc_9728_authorization_servers
 
-    # Event Logging
-    # event_logging_enabled: Whether to emit and log events (default: true)
-    # event_logging_debug_events: Whether to emit debug events (default: false)
-    attr_accessor :event_logging_enabled, :event_logging_debug_events
+    # @!attribute [rw] rfc_9728_bearer_methods_supported
+    #   Array of bearer token methods supported per RFC 9728.
+    #   @return [Array<String>, nil] bearer methods
+    attr_accessor :rfc_9728_bearer_methods_supported
 
-    # Instrumentation
-    # instrumentation_enabled: Whether to emit ActiveSupport::Notifications events (default: true)
+    # @!attribute [rw] rfc_9728_jwks_uri
+    #   URL to the JWKS for protected resource per RFC 9728.
+    #   @return [String, nil] JWKS URI
+    attr_accessor :rfc_9728_jwks_uri
+
+    # @!attribute [rw] rfc_9728_resource_name
+    #   Human-readable name of the protected resource per RFC 9728.
+    #   @return [String, nil] resource name
+    attr_accessor :rfc_9728_resource_name
+
+    # @!attribute [rw] rfc_9728_resource_documentation
+    #   URL to documentation for the protected resource per RFC 9728.
+    #   @return [String, nil] documentation URL
+    attr_accessor :rfc_9728_resource_documentation
+
+    # @!attribute [rw] rfc_9728_resource_policy_uri
+    #   URL to privacy policy for the protected resource per RFC 9728.
+    #   @return [String, nil] policy URI
+    attr_accessor :rfc_9728_resource_policy_uri
+
+    # @!attribute [rw] rfc_9728_resource_tos_uri
+    #   URL to terms of service for the protected resource per RFC 9728.
+    #   @return [String, nil] TOS URI
+    attr_accessor :rfc_9728_resource_tos_uri
+
+    # @!attribute [rw] rfc_7591_enabled
+    #   Enable dynamic client registration per RFC 7591.
+    #   @return [Boolean] true if enabled (default: false)
+    attr_accessor :rfc_7591_enabled
+
+    # @!attribute [rw] rfc_7591_require_initial_access_token
+    #   Require initial access token for client registration per RFC 7591.
+    #   @return [Boolean] true if required (default: false)
+    attr_accessor :rfc_7591_require_initial_access_token
+
+    # @!attribute [rw] rfc_7591_initial_access_token_validator
+    #   Callable object to validate initial access tokens.
+    #   Should accept a token string and return true/false.
+    #   @return [Proc, nil] validator callable
+    attr_accessor :rfc_7591_initial_access_token_validator
+
+    # @!attribute [rw] rfc_7591_allowed_grant_types
+    #   Array of grant types allowed during client registration per RFC 7591.
+    #   @return [Array<String>] allowed grant types
+    attr_accessor :rfc_7591_allowed_grant_types
+
+    # @!attribute [rw] rfc_7591_allowed_response_types
+    #   Array of response types allowed during client registration per RFC 7591.
+    #   @return [Array<String>] allowed response types
+    attr_accessor :rfc_7591_allowed_response_types
+
+    # @!attribute [rw] rfc_7591_allowed_scopes
+    #   Array of scopes allowed during client registration per RFC 7591.
+    #   @return [Array<String>, nil] allowed scopes
+    attr_accessor :rfc_7591_allowed_scopes
+
+    # @!attribute [rw] rfc_7591_allowed_token_endpoint_auth_methods
+    #   Array of token endpoint authentication methods allowed per RFC 7591.
+    #   @return [Array<String>] allowed auth methods
+    attr_accessor :rfc_7591_allowed_token_endpoint_auth_methods
+
+    # @!attribute [rw] rfc_7591_client_secret_expiration
+    #   Duration in seconds before client secrets expire, or nil for no expiration.
+    #   @return [Integer, nil] expiration duration in seconds
+    attr_accessor :rfc_7591_client_secret_expiration
+
+    # @!attribute [rw] rfc_7591_software_statement_jwks
+    #   JWKS for verifying software statements during registration per RFC 7591.
+    #   @return [Hash, nil] JWKS
+    attr_accessor :rfc_7591_software_statement_jwks
+
+    # @!attribute [rw] rfc_7591_software_statement_required
+    #   Require software statements during client registration per RFC 7591.
+    #   @return [Boolean] true if required (default: false)
+    attr_accessor :rfc_7591_software_statement_required
+
+    # @!attribute [rw] rfc_7591_jwks_cache_ttl
+    #   Time-to-live for cached JWKS in seconds.
+    #   @return [Integer] TTL in seconds (default: 3600)
+    attr_accessor :rfc_7591_jwks_cache_ttl
+
+    # @!attribute [rw] client_metadata_document_enabled
+    #   Enable support for client metadata documents (URL-based client IDs).
+    #   @return [Boolean] true if enabled (default: true)
+    attr_accessor :client_metadata_document_enabled
+
+    # @!attribute [rw] client_metadata_document_cache_ttl
+    #   Time-to-live for cached client metadata documents in seconds.
+    #   @return [Integer] TTL in seconds (default: 3600)
+    attr_accessor :client_metadata_document_cache_ttl
+
+    # @!attribute [rw] client_metadata_document_max_response_size
+    #   Maximum size in bytes for client metadata document HTTP responses.
+    #   @return [Integer] max size in bytes (default: 5120)
+    attr_accessor :client_metadata_document_max_response_size
+
+    # @!attribute [rw] client_metadata_document_allowed_hosts
+    #   Whitelist of hosts allowed for client metadata document URLs.
+    #   @return [Array<String>, nil] allowed hosts
+    attr_accessor :client_metadata_document_allowed_hosts
+
+    # @!attribute [rw] client_metadata_document_blocked_hosts
+    #   Blacklist of hosts blocked for client metadata document URLs.
+    #   @return [Array<String>] blocked hosts (default: [])
+    attr_accessor :client_metadata_document_blocked_hosts
+
+    # @!attribute [rw] client_metadata_document_connect_timeout
+    #   Connection timeout in seconds for fetching client metadata documents.
+    #   @return [Integer] timeout in seconds (default: 5)
+    attr_accessor :client_metadata_document_connect_timeout
+
+    # @!attribute [rw] client_metadata_document_read_timeout
+    #   Read timeout in seconds for fetching client metadata documents.
+    #   @return [Integer] timeout in seconds (default: 5)
+    attr_accessor :client_metadata_document_read_timeout
+
+    # @!attribute [rw] rfc_8707_resources
+    #   Hash mapping resource URIs to human-readable descriptions per RFC 8707.
+    #   Set to nil or empty hash to disable resource indicators.
+    #   @example
+    #     config.rfc_8707_resources = {
+    #       "https://api.example.com" => "Main API",
+    #       "https://files.example.com" => "File Storage API"
+    #     }
+    #   @return [Hash{String => String}, nil] resource mappings
+    attr_accessor :rfc_8707_resources
+
+    # @!attribute [rw] rfc_8707_require_resource
+    #   Whether clients must include a resource parameter per RFC 8707.
+    #   @return [Boolean] true if required (default: false)
+    attr_accessor :rfc_8707_require_resource
+
+    # @!attribute [rw] event_logging_enabled
+    #   Enable structured event logging for OAuth flows and security events.
+    #   @return [Boolean] true if enabled (default: true)
+    attr_accessor :event_logging_enabled
+
+    # @!attribute [rw] event_logging_debug_events
+    #   Enable debug-level event logging for troubleshooting.
+    #   @return [Boolean] true if enabled (default: false)
+    attr_accessor :event_logging_debug_events
+
+    # @!attribute [rw] instrumentation_enabled
+    #   Enable ActiveSupport::Notifications instrumentation for performance monitoring.
+    #   @return [Boolean] true if enabled (default: true)
     attr_accessor :instrumentation_enabled
 
     def initialize
@@ -138,17 +336,28 @@ module TokenAuthority
       @instrumentation_enabled = true
     end
 
-    # Returns true if scopes are enabled
+    # Checks whether the scopes feature is enabled.
+    # Scopes are considered enabled when the scopes attribute is a non-empty hash.
+    #
+    # @return [Boolean] true if scopes are enabled
     def scopes_enabled?
       scopes.is_a?(Hash) && scopes.any?
     end
 
-    # Returns true if RFC 8707 resource indicators are enabled
+    # Checks whether RFC 8707 resource indicators are enabled.
+    # Resource indicators are considered enabled when rfc_8707_resources is a non-empty hash.
+    #
+    # @return [Boolean] true if resource indicators are enabled
     def rfc_8707_enabled?
       rfc_8707_resources.is_a?(Hash) && rfc_8707_resources.any?
     end
 
-    # Validates configuration and raises errors for invalid combinations
+    # Validates the configuration for internal consistency.
+    # Ensures that required features are properly configured before use.
+    #
+    # @raise [ConfigurationError] if require_scope is true but scopes are not configured
+    # @raise [ConfigurationError] if rfc_8707_require_resource is true but resources are not configured
+    # @return [void]
     def validate!
       if require_scope && !scopes_enabled?
         raise ConfigurationError, "require_scope is true but no scopes are configured"
@@ -161,10 +370,26 @@ module TokenAuthority
   end
 
   class << self
+    # Returns the current configuration instance.
+    # Creates a new configuration with default values if one doesn't exist.
+    #
+    # @return [Configuration] the configuration instance
     def config
       @config ||= Configuration.new
     end
 
+    # Yields the configuration instance for setup in initializers.
+    # This is the primary way to configure TokenAuthority in a Rails application.
+    #
+    # @example
+    #   TokenAuthority.configure do |config|
+    #     config.secret_key = Rails.application.credentials.secret_key_base
+    #     config.user_class = "User"
+    #   end
+    #
+    # @yield [config] configuration block
+    # @yieldparam config [Configuration] the configuration instance to modify
+    # @return [void]
     def configure
       yield(config)
     end

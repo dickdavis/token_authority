@@ -9,7 +9,7 @@ RSpec.describe TokenAuthority::ProtectedResourceMetadata, type: :model do
   let!(:original_config) do
     {
       rfc_9068_issuer_url: TokenAuthority.config.rfc_9068_issuer_url,
-      rfc_8414_scopes_supported: TokenAuthority.config.rfc_8414_scopes_supported,
+      scopes: TokenAuthority.config.scopes,
       rfc_9728_resource: TokenAuthority.config.rfc_9728_resource,
       rfc_9728_scopes_supported: TokenAuthority.config.rfc_9728_scopes_supported,
       rfc_9728_authorization_servers: TokenAuthority.config.rfc_9728_authorization_servers,
@@ -87,13 +87,13 @@ RSpec.describe TokenAuthority::ProtectedResourceMetadata, type: :model do
       end
     end
 
-    context "when rfc_9728_scopes_supported is not configured but rfc_8414_scopes_supported is" do
+    context "when rfc_9728_scopes_supported is not configured but scopes is" do
       before do
         TokenAuthority.config.rfc_9728_scopes_supported = nil
-        TokenAuthority.config.rfc_8414_scopes_supported = ["read", "write"]
+        TokenAuthority.config.scopes = {"read" => "Read access", "write" => "Write access"}
       end
 
-      it "falls back to rfc_8414_scopes_supported" do
+      it "falls back to scopes" do
         expect(model.to_h[:scopes_supported]).to eq(["read", "write"])
       end
     end
@@ -101,7 +101,7 @@ RSpec.describe TokenAuthority::ProtectedResourceMetadata, type: :model do
     context "when no scopes are configured" do
       before do
         TokenAuthority.config.rfc_9728_scopes_supported = nil
-        TokenAuthority.config.rfc_8414_scopes_supported = []
+        TokenAuthority.config.scopes = nil
       end
 
       it "omits scopes_supported from the response" do

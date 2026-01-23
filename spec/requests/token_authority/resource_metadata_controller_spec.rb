@@ -9,7 +9,7 @@ RSpec.describe TokenAuthority::ResourceMetadataController, type: :request do
     let!(:original_config) do
       {
         rfc_9068_issuer_url: TokenAuthority.config.rfc_9068_issuer_url,
-        rfc_8414_scopes_supported: TokenAuthority.config.rfc_8414_scopes_supported,
+        scopes: TokenAuthority.config.scopes,
         rfc_9728_resource: TokenAuthority.config.rfc_9728_resource,
         rfc_9728_scopes_supported: TokenAuthority.config.rfc_9728_scopes_supported,
         rfc_9728_authorization_servers: TokenAuthority.config.rfc_9728_authorization_servers,

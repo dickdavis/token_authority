@@ -183,7 +183,13 @@ RSpec.describe TokenAuthority::Client, type: :model do
     subject(:call_method) { model.new_authorization_grant(user:, challenge_params:) }
 
     let(:user) { create(:user) }
-    let(:challenge_params) { attributes_for(:token_authority_challenge) }
+    let(:challenge_params) do
+      {
+        code_challenge: Base64.urlsafe_encode64(Digest::SHA256.digest("code_verifier"), padding: false),
+        code_challenge_method: "S256",
+        redirect_uri: "http://localhost:3000/"
+      }
+    end
 
     it "returns a TokenAuthority::AuthorizationGrant with appropriate values" do
       object = call_method
@@ -191,9 +197,9 @@ RSpec.describe TokenAuthority::Client, type: :model do
         expect(object).to be_a(TokenAuthority::AuthorizationGrant)
         expect(object.token_authority_client).to eq(model)
         expect(object.user).to eq(user)
-        expect(object.token_authority_challenge.code_challenge).to eq(challenge_params[:code_challenge])
-        expect(object.token_authority_challenge.code_challenge_method).to eq(challenge_params[:code_challenge_method])
-        expect(object.token_authority_challenge.redirect_uri).to eq(challenge_params[:redirect_uri])
+        expect(object.code_challenge).to eq(challenge_params[:code_challenge])
+        expect(object.code_challenge_method).to eq(challenge_params[:code_challenge_method])
+        expect(object.redirect_uri).to eq(challenge_params[:redirect_uri])
       end
     end
   end

@@ -12,7 +12,8 @@ FactoryBot.define do
     iss { TokenAuthority.config.rfc_9068_issuer_url }
     jti { token_authority_session.access_token_jti }
     user_id { token_authority_session.user_id }
+    scope { nil }
 
-    initialize_with { new(aud:, exp:, iat:, iss:, jti:, user_id:) }
+    initialize_with { new(aud:, exp:, iat:, iss:, jti:, user_id:, scope:) }
   end
 end

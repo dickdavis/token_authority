@@ -78,21 +78,26 @@ RSpec.describe TokenAuthority::ResourceUriValidator do
   end
 
   describe ".allowed?" do
-    context "when no allowlist is configured" do
+    context "when RFC 8707 is not enabled (no resources configured)" do
       before do
-        allow(TokenAuthority.config).to receive(:rfc_8707_allowed_resources).and_return(nil)
+        allow(TokenAuthority.config).to receive(:rfc_8707_resources).and_return(nil)
       end
 
-      it "returns true for any URI" do
-        expect(described_class.allowed?("https://example.com")).to be true
+      it "returns false for any URI" do
+        expect(described_class.allowed?("https://example.com")).to be false
       end
     end
 
-    context "when allowlist is configured" do
-      let(:allowed_resources) { ["https://api.example.com", "https://other.example.com"] }
+    context "when RFC 8707 is enabled with configured resources" do
+      let(:configured_resources) do
+        {
+          "https://api.example.com" => "Main API",
+          "https://other.example.com" => "Other API"
+        }
+      end
 
       before do
-        allow(TokenAuthority.config).to receive(:rfc_8707_allowed_resources).and_return(allowed_resources)
+        allow(TokenAuthority.config).to receive(:rfc_8707_resources).and_return(configured_resources)
       end
 
       it "returns true for allowed URIs" do
@@ -106,22 +111,31 @@ RSpec.describe TokenAuthority::ResourceUriValidator do
   end
 
   describe ".allowed_all?" do
-    context "when no allowlist is configured" do
+    context "when RFC 8707 is not enabled (no resources configured)" do
       before do
-        allow(TokenAuthority.config).to receive(:rfc_8707_allowed_resources).and_return(nil)
+        allow(TokenAuthority.config).to receive(:rfc_8707_resources).and_return(nil)
       end
 
-      it "returns true for any resources" do
+      it "returns true for empty array" do
+        expect(described_class.allowed_all?([])).to be true
+      end
+
+      it "returns false for any non-empty resources" do
         resources = ["https://api.example.com", "https://other.example.com"]
-        expect(described_class.allowed_all?(resources)).to be true
+        expect(described_class.allowed_all?(resources)).to be false
       end
     end
 
-    context "when allowlist is configured" do
-      let(:allowed_resources) { ["https://api.example.com", "https://other.example.com"] }
+    context "when RFC 8707 is enabled with configured resources" do
+      let(:configured_resources) do
+        {
+          "https://api.example.com" => "Main API",
+          "https://other.example.com" => "Other API"
+        }
+      end
 
       before do
-        allow(TokenAuthority.config).to receive(:rfc_8707_allowed_resources).and_return(allowed_resources)
+        allow(TokenAuthority.config).to receive(:rfc_8707_resources).and_return(configured_resources)
       end
 
       it "returns true for empty array" do

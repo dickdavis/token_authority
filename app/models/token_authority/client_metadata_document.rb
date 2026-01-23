@@ -132,7 +132,7 @@ module TokenAuthority
     end
 
     # Creates a new authorization request for this URL-based client
-    def new_authorization_request(client_id:, code_challenge:, code_challenge_method:, redirect_uri:, response_type:, state:)
+    def new_authorization_request(client_id:, code_challenge:, code_challenge_method:, redirect_uri:, response_type:, state:, resources: [])
       TokenAuthority::AuthorizationRequest.new(
         token_authority_client: self,
         client_id:,
@@ -140,7 +140,8 @@ module TokenAuthority
         code_challenge:,
         code_challenge_method:,
         redirect_uri:,
-        response_type:
+        response_type:,
+        resources:
       )
     end
 

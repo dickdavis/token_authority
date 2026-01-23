@@ -12,7 +12,7 @@ module TokenAuthority
 
     attr_accessor :token_authority_client, :client_id,
       :code_challenge, :code_challenge_method,
-      :redirect_uri, :response_type, :state
+      :redirect_uri, :response_type, :state, :resources
 
     validates :response_type, presence: true, inclusion: {in: VALID_RESPONSE_TYPES}
 
@@ -20,6 +20,7 @@ module TokenAuthority
     validate :client_id_must_be_valid
     validate :pkce_params_must_be_valid
     validate :redirect_uri_must_be_valid
+    validate :resources_must_be_valid
 
     def self.from_internal_state_token(token)
       attributes = TokenAuthority::JsonWebToken.decode(token)
@@ -39,7 +40,8 @@ module TokenAuthority
         code_challenge:,
         code_challenge_method:,
         redirect_uri:,
-        response_type:
+        response_type:,
+        resources: resources || []
       }
     end
 
@@ -130,6 +132,35 @@ module TokenAuthority
     def valid_token_authority_client?
       token_authority_client.is_a?(TokenAuthority::Client) ||
         token_authority_client.is_a?(TokenAuthority::ClientMetadataDocument)
+    end
+
+    def resources_must_be_valid
+      normalized_resources = resources || []
+
+      # Check if resource is required
+      if TokenAuthority.config.rfc_8707_require_resource && normalized_resources.empty?
+        errors.add(:resources, :required)
+        return
+      end
+
+      return if normalized_resources.empty?
+
+      # If resources are provided but feature is disabled, reject them
+      unless TokenAuthority.config.rfc_8707_enabled?
+        errors.add(:resources, :not_allowed)
+        return
+      end
+
+      # Validate all resource URIs
+      unless TokenAuthority::ResourceUriValidator.valid_all?(normalized_resources)
+        errors.add(:resources, :invalid_uri)
+        return
+      end
+
+      # Check against allowed resources list
+      unless TokenAuthority::ResourceUriValidator.allowed_all?(normalized_resources)
+        errors.add(:resources, :not_allowed)
+      end
     end
   end
 end

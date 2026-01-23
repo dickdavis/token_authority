@@ -39,17 +39,16 @@ module TokenAuthority
 
       # Checks if a resource URI is in the allowed list
       # @param uri [String] the URI to check
-      # @return [Boolean] true if allowed (or if no allowlist configured)
+      # @return [Boolean] true if allowed
       def allowed?(uri)
-        allowed_resources = TokenAuthority.config.rfc_8707_allowed_resources
-        return true if allowed_resources.nil?
+        return false unless TokenAuthority.config.rfc_8707_enabled?
 
-        allowed_resources.include?(uri)
+        TokenAuthority.config.rfc_8707_resources.key?(uri)
       end
 
       # Checks if all resources are in the allowed list
       # @param resources [Array<String>] the URIs to check
-      # @return [Boolean] true if all allowed (or if no allowlist configured)
+      # @return [Boolean] true if all allowed
       def allowed_all?(resources)
         return true if resources.blank?
 

@@ -236,6 +236,35 @@ RSpec.describe TokenAuthority::ClientMetadataDocument, type: :model do
       expect(request).to be_a(TokenAuthority::AuthorizationRequest)
       expect(request.token_authority_client).to eq(document)
     end
+
+    context "with resources parameter (RFC 8707)" do
+      let(:resources) { ["https://api.example.com", "https://billing.example.com"] }
+
+      it "passes resources to the authorization request" do
+        request = document.new_authorization_request(
+          client_id: client_id_url,
+          code_challenge: "challenge",
+          code_challenge_method: "S256",
+          redirect_uri: "https://example.com/callback",
+          response_type: "code",
+          state: "some-state",
+          resources:
+        )
+        expect(request.resources).to eq(resources)
+      end
+
+      it "defaults resources to an empty array" do
+        request = document.new_authorization_request(
+          client_id: client_id_url,
+          code_challenge: "challenge",
+          code_challenge_method: "S256",
+          redirect_uri: "https://example.com/callback",
+          response_type: "code",
+          state: "some-state"
+        )
+        expect(request.resources).to eq([])
+      end
+    end
   end
 
   describe "#url_for_redirect" do

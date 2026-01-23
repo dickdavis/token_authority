@@ -25,12 +25,25 @@ RSpec.describe TokenAuthority::AuthorizationsController, type: :request do
     end
   end
 
+  shared_examples "handles an invalid_target error" do
+    it "redirects to the client redirect uri with the `invalid_target` error and state params" do
+      call_endpoint
+      redirect_params = Rack::Utils.parse_query(URI.parse(response.location).query)
+      aggregate_failures do
+        expect(response.location).to match(token_authority_client.primary_redirect_uri)
+        expect(redirect_params["error"]).to eq("invalid_target")
+        expect(redirect_params["state"]).to eq(state)
+      end
+    end
+  end
+
   describe "GET /authorize" do
     subject(:call_endpoint) { get token_authority.authorize_path, params: }
 
     let(:params) do
-      {client_id:, state:, code_challenge:, code_challenge_method:, redirect_uri:, response_type:}.compact
+      {client_id:, state:, code_challenge:, code_challenge_method:, redirect_uri:, response_type:, resource:}.compact
     end
+    let(:resource) { nil }
     let(:client_id) { token_authority_client.public_id }
     let(:state) { "foobar" }
     let(:code_challenge) { "code_challenge" }
@@ -91,6 +104,90 @@ RSpec.describe TokenAuthority::AuthorizationsController, type: :request do
         it "responds with HTTP status bad request" do
           call_endpoint
           expect(response).to have_http_status(:bad_request)
+        end
+      end
+
+      context "with RFC 8707 resource indicators" do
+        let(:configured_resources) do
+          {
+            "https://api.example.com" => "Main API",
+            "https://api1.example.com" => "API 1",
+            "https://api2.example.com" => "API 2"
+          }
+        end
+
+        before do
+          allow(TokenAuthority.config).to receive(:rfc_8707_resources).and_return(configured_resources)
+        end
+
+        context "when a valid resource URI is provided" do
+          let(:resource) { "https://api.example.com" }
+
+          it_behaves_like "redirects successful authorize request"
+
+          it "stores the resource in the internal state" do
+            call_endpoint
+            internal_state = session[:token_authority_internal_state]
+            decoded = TokenAuthority::JsonWebToken.decode(internal_state)
+            expect(decoded[:resources]).to eq([resource])
+          end
+        end
+
+        context "when multiple valid resource URIs are provided" do
+          let(:resource) { ["https://api1.example.com", "https://api2.example.com"] }
+
+          it_behaves_like "redirects successful authorize request"
+
+          it "stores all resources in the internal state" do
+            call_endpoint
+            internal_state = session[:token_authority_internal_state]
+            decoded = TokenAuthority::JsonWebToken.decode(internal_state)
+            expect(decoded[:resources]).to match_array(resource)
+          end
+        end
+
+        context "when an invalid resource URI is provided" do
+          let(:resource) { "not-a-valid-uri" }
+
+          it_behaves_like "handles an invalid_target error"
+        end
+
+        context "when a resource URI with fragment is provided" do
+          let(:resource) { "https://api.example.com#fragment" }
+
+          it_behaves_like "handles an invalid_target error"
+        end
+
+        context "when resource is required but not provided" do
+          before do
+            allow(TokenAuthority.config).to receive(:rfc_8707_require_resource).and_return(true)
+          end
+
+          it_behaves_like "handles an invalid_target error"
+        end
+
+        context "when resource is not in the configured resources" do
+          let(:resource) { "https://not-configured.example.com" }
+
+          it_behaves_like "handles an invalid_target error"
+        end
+
+        context "when RFC 8707 is disabled (no resources configured)" do
+          before do
+            allow(TokenAuthority.config).to receive(:rfc_8707_resources).and_return(nil)
+          end
+
+          context "when no resource is provided" do
+            let(:resource) { nil }
+
+            it_behaves_like "redirects successful authorize request"
+          end
+
+          context "when a resource is provided" do
+            let(:resource) { "https://api.example.com" }
+
+            it_behaves_like "handles an invalid_target error"
+          end
         end
       end
     end

@@ -265,6 +265,35 @@ RSpec.describe TokenAuthority::ClientMetadataDocument, type: :model do
         expect(request.resources).to eq([])
       end
     end
+
+    context "with scope parameter" do
+      let(:scope) { "read write" }
+
+      it "passes scope to the authorization request" do
+        request = document.new_authorization_request(
+          client_id: client_id_url,
+          code_challenge: "challenge",
+          code_challenge_method: "S256",
+          redirect_uri: "https://example.com/callback",
+          response_type: "code",
+          state: "some-state",
+          scope:
+        )
+        expect(request.scope).to eq(["read", "write"])
+      end
+
+      it "defaults scope to an empty array" do
+        request = document.new_authorization_request(
+          client_id: client_id_url,
+          code_challenge: "challenge",
+          code_challenge_method: "S256",
+          redirect_uri: "https://example.com/callback",
+          response_type: "code",
+          state: "some-state"
+        )
+        expect(request.scope).to eq([])
+      end
+    end
   end
 
   describe "#url_for_redirect" do

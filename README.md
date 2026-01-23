@@ -49,6 +49,12 @@ TokenAuthority.configure do |config|
   config.rfc_9068_audience_url = "https://example.com/api/"
   # The URI for the authorization server (to be included in tokens and metadata)
   config.rfc_9068_issuer_url = "https://example.com/"
+  # Define available scopes and their descriptions (shown on consent screen)
+  config.scopes = {
+    "read" => "Read your data",
+    "write" => "Create and modify your data",
+    "delete" => "Delete your data"
+  }
 end
 ```
 

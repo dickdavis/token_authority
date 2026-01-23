@@ -21,4 +21,5 @@ end
 group :development do
   gem "lefthook", require: false
   gem "standard"
+  gem "yard"
 end

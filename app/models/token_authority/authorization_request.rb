@@ -6,6 +6,7 @@ module TokenAuthority
   class AuthorizationRequest
     include ActiveModel::Model
     include ActiveModel::Validations
+    include TokenAuthority::Resourceable
     include TokenAuthority::Scopeable
 
     VALID_CODE_CHALLENGE_METHODS = ["S256"].freeze
@@ -13,8 +14,7 @@ module TokenAuthority
 
     attr_accessor :token_authority_client, :client_id,
       :code_challenge, :code_challenge_method,
-      :redirect_uri, :response_type, :state, :resources
-    attr_reader :scope
+      :redirect_uri, :response_type, :state
 
     validates :response_type, presence: true, inclusion: {in: VALID_RESPONSE_TYPES}
 
@@ -44,7 +44,7 @@ module TokenAuthority
         code_challenge_method:,
         redirect_uri:,
         response_type:,
-        resources: resources || [],
+        resources:,
         scope:
       }
     end
@@ -139,15 +139,13 @@ module TokenAuthority
     end
 
     def resources_must_be_valid
-      normalized_resources = resources || []
-
       # Check if resource is required
-      if TokenAuthority.config.rfc_8707_require_resource && normalized_resources.empty?
+      if TokenAuthority.config.rfc_8707_require_resource && resources.empty?
         errors.add(:resources, :required)
         return
       end
 
-      return if normalized_resources.empty?
+      return if resources.empty?
 
       # If resources are provided but feature is disabled, reject them
       unless TokenAuthority.config.rfc_8707_enabled?
@@ -156,15 +154,13 @@ module TokenAuthority
       end
 
       # Validate all resource URIs
-      unless TokenAuthority::ResourceUriValidator.valid_all?(normalized_resources)
+      unless valid_resource_uris?
         errors.add(:resources, :invalid_uri)
         return
       end
 
       # Check against allowed resources list
-      unless TokenAuthority::ResourceUriValidator.allowed_all?(normalized_resources)
-        errors.add(:resources, :not_allowed)
-      end
+      errors.add(:resources, :not_allowed) unless allowed_resources?
     end
 
     def scope_must_be_valid

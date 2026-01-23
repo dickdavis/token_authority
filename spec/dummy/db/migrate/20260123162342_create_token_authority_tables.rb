@@ -68,6 +68,7 @@ class CreateTokenAuthorityTables < ActiveRecord::Migration[8.1]
 
     add_index :token_authority_authorization_grants, :public_id, unique: true
     add_index :token_authority_authorization_grants, :user_id, name: "index_ta_auth_grants_on_user_id"
+    add_index :token_authority_authorization_grants, :expires_at, name: "index_ta_auth_grants_on_expires_at"
     add_foreign_key :token_authority_authorization_grants, :users, column: :user_id
 
     # OAuth Sessions - tracks issued tokens and their status

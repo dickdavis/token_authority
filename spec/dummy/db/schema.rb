@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_01_23_043538) do
+ActiveRecord::Schema[8.1].define(version: 2026_01_23_162342) do
   create_table "token_authority_authorization_grants", force: :cascade do |t|
     t.string "client_id_url"
     t.string "code_challenge"
@@ -25,6 +25,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_23_043538) do
     t.integer "token_authority_client_id"
     t.datetime "updated_at", null: false
     t.bigint "user_id"
+    t.index ["expires_at"], name: "index_ta_auth_grants_on_expires_at"
     t.index ["public_id"], name: "index_token_authority_authorization_grants_on_public_id", unique: true
     t.index ["token_authority_client_id"], name: "index_ta_auth_grants_on_client_id"
     t.index ["user_id"], name: "index_ta_auth_grants_on_user_id"

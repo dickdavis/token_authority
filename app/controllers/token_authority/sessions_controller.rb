@@ -19,27 +19,67 @@ module TokenAuthority
     end
 
     def token
+      resources = Array(params[:resource]).presence || []
+
       access_token_request = TokenAuthority::AccessTokenRequest.new(
         token_authority_authorization_grant: @authorization_grant,
         code_verifier: params[:code_verifier],
-        redirect_uri: params[:redirect_uri]
+        redirect_uri: params[:redirect_uri],
+        resources:
       )
 
       if access_token_request.valid?
-        access_token, refresh_token, expiration = @authorization_grant.redeem.deconstruct
+        access_token, refresh_token, expiration = @authorization_grant.redeem(
+          resources: access_token_request.effective_resources
+        ).deconstruct
         render json: {access_token:, refresh_token:, token_type: "bearer", expires_in: expiration}
+      elsif access_token_request.errors.where(:resources).any?
+        render_token_request_error(error: "invalid_target")
       else
         render_token_request_error(error: "invalid_request")
       end
     end
 
     def refresh
+      resources = Array(params[:resource]).presence || []
+
       token = TokenAuthority::RefreshToken.from_token(params[:refresh_token])
       token_authority_session = TokenAuthority::Session.find_by(refresh_token_jti: token.jti)
       client_id = params[:client_id].presence ||
         token_authority_session.token_authority_authorization_grant.resolved_client.public_id
 
-      access_token, refresh_token, expiration = token_authority_session.refresh(token:, client_id:).deconstruct
+      # Validate resources for refresh (if provided)
+      if resources.any?
+        # If resources are provided but feature is disabled, reject
+        unless TokenAuthority.config.rfc_8707_enabled?
+          render_token_request_error(error: "invalid_target") and return
+        end
+
+        granted_resources = token_authority_session.token_authority_authorization_grant
+          .token_authority_challenge&.resources || []
+
+        unless TokenAuthority::ResourceUriValidator.valid_all?(resources)
+          render_token_request_error(error: "invalid_target") and return
+        end
+
+        unless TokenAuthority::ResourceUriValidator.allowed_all?(resources)
+          render_token_request_error(error: "invalid_target") and return
+        end
+
+        unless TokenAuthority::ResourceUriValidator.subset?(resources, granted_resources)
+          render_token_request_error(error: "invalid_target") and return
+        end
+      end
+
+      # Use requested resources or fall back to granted resources
+      effective_resources = resources.any? ? resources :
+        (token_authority_session.token_authority_authorization_grant.token_authority_challenge&.resources || [])
+
+      access_token, refresh_token, expiration = token_authority_session.refresh(
+        token:,
+        client_id:,
+        resources: effective_resources
+      ).deconstruct
 
       render json: {access_token:, refresh_token:, token_type: "bearer", expires_in: expiration}
     rescue JWT::DecodeError

@@ -4,7 +4,7 @@ require "rails_helper"
 
 RSpec.describe TokenAuthority::AuthorizationGrantsController, type: :request do
   # Helper to set up session state via the authorize endpoint
-  def start_authorization_flow(client, state: "foobar")
+  def start_authorization_flow(client, state: "foobar", resources: [])
     params = {
       client_id: client.public_id,
       state:,
@@ -13,6 +13,9 @@ RSpec.describe TokenAuthority::AuthorizationGrantsController, type: :request do
       redirect_uri: client.primary_redirect_uri,
       response_type: "code"
     }
+
+    # Add resource parameters if provided
+    params[:resource] = resources if resources.any?
 
     # Confidential clients require HTTP Basic auth
     if client.confidential_client_type?
@@ -85,6 +88,63 @@ RSpec.describe TokenAuthority::AuthorizationGrantsController, type: :request do
         aggregate_failures do
           expect(response).to have_http_status(:bad_request)
           expect(response.body).to include("Invalid or expired authorization state")
+        end
+      end
+    end
+
+    context "with RFC 8707 resource indicators" do
+      let_it_be(:token_authority_client) { create(:token_authority_client, client_type: "public") }
+      let(:resources) { ["https://api.example.com", "https://billing.example.com"] }
+      let(:configured_resources) do
+        {
+          "https://api.example.com" => "https://api.example.com",
+          "https://billing.example.com" => "https://billing.example.com"
+        }
+      end
+
+      before do
+        allow(TokenAuthority.config).to receive(:rfc_8707_resources).and_return(configured_resources)
+        start_authorization_flow(token_authority_client, resources:)
+      end
+
+      it "displays resource URIs on the consent screen" do
+        call_endpoint
+        aggregate_failures do
+          expect(response).to have_http_status(:ok)
+          expect(response.body).to include("https://api.example.com")
+          expect(response.body).to include("https://billing.example.com")
+        end
+      end
+
+      context "when resource display names are configured" do
+        let(:configured_resources) do
+          {
+            "https://api.example.com" => "Main API",
+            "https://billing.example.com" => "Billing Service"
+          }
+        end
+
+        it "displays human-friendly names instead of URIs" do
+          call_endpoint
+          aggregate_failures do
+            expect(response).to have_http_status(:ok)
+            expect(response.body).to include("Main API")
+            expect(response.body).to include("Billing Service")
+            expect(response.body).not_to include("https://api.example.com")
+            expect(response.body).not_to include("https://billing.example.com")
+          end
+        end
+      end
+
+      context "when no resources are requested" do
+        let(:resources) { [] }
+
+        it "does not display the resources section" do
+          call_endpoint
+          aggregate_failures do
+            expect(response).to have_http_status(:ok)
+            expect(response.body).not_to include("requesting access to")
+          end
         end
       end
     end

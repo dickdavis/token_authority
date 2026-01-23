@@ -10,13 +10,13 @@ module TokenAuthority
 
     private
 
-    def create_token_authority_session(grant:)
+    def create_token_authority_session(grant:, resources: [])
       client = grant.resolved_client
       access_token_expiration = client.access_token_duration.seconds.from_now.to_i
-      access_token = TokenAuthority::AccessToken.default(user_id:, exp: access_token_expiration)
+      access_token = TokenAuthority::AccessToken.default(user_id:, exp: access_token_expiration, resources:)
 
       refresh_token_expiration = client.refresh_token_duration.seconds.from_now.to_i
-      refresh_token = TokenAuthority::RefreshToken.default(exp: refresh_token_expiration)
+      refresh_token = TokenAuthority::RefreshToken.default(exp: refresh_token_expiration, resources:)
 
       token_authority_session = grant.token_authority_sessions.new(
         access_token_jti: access_token.jti, refresh_token_jti: refresh_token.jti

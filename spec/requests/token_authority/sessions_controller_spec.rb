@@ -218,7 +218,8 @@ RSpec.describe TokenAuthority::SessionsController, type: :request do
   describe 'POST /token (grant_type="authorization_code")' do
     let_it_be(:user) { create(:user) }
 
-    let(:params) { {client_id:, code:, code_verifier:, grant_type:, redirect_uri:}.compact }
+    let(:params) { {client_id:, code:, code_verifier:, grant_type:, redirect_uri:, resource:}.compact }
+    let(:resource) { nil }
     let(:grant_type) { "authorization_code" }
     let(:code) { token_authority_authorization_grant.public_id }
 
@@ -238,6 +239,86 @@ RSpec.describe TokenAuthority::SessionsController, type: :request do
       it_behaves_like "generates an OAuth session"
       it_behaves_like "implements PKCE"
       it_behaves_like "requires PKCE"
+
+      context "with RFC 8707 resource indicators" do
+        let(:rfc8707_authorization_grant) do
+          create(:token_authority_authorization_grant, user:, token_authority_client:).tap do |grant|
+            grant.token_authority_challenge.update!(resources: granted_resources)
+          end
+        end
+        let(:code) { rfc8707_authorization_grant.public_id }
+        let(:granted_resources) { ["https://api1.example.com", "https://api2.example.com"] }
+        let(:configured_resources) do
+          {
+            "https://api.example.com" => "Main API",
+            "https://api1.example.com" => "API 1",
+            "https://api2.example.com" => "API 2",
+            "https://api3.example.com" => "API 3"
+          }
+        end
+
+        before do
+          allow(TokenAuthority.config).to receive(:rfc_8707_resources).and_return(configured_resources)
+        end
+
+        context "when no resource parameter is provided at token exchange" do
+          it "uses the granted resources in the access token aud claim" do
+            call_endpoint
+            expect(response).to have_http_status(:ok)
+            access_token = response.parsed_body["access_token"]
+            decoded = TokenAuthority::JsonWebToken.decode(access_token)
+            expect(decoded[:aud]).to match_array(granted_resources)
+          end
+        end
+
+        context "when requesting a subset of granted resources (downscoping)" do
+          let(:resource) { ["https://api1.example.com"] }
+
+          it "uses the requested resources in the access token aud claim" do
+            call_endpoint
+            expect(response).to have_http_status(:ok)
+            access_token = response.parsed_body["access_token"]
+            decoded = TokenAuthority::JsonWebToken.decode(access_token)
+            expect(decoded[:aud]).to eq("https://api1.example.com")
+          end
+        end
+
+        context "when requesting resources not in the granted set" do
+          let(:resource) { ["https://api3.example.com"] }
+
+          it "returns invalid_target error" do
+            call_endpoint
+            aggregate_failures do
+              expect(response).to have_http_status(:bad_request)
+              expect(response.parsed_body["error"]).to eq("invalid_target")
+            end
+          end
+        end
+
+        context "when no resources were granted during authorization" do
+          let(:granted_resources) { [] }
+
+          it "falls back to configured audience URL" do
+            call_endpoint
+            expect(response).to have_http_status(:ok)
+            access_token = response.parsed_body["access_token"]
+            decoded = TokenAuthority::JsonWebToken.decode(access_token)
+            expect(decoded[:aud]).to eq(TokenAuthority.config.rfc_9068_audience_url)
+          end
+        end
+
+        context "when a single resource is used" do
+          let(:granted_resources) { ["https://api.example.com"] }
+
+          it "sets aud as a single string instead of array" do
+            call_endpoint
+            expect(response).to have_http_status(:ok)
+            access_token = response.parsed_body["access_token"]
+            decoded = TokenAuthority::JsonWebToken.decode(access_token)
+            expect(decoded[:aud]).to eq("https://api.example.com")
+          end
+        end
+      end
     end
 
     context "when the client type is confidential" do
@@ -331,7 +412,8 @@ RSpec.describe TokenAuthority::SessionsController, type: :request do
   describe 'POST /token (grant_type="refresh_token")' do
     let_it_be(:user) { create(:user) }
 
-    let(:params) { {client_id:, grant_type:, refresh_token:}.compact }
+    let(:params) { {client_id:, grant_type:, refresh_token:, resource:}.compact }
+    let(:resource) { nil }
     let(:grant_type) { "refresh_token" }
     let(:refresh_token) { TokenAuthority::JsonWebToken.encode(attributes_for(:token_authority_refresh_token, token_authority_session:)) }
     let!(:token_authority_session) { create(:token_authority_session, token_authority_authorization_grant:) }
@@ -420,6 +502,89 @@ RSpec.describe TokenAuthority::SessionsController, type: :request do
       it_behaves_like "requires a valid refresh_token param"
       it_behaves_like "does not refresh a revoked session"
       it_behaves_like "does not refresh an already refreshed session"
+
+      context "with RFC 8707 resource indicators" do
+        let(:rfc8707_authorization_grant) do
+          create(:token_authority_authorization_grant, user:, token_authority_client:).tap do |grant|
+            grant.token_authority_challenge.update!(resources: granted_resources)
+          end
+        end
+        let(:rfc8707_session) { create(:token_authority_session, token_authority_authorization_grant: rfc8707_authorization_grant) }
+        let(:refresh_token) { TokenAuthority::JsonWebToken.encode(attributes_for(:token_authority_refresh_token, token_authority_session: rfc8707_session)) }
+        let(:granted_resources) { ["https://api1.example.com", "https://api2.example.com"] }
+        let(:configured_resources) do
+          {
+            "https://api1.example.com" => "API 1",
+            "https://api2.example.com" => "API 2",
+            "https://api3.example.com" => "API 3"
+          }
+        end
+
+        before do
+          allow(TokenAuthority.config).to receive(:rfc_8707_resources).and_return(configured_resources)
+        end
+
+        context "when no resource parameter is provided at refresh" do
+          it "uses the granted resources in the new access token aud claim" do
+            call_endpoint
+            expect(response).to have_http_status(:ok)
+            access_token = response.parsed_body["access_token"]
+            decoded = TokenAuthority::JsonWebToken.decode(access_token)
+            expect(decoded[:aud]).to match_array(granted_resources)
+          end
+        end
+
+        context "when requesting a subset of granted resources (downscoping)" do
+          let(:resource) { ["https://api1.example.com"] }
+
+          it "uses the requested resources in the new access token aud claim" do
+            call_endpoint
+            expect(response).to have_http_status(:ok)
+            access_token = response.parsed_body["access_token"]
+            decoded = TokenAuthority::JsonWebToken.decode(access_token)
+            expect(decoded[:aud]).to eq("https://api1.example.com")
+          end
+        end
+
+        context "when requesting resources not in the granted set" do
+          let(:resource) { ["https://api3.example.com"] }
+
+          it "returns invalid_target error" do
+            call_endpoint
+            aggregate_failures do
+              expect(response).to have_http_status(:bad_request)
+              expect(response.parsed_body["error"]).to eq("invalid_target")
+            end
+          end
+        end
+
+        context "when RFC 8707 is disabled (no resources configured)" do
+          before do
+            allow(TokenAuthority.config).to receive(:rfc_8707_resources).and_return(nil)
+          end
+
+          context "when no resource is provided" do
+            let(:resource) { nil }
+
+            it "proceeds without resource validation" do
+              call_endpoint
+              expect(response).to have_http_status(:ok)
+            end
+          end
+
+          context "when a resource is provided" do
+            let(:resource) { ["https://api3.example.com"] }
+
+            it "returns invalid_target error" do
+              call_endpoint
+              aggregate_failures do
+                expect(response).to have_http_status(:bad_request)
+                expect(response.parsed_body["error"]).to eq("invalid_target")
+              end
+            end
+          end
+        end
+      end
     end
 
     context "when the client type is confidential" do

@@ -7,11 +7,20 @@ module TokenAuthority
     include ActiveModel::Model
     include ActiveModel::Validations
 
-    attr_accessor :code_verifier, :token_authority_authorization_grant, :redirect_uri
+    attr_accessor :code_verifier, :token_authority_authorization_grant, :redirect_uri, :resources
 
     validate :token_authority_authorization_grant_must_be_valid
     validate :code_verifier_must_be_valid
     validate :redirect_uri_must_be_valid
+    validate :resources_must_be_valid
+
+    # Returns the effective resources (requested or falls back to grant's resources)
+    def effective_resources
+      normalized_resources = resources || []
+      return normalized_resources if normalized_resources.any?
+
+      token_authority_challenge&.resources || []
+    end
 
     private
 
@@ -104,6 +113,37 @@ module TokenAuthority
 
     def token_authority_challenge
       @token_authority_challenge ||= token_authority_authorization_grant.token_authority_challenge
+    end
+
+    def resources_must_be_valid
+      return unless token_authority_authorization_grant_present?
+
+      normalized_resources = resources || []
+      return if normalized_resources.empty?
+
+      # If resources are provided but feature is disabled, reject them
+      unless TokenAuthority.config.rfc_8707_enabled?
+        errors.add(:resources, :not_allowed)
+        return
+      end
+
+      # Validate all resource URIs
+      unless TokenAuthority::ResourceUriValidator.valid_all?(normalized_resources)
+        errors.add(:resources, :invalid_uri)
+        return
+      end
+
+      # Check against allowed resources list
+      unless TokenAuthority::ResourceUriValidator.allowed_all?(normalized_resources)
+        errors.add(:resources, :not_allowed)
+        return
+      end
+
+      # Check that requested resources are a subset of granted resources (downscoping)
+      granted_resources = token_authority_challenge&.resources || []
+      unless TokenAuthority::ResourceUriValidator.subset?(normalized_resources, granted_resources)
+        errors.add(:resources, :not_subset)
+      end
     end
   end
 end

@@ -1,12 +1,15 @@
 ## [Unreleased]
 
-## [0.2.0] - 2025-01-21
+## [0.2.0] - 2025-01-23
 
 - Implemented support for OAuth 2.1 authorization flows and JSON Web Token (JWT) Profile for OAuth 2.0 Access Tokens (RFC 9068).
 - Implemented support for OAuth 2.0 Authorization Server Metadata (RFC 8414).
 - Implemented support for OAuth 2.0 Protected Resource Metadata (RFC 9728).
 - Implemented support for OAuth 2.0 Dynamic Client Registration Protocol (RFC 7591).
 - Implemented support for OAuth Client ID Metadata Documents.
+- Implemented support for OAuth 2.0 Resource Indicators (RFC 8707).
+- Implemented configuration.
+- Implemented install generator with templates.
 
 ## [0.1.0] - 2026-01-19
 

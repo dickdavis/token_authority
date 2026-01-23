@@ -29,7 +29,7 @@ module TokenAuthority
       TokenAuthority::AuthorizationGrant.create(token_authority_client: self, user:, token_authority_challenge_attributes: challenge_params)
     end
 
-    def new_authorization_request(client_id:, code_challenge:, code_challenge_method:, redirect_uri:, response_type:, state:)
+    def new_authorization_request(client_id:, code_challenge:, code_challenge_method:, redirect_uri:, response_type:, state:, resources: [])
       TokenAuthority::AuthorizationRequest.new(
         token_authority_client: self,
         client_id:,
@@ -37,7 +37,8 @@ module TokenAuthority
         code_challenge:,
         code_challenge_method:,
         redirect_uri:,
-        response_type:
+        response_type:,
+        resources:
       )
     end
 

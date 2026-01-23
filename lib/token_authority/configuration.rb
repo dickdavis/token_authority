@@ -45,6 +45,13 @@ module TokenAuthority
       :client_metadata_document_connect_timeout,
       :client_metadata_document_read_timeout
 
+    # Resource Indicators (RFC 8707)
+    # rfc_8707_resources: Hash mapping resource URIs to display names
+    #   - nil or {} = resource indicators disabled
+    #   - { "https://api.example.com" => "Main API" } = only these resources allowed
+    # rfc_8707_require_resource: Whether the resource param is required (default: false)
+    attr_accessor :rfc_8707_resources, :rfc_8707_require_resource
+
     def initialize
       # General
       @secret_key = nil
@@ -99,6 +106,22 @@ module TokenAuthority
       @client_metadata_document_blocked_hosts = []
       @client_metadata_document_connect_timeout = 5
       @client_metadata_document_read_timeout = 5
+
+      # Resource Indicators (RFC 8707)
+      @rfc_8707_resources = nil
+      @rfc_8707_require_resource = false
+    end
+
+    # Returns true if RFC 8707 resource indicators are enabled
+    def rfc_8707_enabled?
+      rfc_8707_resources.is_a?(Hash) && rfc_8707_resources.any?
+    end
+
+    # Validates configuration and raises errors for invalid combinations
+    def validate!
+      if rfc_8707_require_resource && !rfc_8707_enabled?
+        raise ConfigurationError, "rfc_8707_require_resource is true but no rfc_8707_resources are configured"
+      end
     end
   end
 

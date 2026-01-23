@@ -10,6 +10,7 @@ This project aims to implement the OAuth standards specified in the [MCP Authori
 | ✅ | [JSON Web Token (JWT) Profile for OAuth 2.0 Access Tokens (RFC 9068)](https://datatracker.ietf.org/doc/html/rfc9068) |
 | ✅ | [OAuth 2.0 Authorization Server Metadata (RFC 8414)](https://datatracker.ietf.org/doc/html/rfc8414) |
 | ✅ | [OAuth 2.0 Protected Resource Metadata (RFC 9728)](https://datatracker.ietf.org/doc/html/rfc9728) |
+| ✅ | [OAuth 2.0 Resource Indicators (RFC 8707)](https://datatracker.ietf.org/doc/html/rfc8707) |
 | ✅ | [OAuth 2.0 Dynamic Client Registration Protocol (RFC 7591)](https://datatracker.ietf.org/doc/html/rfc7591) |
 | ✅ | [OAuth Client ID Metadata Documents](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-client-id-metadata-document-00) |
 

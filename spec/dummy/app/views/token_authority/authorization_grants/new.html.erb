@@ -2,6 +2,14 @@
   <h2><%= t('token_authority.authorization_grants.new.title') %></h2>
   <p><%= t('token_authority.authorization_grants.new.lede') %></p>
   <p><strong><%= client_name %></strong></p>
+  <% if resources.any? %>
+    <p><%= t('token_authority.authorization_grants.new.resources_heading') %></p>
+    <ul>
+      <% resources.each do |resource| %>
+        <li><%= resource_display_name(resource) %></li>
+      <% end %>
+    </ul>
+  <% end %>
   <div>
     <%= button_to t('token_authority.authorization_grants.new.reject_cta'), authorization_grants_path, params: { approve: false } %>
     <%= button_to t('token_authority.authorization_grants.new.approve_cta'), authorization_grants_path, params: { approve: true } %>

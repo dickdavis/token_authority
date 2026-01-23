@@ -25,6 +25,30 @@ RSpec.describe TokenAuthority::RefreshToken, type: :model do
         expect(refresh_token.jti).to match(TokenAuthority::Session::VALID_UUID_REGEX)
       end
     end
+
+    context "with resources parameter (RFC 8707)" do
+      context "when resources is empty" do
+        it "uses the configured audience URL" do
+          refresh_token = described_class.default(exp:, resources: [])
+          expect(refresh_token.aud).to eq(TokenAuthority.config.rfc_9068_audience_url)
+        end
+      end
+
+      context "when resources has a single value" do
+        it "sets aud to that single value as a string" do
+          refresh_token = described_class.default(exp:, resources: ["https://api.example.com"])
+          expect(refresh_token.aud).to eq("https://api.example.com")
+        end
+      end
+
+      context "when resources has multiple values" do
+        it "sets aud to the array of resources" do
+          resources = ["https://api1.example.com", "https://api2.example.com"]
+          refresh_token = described_class.default(exp:, resources:)
+          expect(refresh_token.aud).to eq(resources)
+        end
+      end
+    end
   end
 
   describe ".from_token" do

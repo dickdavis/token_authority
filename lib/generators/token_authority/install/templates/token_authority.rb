@@ -108,6 +108,25 @@ TokenAuthority.configure do |config|
   # config.rfc_9728_resource_tos_uri = "https://example.com/tos"
 
   # ==========================================================================
+  # Resource Indicators (RFC 8707)
+  # ==========================================================================
+
+  # Configure allowed resources with human-friendly display names.
+  # Keys are the resource URIs (used as the allowlist), values are display names
+  # shown on the consent screen.
+  #
+  # Set to nil or {} to disable resource indicators entirely.
+  # When configured, only these resources are allowed in authorization requests.
+  # config.rfc_8707_resources = {
+  #   "https://api.example.com/" => "Main API",
+  #   "https://billing.example.com/" => "Billing Service"
+  # }
+
+  # Require the resource parameter in authorization requests.
+  # When true, clients must specify at least one resource.
+  # config.rfc_8707_require_resource = false
+
+  # ==========================================================================
   # Dynamic Client Registration (RFC 7591)
   # ==========================================================================
 

@@ -13,8 +13,8 @@ RSpec.describe TokenAuthority::AuthorizationRequest, type: :model do
       code_challenge_method:,
       redirect_uri:,
       response_type:,
-      state:
-
+      state:,
+      resources:
     }
   end
 
@@ -24,6 +24,7 @@ RSpec.describe TokenAuthority::AuthorizationRequest, type: :model do
   let(:redirect_uri) { initial_attrs[:redirect_uri] }
   let(:response_type) { initial_attrs[:response_type] }
   let(:state) { initial_attrs[:state] }
+  let(:resources) { nil }
 
   describe "validations" do
     let_it_be(:initial_attrs) { attributes_for(:token_authority_authorization_request) }
@@ -199,6 +200,128 @@ RSpec.describe TokenAuthority::AuthorizationRequest, type: :model do
         end
       end
     end
+
+    context "with RFC 8707 resource indicators" do
+      let_it_be(:token_authority_client) { create(:token_authority_client, client_type: "public") }
+      let(:client_id) { token_authority_client.public_id }
+      let(:configured_resources) do
+        {
+          "https://api.example.com" => "Main API",
+          "https://api2.example.com" => "Secondary API"
+        }
+      end
+
+      before do
+        allow(TokenAuthority.config).to receive(:rfc_8707_resources).and_return(configured_resources)
+      end
+
+      context "when resources is nil" do
+        let(:resources) { nil }
+
+        it "is valid" do
+          expect(model).to be_valid
+        end
+      end
+
+      context "when resources is an empty array" do
+        let(:resources) { [] }
+
+        it "is valid" do
+          expect(model).to be_valid
+        end
+      end
+
+      context "when resources contains valid URIs in the allowlist" do
+        let(:resources) { ["https://api.example.com", "https://api2.example.com"] }
+
+        it "is valid" do
+          expect(model).to be_valid
+        end
+      end
+
+      context "when resources contains invalid URIs" do
+        let(:resources) { ["not-a-valid-uri"] }
+
+        it "is invalid with invalid_uri error" do
+          expect(model).not_to be_valid
+          expect(model.errors[:resources]).to include(
+            I18n.t("activemodel.errors.models.token_authority/authorization_request.attributes.resources.invalid_uri")
+          )
+        end
+      end
+
+      context "when resources contains a URI with fragment" do
+        let(:resources) { ["https://api.example.com#fragment"] }
+
+        it "is invalid with invalid_uri error" do
+          expect(model).not_to be_valid
+          expect(model.errors[:resources]).to include(
+            I18n.t("activemodel.errors.models.token_authority/authorization_request.attributes.resources.invalid_uri")
+          )
+        end
+      end
+
+      context "when rfc_8707_require_resource is true" do
+        before do
+          allow(TokenAuthority.config).to receive(:rfc_8707_require_resource).and_return(true)
+        end
+
+        context "when resources is empty" do
+          let(:resources) { [] }
+
+          it "is invalid with required error" do
+            expect(model).not_to be_valid
+            expect(model.errors[:resources]).to include(
+              I18n.t("activemodel.errors.models.token_authority/authorization_request.attributes.resources.required")
+            )
+          end
+        end
+
+        context "when resources is provided and in allowlist" do
+          let(:resources) { ["https://api.example.com"] }
+
+          it "is valid" do
+            expect(model).to be_valid
+          end
+        end
+      end
+
+      context "when resources are not in the allowlist" do
+        let(:resources) { ["https://not-allowed.example.com"] }
+
+        it "is invalid with not_allowed error" do
+          expect(model).not_to be_valid
+          expect(model.errors[:resources]).to include(
+            I18n.t("activemodel.errors.models.token_authority/authorization_request.attributes.resources.not_allowed")
+          )
+        end
+      end
+
+      context "when RFC 8707 is disabled (no resources configured)" do
+        before do
+          allow(TokenAuthority.config).to receive(:rfc_8707_resources).and_return(nil)
+        end
+
+        context "when no resources are provided" do
+          let(:resources) { nil }
+
+          it "is valid" do
+            expect(model).to be_valid
+          end
+        end
+
+        context "when resources are provided" do
+          let(:resources) { ["https://api.example.com"] }
+
+          it "is invalid with not_allowed error" do
+            expect(model).not_to be_valid
+            expect(model.errors[:resources]).to include(
+              I18n.t("activemodel.errors.models.token_authority/authorization_request.attributes.resources.not_allowed")
+            )
+          end
+        end
+      end
+    end
   end
 
   describe ".from_internal_state_token" do
@@ -281,6 +404,59 @@ RSpec.describe TokenAuthority::AuthorizationRequest, type: :model do
           expect(result.token_authority_client).to be_nil
           expect(result).not_to be_valid
         end
+      end
+    end
+
+    context "with resources" do
+      let(:authorization_request) do
+        described_class.new(
+          token_authority_client: token_authority_client,
+          client_id: token_authority_client.public_id,
+          code_challenge: "challenge",
+          code_challenge_method: "S256",
+          redirect_uri: token_authority_client.primary_redirect_uri,
+          response_type: "code",
+          state: "some-state",
+          resources: ["https://api.example.com", "https://api2.example.com"]
+        )
+      end
+
+      it "preserves resources through serialization and deserialization" do
+        result = described_class.from_internal_state_token(token)
+
+        expect(result.resources).to eq(["https://api.example.com", "https://api2.example.com"])
+      end
+    end
+  end
+
+  describe "#to_h" do
+    let_it_be(:token_authority_client) { create(:token_authority_client, client_type: "public") }
+    let(:authorization_request) do
+      described_class.new(
+        token_authority_client: token_authority_client,
+        client_id: token_authority_client.public_id,
+        code_challenge: "challenge",
+        code_challenge_method: "S256",
+        redirect_uri: token_authority_client.primary_redirect_uri,
+        response_type: "code",
+        state: "some-state",
+        resources: resources
+      )
+    end
+
+    context "when resources is nil" do
+      let(:resources) { nil }
+
+      it "includes empty array for resources" do
+        expect(authorization_request.to_h[:resources]).to eq([])
+      end
+    end
+
+    context "when resources is provided" do
+      let(:resources) { ["https://api.example.com"] }
+
+      it "includes resources in the hash" do
+        expect(authorization_request.to_h[:resources]).to eq(["https://api.example.com"])
       end
     end
   end

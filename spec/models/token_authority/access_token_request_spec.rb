@@ -8,11 +8,12 @@ RSpec.describe TokenAuthority::AccessTokenRequest, type: :model do
   let_it_be(:initial_attrs) { attributes_for(:token_authority_access_token_request) }
 
   let(:attrs) do
-    {code_verifier:, token_authority_authorization_grant:, redirect_uri:}.compact
+    {code_verifier:, token_authority_authorization_grant:, redirect_uri:, resources:}.compact
   end
 
   let(:code_verifier) { initial_attrs[:code_verifier] }
   let(:redirect_uri) { initial_attrs[:redirect_uri] }
+  let(:resources) { nil }
 
   describe "validations" do
     shared_examples "validates token_authority_authorization_grant is present" do
@@ -203,6 +204,160 @@ RSpec.describe TokenAuthority::AccessTokenRequest, type: :model do
       it "requires redirect_uri for URL-based clients (always public)" do
         model.redirect_uri = nil
         expect(model).not_to be_valid
+      end
+    end
+
+    context "with RFC 8707 resource indicators" do
+      let_it_be(:token_authority_client) { create(:token_authority_client, client_type: "public") }
+      let(:token_authority_authorization_grant) do
+        create(:token_authority_authorization_grant, token_authority_client:).tap do |grant|
+          grant.token_authority_challenge.update!(resources: granted_resources)
+        end
+      end
+      let(:granted_resources) { ["https://api1.example.com", "https://api2.example.com"] }
+      let(:configured_resources) do
+        {
+          "https://api1.example.com" => "API 1",
+          "https://api2.example.com" => "API 2",
+          "https://api3.example.com" => "API 3"
+        }
+      end
+
+      before do
+        allow(TokenAuthority.config).to receive(:rfc_8707_resources).and_return(configured_resources)
+      end
+
+      context "when resources is nil" do
+        let(:resources) { nil }
+
+        it "is valid" do
+          expect(model).to be_valid
+        end
+      end
+
+      context "when resources is an empty array" do
+        let(:resources) { [] }
+
+        it "is valid" do
+          expect(model).to be_valid
+        end
+      end
+
+      context "when resources is a subset of granted resources" do
+        let(:resources) { ["https://api1.example.com"] }
+
+        it "is valid" do
+          expect(model).to be_valid
+        end
+      end
+
+      context "when resources equals granted resources" do
+        let(:resources) { ["https://api1.example.com", "https://api2.example.com"] }
+
+        it "is valid" do
+          expect(model).to be_valid
+        end
+      end
+
+      context "when resources is not a subset of granted resources" do
+        let(:resources) { ["https://api3.example.com"] }
+
+        it "is invalid with not_subset error" do
+          expect(model).not_to be_valid
+          expect(model.errors[:resources]).to include(
+            I18n.t("activemodel.errors.models.token_authority/access_token_request.attributes.resources.not_subset")
+          )
+        end
+      end
+
+      context "when resources contains invalid URIs" do
+        let(:resources) { ["not-a-valid-uri"] }
+
+        it "is invalid with invalid_uri error" do
+          expect(model).not_to be_valid
+          expect(model.errors[:resources]).to include(
+            I18n.t("activemodel.errors.models.token_authority/access_token_request.attributes.resources.invalid_uri")
+          )
+        end
+      end
+
+      context "when resources are not in the configured resources" do
+        let(:resources) { ["https://not-configured.example.com"] }
+
+        it "is invalid with not_allowed error" do
+          expect(model).not_to be_valid
+          expect(model.errors[:resources]).to include(
+            I18n.t("activemodel.errors.models.token_authority/access_token_request.attributes.resources.not_allowed")
+          )
+        end
+      end
+
+      context "when RFC 8707 is disabled (no resources configured)" do
+        before do
+          allow(TokenAuthority.config).to receive(:rfc_8707_resources).and_return(nil)
+        end
+
+        context "when no resources are provided" do
+          let(:resources) { nil }
+
+          it "is valid" do
+            expect(model).to be_valid
+          end
+        end
+
+        context "when resources are provided" do
+          let(:resources) { ["https://api1.example.com"] }
+
+          it "is invalid with not_allowed error" do
+            expect(model).not_to be_valid
+            expect(model.errors[:resources]).to include(
+              I18n.t("activemodel.errors.models.token_authority/access_token_request.attributes.resources.not_allowed")
+            )
+          end
+        end
+      end
+    end
+  end
+
+  describe "#effective_resources" do
+    let_it_be(:token_authority_client) { create(:token_authority_client, client_type: "public") }
+    let(:token_authority_authorization_grant) do
+      create(:token_authority_authorization_grant, token_authority_client:).tap do |grant|
+        grant.token_authority_challenge.update!(resources: granted_resources)
+      end
+    end
+    let(:granted_resources) { ["https://api1.example.com", "https://api2.example.com"] }
+
+    context "when resources is provided" do
+      let(:resources) { ["https://api1.example.com"] }
+
+      it "returns the requested resources" do
+        expect(model.effective_resources).to eq(["https://api1.example.com"])
+      end
+    end
+
+    context "when resources is nil" do
+      let(:resources) { nil }
+
+      it "returns the granted resources from the challenge" do
+        expect(model.effective_resources).to eq(granted_resources)
+      end
+    end
+
+    context "when resources is an empty array" do
+      let(:resources) { [] }
+
+      it "returns the granted resources from the challenge" do
+        expect(model.effective_resources).to eq(granted_resources)
+      end
+    end
+
+    context "when no resources were granted" do
+      let(:granted_resources) { [] }
+      let(:resources) { nil }
+
+      it "returns an empty array" do
+        expect(model.effective_resources).to eq([])
       end
     end
   end

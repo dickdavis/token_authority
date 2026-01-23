@@ -17,6 +17,7 @@ module TokenAuthority
 
     def authorize
       state = params[:state]
+      resources = Array(params[:resource]).presence || []
 
       authorization_request = @token_authority_client.new_authorization_request(
         client_id: params[:client_id],
@@ -24,7 +25,8 @@ module TokenAuthority
         code_challenge_method: params[:code_challenge_method],
         redirect_uri: params[:redirect_uri],
         response_type: params[:response_type],
-        state:
+        state:,
+        resources:
       )
 
       if authorization_request.valid?
@@ -32,6 +34,10 @@ module TokenAuthority
         redirect_to new_authorization_grant_path
       elsif authorization_request.errors.where(:redirect_uri).any?
         head :bad_request and return
+      elsif authorization_request.errors.where(:resources).any?
+        params_for_redirect = {error: :invalid_target, state:}.compact
+        url = @token_authority_client.url_for_redirect(params: params_for_redirect.compact)
+        redirect_to url, allow_other_host: true
       else
         params_for_redirect = {error: :invalid_request, state:}.compact
         url = @token_authority_client.url_for_redirect(params: params_for_redirect.compact)

@@ -216,6 +216,23 @@ RSpec.describe TokenAuthority::Client, type: :model do
         expect(object.state).to eq(request_attrs[:state])
       end
     end
+
+    context "with resources parameter (RFC 8707)" do
+      let(:resources) { ["https://api.example.com", "https://billing.example.com"] }
+
+      it "passes resources to the authorization request" do
+        object = model.new_authorization_request(
+          **request_attrs.except(:token_authority_client),
+          resources:
+        )
+        expect(object.resources).to eq(resources)
+      end
+
+      it "defaults resources to an empty array" do
+        object = call_method
+        expect(object.resources).to eq([])
+      end
+    end
   end
 
   describe "#url_for_redirect" do

@@ -24,6 +24,12 @@ RSpec.describe "Api::V1::Users", type: :request do
           expect(response.parsed_body).to eq({"id" => user.id, "email" => user.email})
         end
       end
+
+      it "emits token authentication succeeded event" do
+        expect { call_endpoint }
+          .to emit_event("token_authority.authentication.token.succeeded")
+          .with_payload(user_id: user.id)
+      end
     end
 
     context "with a valid access token without read scope" do
@@ -60,6 +66,12 @@ RSpec.describe "Api::V1::Users", type: :request do
           expect(response.parsed_body).to eq({"error" => I18n.t("token_authority.errors.missing_auth_header")})
         end
       end
+
+      it "emits token authentication failed event" do
+        expect { call_endpoint }
+          .to emit_event("token_authority.authentication.token.failed")
+          .with_payload(failure_reason: "missing_authorization_header")
+      end
     end
 
     context "with a blank Authorization header" do
@@ -71,6 +83,12 @@ RSpec.describe "Api::V1::Users", type: :request do
           expect(response).to have_http_status(:unauthorized)
           expect(response.parsed_body).to eq({"error" => I18n.t("token_authority.errors.missing_auth_header")})
         end
+      end
+
+      it "emits token authentication failed event" do
+        expect { call_endpoint }
+          .to emit_event("token_authority.authentication.token.failed")
+          .with_payload(failure_reason: "missing_authorization_header")
       end
     end
 
@@ -84,6 +102,12 @@ RSpec.describe "Api::V1::Users", type: :request do
           expect(response.parsed_body).to eq({"error" => I18n.t("token_authority.errors.invalid_token")})
         end
       end
+
+      it "emits token authentication failed event" do
+        expect { call_endpoint }
+          .to emit_event("token_authority.authentication.token.failed")
+          .with_payload(failure_reason: "invalid_token_format")
+      end
     end
 
     context "with an expired token" do
@@ -95,6 +119,12 @@ RSpec.describe "Api::V1::Users", type: :request do
           expect(response).to have_http_status(:unauthorized)
           expect(response.parsed_body).to eq({"error" => I18n.t("token_authority.errors.unauthorized_token")})
         end
+      end
+
+      it "emits token authentication failed event" do
+        expect { call_endpoint }
+          .to emit_event("token_authority.authentication.token.failed")
+          .with_payload(failure_reason: "unauthorized_token")
       end
     end
 
@@ -108,6 +138,12 @@ RSpec.describe "Api::V1::Users", type: :request do
           expect(response.parsed_body).to eq({"error" => I18n.t("token_authority.errors.unauthorized_token")})
         end
       end
+
+      it "emits token authentication failed event" do
+        expect { call_endpoint }
+          .to emit_event("token_authority.authentication.token.failed")
+          .with_payload(failure_reason: "unauthorized_token")
+      end
     end
 
     context "with a refreshed session" do
@@ -119,6 +155,12 @@ RSpec.describe "Api::V1::Users", type: :request do
           expect(response).to have_http_status(:unauthorized)
           expect(response.parsed_body).to eq({"error" => I18n.t("token_authority.errors.unauthorized_token")})
         end
+      end
+
+      it "emits token authentication failed event" do
+        expect { call_endpoint }
+          .to emit_event("token_authority.authentication.token.failed")
+          .with_payload(failure_reason: "unauthorized_token")
       end
     end
 
@@ -133,6 +175,12 @@ RSpec.describe "Api::V1::Users", type: :request do
           expect(response).to have_http_status(:unauthorized)
           expect(response.parsed_body).to eq({"error" => I18n.t("token_authority.errors.unauthorized_token")})
         end
+      end
+
+      it "emits token authentication failed event" do
+        expect { call_endpoint }
+          .to emit_event("token_authority.authentication.token.failed")
+          .with_payload(failure_reason: "unauthorized_token")
       end
     end
   end

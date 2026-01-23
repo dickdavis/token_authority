@@ -6,7 +6,7 @@ module TokenAuthority
   module SessionCreatable
     extend ActiveSupport::Concern
 
-    TokenContainer = Data.define(:access_token, :refresh_token, :expiration, :scope)
+    TokenContainer = Data.define(:access_token, :refresh_token, :expiration, :scope, :token_authority_session)
 
     private
 
@@ -25,7 +25,7 @@ module TokenAuthority
       if token_authority_session.save
         yield
         scope = scopes.any? ? scopes.join(" ") : nil
-        TokenContainer[access_token.to_encoded_token, refresh_token.to_encoded_token, access_token.exp, scope]
+        TokenContainer[access_token.to_encoded_token, refresh_token.to_encoded_token, access_token.exp, scope, token_authority_session]
       else
         errors = token_authority_session.errors.full_messages.join(", ")
         raise TokenAuthority::ServerError, I18n.t("token_authority.errors.oauth_session_failure", errors:)

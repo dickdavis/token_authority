@@ -8,6 +8,8 @@ module TokenAuthority
   ##
   # Service for fetching and caching client metadata documents from remote URIs
   class ClientMetadataDocumentFetcher
+    include TokenAuthority::EventLogging
+
     # Private IP ranges for SSRF protection
     PRIVATE_IP_RANGES = [
       IPAddr.new("10.0.0.0/8"),
@@ -28,13 +30,18 @@ module TokenAuthority
         cached = ClientMetadataDocumentCache.find_by_uri(uri)
 
         if cached && !cached.expired?
+          debug_event("client.metadata.cache_hit", uri: uri, expires_at: cached.expires_at&.iso8601)
           return cached.metadata
         end
+
+        debug_event("client.metadata.cache_miss", uri: uri)
 
         # Fetch fresh data and update/create cache entry
         metadata = fetch_from_uri(uri)
         validate_metadata!(uri, metadata)
         store_in_cache(uri, metadata)
+
+        debug_event("client.metadata.fetched", uri: uri, client_name: metadata["client_name"])
 
         metadata
       end
@@ -225,6 +232,29 @@ module TokenAuthority
           cache.expires_at = Time.current + ttl
           cache.save!
         end
+      end
+
+      def debug_event(event_name, **payload)
+        return unless event_logging_enabled?
+        return unless debug_events_enabled?
+        return unless rails_event_available?
+
+        full_payload = {timestamp: Time.current.iso8601(6)}.merge(payload)
+        Rails.event.debug("token_authority.#{event_name}", **full_payload)
+      end
+
+      def event_logging_enabled?
+        TokenAuthority.config.respond_to?(:event_logging_enabled) &&
+          TokenAuthority.config.event_logging_enabled
+      end
+
+      def debug_events_enabled?
+        TokenAuthority.config.respond_to?(:event_logging_debug_events) &&
+          TokenAuthority.config.event_logging_debug_events
+      end
+
+      def rails_event_available?
+        Rails.respond_to?(:event) && Rails.event.present?
       end
     end
   end

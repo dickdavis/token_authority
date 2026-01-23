@@ -12,6 +12,8 @@ module TokenAuthority
   # For Devise users, these methods are already available on ApplicationController.
   # For other authentication systems, implement these methods on your authenticatable controller.
   class AuthorizationGrantsController < TokenAuthority.config.authenticatable_controller.constantize
+    include TokenAuthority::ControllerEventLogging
+
     layout -> { TokenAuthority.config.consent_page_layout }
 
     before_action :authenticate_user!
@@ -27,6 +29,12 @@ module TokenAuthority
     end
 
     def new
+      notify_event("authorization.consent.shown",
+        client_id: @token_authority_client.public_id,
+        client_name: @token_authority_client.name,
+        user_id: current_user.id,
+        requested_scopes: @authorization_request.scope)
+
       render :new, locals: {
         client_name: @token_authority_client.name,
         resources: @authorization_request.resources,
@@ -38,8 +46,17 @@ module TokenAuthority
       state = @authorization_request.state
 
       unless ActiveModel::Type::Boolean.new.cast(params[:approve])
+        notify_event("authorization.consent.denied",
+          client_id: @token_authority_client.public_id,
+          user_id: current_user.id)
+
         redirect_to_client(params_for_redirect: {error: "access_denied", state:}) and return
       end
+
+      notify_event("authorization.consent.granted",
+        client_id: @token_authority_client.public_id,
+        user_id: current_user.id,
+        granted_scopes: @authorization_request.scope)
 
       grant = @token_authority_client.new_authorization_grant(
         user: current_user,
@@ -52,7 +69,16 @@ module TokenAuthority
         }
       )
 
-      redirect_to_client(params_for_redirect: {code: grant.public_id, state:}) and return if grant.persisted?
+      if grant.persisted?
+        notify_event("authorization.grant.created",
+          grant_id: grant.public_id,
+          client_id: @token_authority_client.public_id,
+          user_id: current_user.id,
+          expires_at: grant.expires_at&.iso8601,
+          scopes: grant.scopes)
+
+        redirect_to_client(params_for_redirect: {code: grant.public_id, state:}) and return
+      end
 
       redirect_to_client(params_for_redirect: {error: "invalid_request", state:})
     end

@@ -49,6 +49,12 @@ RSpec.describe TokenAuthority::AuthorizationGrantsController, type: :request do
         call_endpoint
         expect(response).to have_http_status(:ok)
       end
+
+      it "emits consent shown event" do
+        expect { call_endpoint }
+          .to emit_event("token_authority.authorization.consent.shown")
+          .with_payload(client_id: token_authority_client.public_id, user_id: user.id)
+      end
     end
 
     context "when the client type is confidential" do
@@ -187,6 +193,13 @@ RSpec.describe TokenAuthority::AuthorizationGrantsController, type: :request do
         call_endpoint
         expect(session[:token_authority_internal_state]).to be_nil
       end
+
+      it "emits consent granted and grant created events" do
+        expect { call_endpoint }.to emit_events(
+          "token_authority.authorization.consent.granted",
+          "token_authority.authorization.grant.created"
+        )
+      end
     end
 
     context "when the authorization grant fails to create" do
@@ -217,6 +230,12 @@ RSpec.describe TokenAuthority::AuthorizationGrantsController, type: :request do
     it "clears the session state after redirect" do
       call_endpoint
       expect(session[:token_authority_internal_state]).to be_nil
+    end
+
+    it "emits consent denied event" do
+      expect { call_endpoint }
+        .to emit_event("token_authority.authorization.consent.denied")
+        .with_payload(client_id: token_authority_client.public_id, user_id: user.id)
     end
   end
 

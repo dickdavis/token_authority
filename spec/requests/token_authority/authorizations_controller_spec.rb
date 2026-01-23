@@ -13,6 +13,12 @@ RSpec.describe TokenAuthority::AuthorizationsController, type: :request do
         expect(redirect_params["state"]).to eq(state)
       end
     end
+
+    it "emits authorization request failed event" do
+      expect { call_endpoint }
+        .to emit_event("token_authority.authorization.request.failed")
+        .with_payload(error_type: "invalid_request")
+    end
   end
 
   shared_examples "redirects successful authorize request" do
@@ -22,6 +28,13 @@ RSpec.describe TokenAuthority::AuthorizationsController, type: :request do
         expect(response).to redirect_to(token_authority.new_authorization_grant_path)
         expect(session[:token_authority_internal_state]).to match(/\A[a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+\z/)
       end
+    end
+
+    it "emits authorization request events" do
+      expect { call_endpoint }.to emit_events(
+        "token_authority.authorization.request.received",
+        "token_authority.authorization.request.validated"
+      )
     end
   end
 
@@ -35,6 +48,12 @@ RSpec.describe TokenAuthority::AuthorizationsController, type: :request do
         expect(redirect_params["state"]).to eq(state)
       end
     end
+
+    it "emits authorization request failed event" do
+      expect { call_endpoint }
+        .to emit_event("token_authority.authorization.request.failed")
+        .with_payload(error_type: "invalid_target")
+    end
   end
 
   shared_examples "handles an invalid_scope error" do
@@ -46,6 +65,12 @@ RSpec.describe TokenAuthority::AuthorizationsController, type: :request do
         expect(redirect_params["error"]).to eq("invalid_scope")
         expect(redirect_params["state"]).to eq(state)
       end
+    end
+
+    it "emits authorization request failed event" do
+      expect { call_endpoint }
+        .to emit_event("token_authority.authorization.request.failed")
+        .with_payload(error_type: "invalid_scope")
     end
   end
 

@@ -6,10 +6,10 @@ module TokenAuthority
   class AccessTokenRequest
     include ActiveModel::Model
     include ActiveModel::Validations
+    include TokenAuthority::Resourceable
     include TokenAuthority::Scopeable
 
-    attr_accessor :code_verifier, :token_authority_authorization_grant, :redirect_uri, :resources
-    attr_reader :scope
+    attr_accessor :code_verifier, :token_authority_authorization_grant, :redirect_uri
 
     validate :token_authority_authorization_grant_must_be_valid
     validate :code_verifier_must_be_valid
@@ -19,8 +19,7 @@ module TokenAuthority
 
     # Returns the effective resources (requested or falls back to grant's resources)
     def effective_resources
-      normalized_resources = resources || []
-      return normalized_resources if normalized_resources.any?
+      return resources if resources.any?
 
       token_authority_authorization_grant&.resources || []
     end
@@ -123,9 +122,7 @@ module TokenAuthority
 
     def resources_must_be_valid
       return unless token_authority_authorization_grant_present?
-
-      normalized_resources = resources || []
-      return if normalized_resources.empty?
+      return if resources.empty?
 
       # If resources are provided but feature is disabled, reject them
       unless TokenAuthority.config.rfc_8707_enabled?
@@ -134,22 +131,20 @@ module TokenAuthority
       end
 
       # Validate all resource URIs
-      unless TokenAuthority::ResourceUriValidator.valid_all?(normalized_resources)
+      unless valid_resource_uris?
         errors.add(:resources, :invalid_uri)
         return
       end
 
       # Check against allowed resources list
-      unless TokenAuthority::ResourceUriValidator.allowed_all?(normalized_resources)
+      unless allowed_resources?
         errors.add(:resources, :not_allowed)
         return
       end
 
       # Check that requested resources are a subset of granted resources (downscoping)
-      granted_resources = token_authority_authorization_grant.resources || []
-      unless TokenAuthority::ResourceUriValidator.subset?(normalized_resources, granted_resources)
-        errors.add(:resources, :not_subset)
-      end
+      granted_resources = token_authority_authorization_grant.resources
+      errors.add(:resources, :not_subset) unless resources_subset_of?(granted_resources)
     end
 
     def scope_must_be_valid

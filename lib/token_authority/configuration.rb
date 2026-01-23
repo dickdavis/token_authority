@@ -59,6 +59,11 @@ module TokenAuthority
     # rfc_8707_require_resource: Whether the resource param is required (default: false)
     attr_accessor :rfc_8707_resources, :rfc_8707_require_resource
 
+    # Event Logging
+    # event_logging_enabled: Whether to emit and log events (default: true)
+    # event_logging_debug_events: Whether to emit debug events (default: false)
+    attr_accessor :event_logging_enabled, :event_logging_debug_events
+
     def initialize
       # General
       @secret_key = nil
@@ -120,6 +125,10 @@ module TokenAuthority
       # Resource Indicators (RFC 8707)
       @rfc_8707_resources = nil
       @rfc_8707_require_resource = false
+
+      # Event Logging
+      @event_logging_enabled = true
+      @event_logging_debug_events = false
     end
 
     # Returns true if scopes are enabled

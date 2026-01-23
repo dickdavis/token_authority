@@ -224,4 +224,24 @@ TokenAuthority.configure do |config|
   # Connection and read timeouts in seconds (default: 5 each).
   # config.client_metadata_document_connect_timeout = 5
   # config.client_metadata_document_read_timeout = 5
+
+  # ==========================================================================
+  # Event Logging
+  # ==========================================================================
+
+  # TokenAuthority emits structured events using Rails 8.1's event reporting.
+  # Events are automatically logged to Rails.logger when enabled.
+  #
+  # Events include: authorization requests, consent actions, token exchanges,
+  # token refreshes, revocations, client authentication, and security events
+  # (e.g., token theft detection).
+
+  # Enable event logging (default: true).
+  # When enabled, events are emitted and logged to Rails.logger.
+  # config.event_logging_enabled = true
+
+  # Enable debug events (default: false).
+  # Debug events provide detailed information useful during development,
+  # such as PKCE validation steps and cache hits/misses.
+  # config.event_logging_debug_events = false
 end

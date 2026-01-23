@@ -204,6 +204,7 @@ en:
         title: 'Authorize this Client'
         lede: 'Confirm that you wish to grant access to this client.'
         resources_heading: 'This application is requesting access to:'
+        scopes_heading: 'This application is requesting the following permissions:'
         approve_cta: 'Approve'
         reject_cta: 'Reject'
     client_error:

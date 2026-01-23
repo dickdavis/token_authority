@@ -4,7 +4,7 @@ require "rails_helper"
 
 RSpec.describe TokenAuthority::AuthorizationGrantsController, type: :request do
   # Helper to set up session state via the authorize endpoint
-  def start_authorization_flow(client, state: "foobar", resources: [])
+  def start_authorization_flow(client, state: "foobar", resources: [], scope: nil)
     params = {
       client_id: client.public_id,
       state:,
@@ -16,6 +16,9 @@ RSpec.describe TokenAuthority::AuthorizationGrantsController, type: :request do
 
     # Add resource parameters if provided
     params[:resource] = resources if resources.any?
+
+    # Add scope parameter if provided
+    params[:scope] = scope if scope.present?
 
     # Confidential clients require HTTP Basic auth
     if client.confidential_client_type?
@@ -148,6 +151,27 @@ RSpec.describe TokenAuthority::AuthorizationGrantsController, type: :request do
         end
       end
     end
+
+    context "with scopes" do
+      let_it_be(:token_authority_client) { create(:token_authority_client, client_type: "public") }
+      let(:scope) { "read write" }
+      let(:configured_scopes) do
+        {
+          "read" => "Read access",
+          "write" => "Write access"
+        }
+      end
+
+      before do
+        allow(TokenAuthority.config).to receive(:scopes).and_return(configured_scopes)
+        start_authorization_flow(token_authority_client, scope:)
+      end
+
+      it "renders successfully" do
+        call_endpoint
+        expect(response).to have_http_status(:ok)
+      end
+    end
   end
 
   shared_examples "handles user authorization approval" do
@@ -239,6 +263,28 @@ RSpec.describe TokenAuthority::AuthorizationGrantsController, type: :request do
       it_behaves_like "handles user authorization approval"
       it_behaves_like "handles user authorization rejection"
       it_behaves_like "handles malformed redirect URL"
+    end
+
+    context "with scopes" do
+      let_it_be(:token_authority_client) { create(:token_authority_client, client_type: "public") }
+      let(:scope) { "read write delete" }
+      let(:configured_scopes) do
+        {
+          "read" => "Read access",
+          "write" => "Write access",
+          "delete" => "Delete access"
+        }
+      end
+
+      before do
+        allow(TokenAuthority.config).to receive(:scopes).and_return(configured_scopes)
+        start_authorization_flow(token_authority_client, state: client_state, scope:)
+      end
+
+      it "stores the scopes on the authorization grant" do
+        expect { call_endpoint }.to change(TokenAuthority::AuthorizationGrant, :count).by(1)
+        expect(TokenAuthority::AuthorizationGrant.last.scopes).to eq(["read", "write", "delete"])
+      end
     end
   end
 end

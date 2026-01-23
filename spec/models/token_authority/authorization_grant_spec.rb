@@ -10,7 +10,20 @@ RSpec.describe TokenAuthority::AuthorizationGrant, type: :model do
       expect(model).to belong_to(:user)
       expect(model).to belong_to(:token_authority_client).optional
       expect(model).to have_many(:token_authority_sessions)
-      expect(model).to have_one(:token_authority_challenge).optional
+    end
+  end
+
+  describe "code_challenge_method validation" do
+    it "allows valid code_challenge_method values" do
+      expect(model).to allow_value("S256").for(:code_challenge_method)
+    end
+
+    it "allows nil code_challenge_method" do
+      expect(model).to allow_value(nil).for(:code_challenge_method)
+    end
+
+    it "rejects invalid code_challenge_method values" do
+      expect(model).not_to allow_value("plain").for(:code_challenge_method)
     end
   end
 
@@ -133,7 +146,6 @@ RSpec.describe TokenAuthority::AuthorizationGrant, type: :model do
     subject(:method_call) { token_authority_authorization_grant.redeem }
 
     let(:token_authority_authorization_grant) { create(:token_authority_authorization_grant, token_authority_client:) }
-    let!(:token_authority_challenge) { create(:token_authority_challenge, token_authority_authorization_grant:) }
 
     context "when the token authority client has a public client type" do
       let_it_be(:token_authority_client) { create(:token_authority_client, client_type: "public") }
@@ -145,6 +157,12 @@ RSpec.describe TokenAuthority::AuthorizationGrant, type: :model do
         let(:method_call_with_resources) { token_authority_authorization_grant.redeem(resources:) }
 
         it_behaves_like "a model that creates TokenAuthority sessions with RFC 8707 resources"
+      end
+
+      describe "scopes" do
+        let(:method_call_with_scopes) { token_authority_authorization_grant.redeem(scopes:) }
+
+        it_behaves_like "a model that creates TokenAuthority sessions with scopes"
       end
     end
 
@@ -158,6 +176,12 @@ RSpec.describe TokenAuthority::AuthorizationGrant, type: :model do
         let(:method_call_with_resources) { token_authority_authorization_grant.redeem(resources:) }
 
         it_behaves_like "a model that creates TokenAuthority sessions with RFC 8707 resources"
+      end
+
+      describe "scopes" do
+        let(:method_call_with_scopes) { token_authority_authorization_grant.redeem(scopes:) }
+
+        it_behaves_like "a model that creates TokenAuthority sessions with scopes"
       end
     end
 
@@ -173,7 +197,6 @@ RSpec.describe TokenAuthority::AuthorizationGrant, type: :model do
       let(:token_authority_authorization_grant) do
         create(:token_authority_authorization_grant, token_authority_client: nil, client_id_url: client_id_url)
       end
-      let!(:token_authority_challenge) { create(:token_authority_challenge, token_authority_authorization_grant:) }
 
       before do
         allow(TokenAuthority::ClientIdResolver).to receive(:resolve)
@@ -188,6 +211,12 @@ RSpec.describe TokenAuthority::AuthorizationGrant, type: :model do
         let(:method_call_with_resources) { token_authority_authorization_grant.redeem(resources:) }
 
         it_behaves_like "a model that creates TokenAuthority sessions with RFC 8707 resources"
+      end
+
+      describe "scopes" do
+        let(:method_call_with_scopes) { token_authority_authorization_grant.redeem(scopes:) }
+
+        it_behaves_like "a model that creates TokenAuthority sessions with scopes"
       end
     end
   end

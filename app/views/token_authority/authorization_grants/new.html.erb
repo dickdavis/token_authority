@@ -10,6 +10,14 @@
       <% end %>
     </ul>
   <% end %>
+  <% if scopes.any? %>
+    <p><%= t('token_authority.authorization_grants.new.scopes_heading') %></p>
+    <ul>
+      <% scopes.each do |scope| %>
+        <li><%= scope_display_name(scope) %></li>
+      <% end %>
+    </ul>
+  <% end %>
   <div>
     <%= button_to t('token_authority.authorization_grants.new.reject_cta'), authorization_grants_path, params: { approve: false } %>
     <%= button_to t('token_authority.authorization_grants.new.approve_cta'), authorization_grants_path, params: { approve: true } %>

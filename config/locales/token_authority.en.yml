@@ -117,14 +117,21 @@ en:
         response_type: 'Response type'
         state: 'State'
         resources: 'Resources'
+        scope: 'Scope'
       token_authority/access_token_request:
         resources: 'Resources'
+        scope: 'Scope'
       token_authority/refresh_token:
         aud: 'Audience (aud)'
         exp: 'Expires at (exp)'
         iat: 'Issued at (iat)'
         iss: 'Issuer (iss)'
         jti: 'JTI (jti)'
+      token_authority/refresh_token_request:
+        token: 'Token'
+        resources: 'Resources'
+        client_id: 'Client ID'
+        scope: 'Scope'
     errors:
       models:
         token_authority/access_token:
@@ -158,6 +165,10 @@ en:
               invalid_uri: 'must contain valid absolute URIs with http/https scheme and no fragments'
               not_allowed: 'must only contain allowed resource URIs'
               not_subset: 'must be a subset of the originally granted resources'
+            scope:
+              invalid: 'contains invalid scope tokens'
+              not_allowed: 'must only contain allowed scopes'
+              not_subset: 'must be a subset of the originally granted scopes'
         token_authority/authorization_request:
           attributes:
             client_id:
@@ -185,6 +196,10 @@ en:
               invalid_uri: 'must contain valid absolute URIs with http/https scheme and no fragments'
               not_allowed: 'must only contain allowed resource URIs'
               not_subset: 'must be a subset of the originally granted resources'
+            scope:
+              required: 'must be provided when scopes are required'
+              invalid: 'contains invalid scope tokens'
+              not_allowed: 'must only contain allowed scopes'
         token_authority/refresh_token:
           attributes:
             aud:
@@ -198,6 +213,19 @@ en:
               invalid: 'claim does not match server configuration'
             jti:
               blank: 'claim not present in token'
+        token_authority/refresh_token_request:
+          attributes:
+            token:
+              blank: 'must be provided as a param in the refresh token request'
+              session_not_found: 'does not map to a valid session'
+            resources:
+              invalid_uri: 'must contain valid absolute URIs with http/https scheme and no fragments'
+              not_allowed: 'must only contain allowed resource URIs'
+              not_subset: 'must be a subset of the originally granted resources'
+            scope:
+              invalid: 'contains invalid scope tokens'
+              not_allowed: 'must only contain allowed scopes'
+              not_subset: 'must be a subset of the originally granted scopes'
   token_authority:
     authorization_grants:
       new:

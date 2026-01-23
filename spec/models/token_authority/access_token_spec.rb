@@ -12,21 +12,21 @@ RSpec.describe TokenAuthority::AccessToken, type: :model do
   it_behaves_like "a model that validates token claims"
 
   describe "validations" do
-    it { is_expected.to validate_presence_of(:user_id) }
+    it { is_expected.to validate_presence_of(:sub) }
 
-    it "adds an error if the provided `user_id` claim does not map to the original authorization grant" do
+    it "adds an error if the provided `sub` claim does not map to the original authorization grant" do
       other_user = create(:user)
-      model.user_id = other_user.id
+      model.sub = other_user.id.to_s
       model.valid?
-      expect(model.errors).to include(:user_id)
+      expect(model.errors).to include(:sub)
     end
   end
 
   describe "callbacks" do
     describe "#revoke_token_authority_session" do
-      context "when the `user_id` claim is invalid" do
+      context "when the `sub` claim is invalid" do
         it "updates the Session status to `revoked`" do
-          model.user_id = ""
+          model.sub = ""
           expect do
             model.valid?
             token_authority_session.reload
@@ -37,11 +37,12 @@ RSpec.describe TokenAuthority::AccessToken, type: :model do
   end
 
   describe ".default" do
-    let(:user_id) { "123" }
+    let(:user_id) { 123 }
+    let(:client_id) { "test-client-id" }
     let(:exp) { 1.hour.from_now.to_i }
 
     it "returns an access token with default claims" do
-      access_token = described_class.default(exp:, user_id:)
+      access_token = described_class.default(exp:, user_id:, client_id:)
       aggregate_failures do
         expect(access_token).to be_a(described_class)
         expect(access_token.aud).to eq(TokenAuthority.config.rfc_9068_audience_url)
@@ -49,21 +50,22 @@ RSpec.describe TokenAuthority::AccessToken, type: :model do
         expect(access_token.iat).to be_a(Integer)
         expect(access_token.iss).to eq(TokenAuthority.config.rfc_9068_issuer_url)
         expect(access_token.jti).to match(TokenAuthority::Session::VALID_UUID_REGEX)
-        expect(access_token.user_id).to eq(user_id)
+        expect(access_token.sub).to eq(user_id.to_s)
+        expect(access_token.client_id).to eq(client_id)
       end
     end
 
     context "with resources parameter (RFC 8707)" do
       context "when resources is empty" do
         it "uses the configured audience URL" do
-          access_token = described_class.default(exp:, user_id:, resources: [])
+          access_token = described_class.default(exp:, user_id:, client_id:, resources: [])
           expect(access_token.aud).to eq(TokenAuthority.config.rfc_9068_audience_url)
         end
       end
 
       context "when resources has a single value" do
         it "sets aud to that single value as a string" do
-          access_token = described_class.default(exp:, user_id:, resources: ["https://api.example.com"])
+          access_token = described_class.default(exp:, user_id:, client_id:, resources: ["https://api.example.com"])
           expect(access_token.aud).to eq("https://api.example.com")
         end
       end
@@ -71,7 +73,7 @@ RSpec.describe TokenAuthority::AccessToken, type: :model do
       context "when resources has multiple values" do
         it "sets aud to the array of resources" do
           resources = ["https://api1.example.com", "https://api2.example.com"]
-          access_token = described_class.default(exp:, user_id:, resources:)
+          access_token = described_class.default(exp:, user_id:, client_id:, resources:)
           expect(access_token.aud).to eq(resources)
         end
       end
@@ -80,21 +82,21 @@ RSpec.describe TokenAuthority::AccessToken, type: :model do
     context "with scopes parameter" do
       context "when scopes is empty" do
         it "does not set scope claim" do
-          access_token = described_class.default(exp:, user_id:, scopes: [])
+          access_token = described_class.default(exp:, user_id:, client_id:, scopes: [])
           expect(access_token.scope).to be_nil
         end
       end
 
       context "when scopes is provided" do
         it "sets scope as space-delimited string" do
-          access_token = described_class.default(exp:, user_id:, scopes: ["read", "write"])
+          access_token = described_class.default(exp:, user_id:, client_id:, scopes: ["read", "write"])
           expect(access_token.scope).to eq("read write")
         end
       end
 
       context "when scopes has a single value" do
         it "sets scope to that single value" do
-          access_token = described_class.default(exp:, user_id:, scopes: ["read"])
+          access_token = described_class.default(exp:, user_id:, client_id:, scopes: ["read"])
           expect(access_token.scope).to eq("read")
         end
       end
@@ -118,7 +120,8 @@ RSpec.describe TokenAuthority::AccessToken, type: :model do
           iat: model.iat,
           iss: model.iss,
           jti: model.jti,
-          user_id: model.user_id
+          sub: model.sub,
+          client_id: model.client_id
         }
       )
     end
@@ -128,6 +131,7 @@ RSpec.describe TokenAuthority::AccessToken, type: :model do
         described_class.default(
           exp: 1.hour.from_now.to_i,
           user_id: create(:user).id,
+          client_id: "test-client-id",
           scopes: ["read", "write"]
         )
       end

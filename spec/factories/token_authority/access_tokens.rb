@@ -11,9 +11,10 @@ FactoryBot.define do
     iat { Time.zone.now.to_i }
     iss { TokenAuthority.config.rfc_9068_issuer_url }
     jti { token_authority_session.access_token_jti }
-    user_id { token_authority_session.user_id }
+    sub { token_authority_session.user_id.to_s }
+    client_id { token_authority_session.token_authority_authorization_grant&.resolved_client&.public_id || "test-client-id" }
     scope { nil }
 
-    initialize_with { new(aud:, exp:, iat:, iss:, jti:, user_id:, scope:) }
+    initialize_with { new(aud:, exp:, iat:, iss:, jti:, sub:, client_id:, scope:) }
   end
 end

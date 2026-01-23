@@ -53,7 +53,7 @@ RSpec.describe TokenAuthority::AuthorizationGrantsController, type: :request do
       it "emits consent shown event" do
         expect { call_endpoint }
           .to emit_event("token_authority.authorization.consent.shown")
-          .with_payload(client_id: token_authority_client.public_id, user_id: user.id)
+          .with_payload(client_id: token_authority_client.public_id)
       end
     end
 
@@ -235,7 +235,7 @@ RSpec.describe TokenAuthority::AuthorizationGrantsController, type: :request do
     it "emits consent denied event" do
       expect { call_endpoint }
         .to emit_event("token_authority.authorization.consent.denied")
-        .with_payload(client_id: token_authority_client.public_id, user_id: user.id)
+        .with_payload(client_id: token_authority_client.public_id)
     end
   end
 

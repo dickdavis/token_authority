@@ -28,7 +28,6 @@ RSpec.describe "Api::V1::Users", type: :request do
       it "emits token authentication succeeded event" do
         expect { call_endpoint }
           .to emit_event("token_authority.authentication.token.succeeded")
-          .with_payload(user_id: user.id)
       end
     end
 

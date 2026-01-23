@@ -32,7 +32,6 @@ module TokenAuthority
       notify_event("authorization.consent.shown",
         client_id: @token_authority_client.public_id,
         client_name: @token_authority_client.name,
-        user_id: current_user.id,
         requested_scopes: @authorization_request.scope)
 
       render :new, locals: {
@@ -47,15 +46,13 @@ module TokenAuthority
 
       unless ActiveModel::Type::Boolean.new.cast(params[:approve])
         notify_event("authorization.consent.denied",
-          client_id: @token_authority_client.public_id,
-          user_id: current_user.id)
+          client_id: @token_authority_client.public_id)
 
         redirect_to_client(params_for_redirect: {error: "access_denied", state:}) and return
       end
 
       notify_event("authorization.consent.granted",
         client_id: @token_authority_client.public_id,
-        user_id: current_user.id,
         granted_scopes: @authorization_request.scope)
 
       grant = @token_authority_client.new_authorization_grant(
@@ -73,7 +70,6 @@ module TokenAuthority
         notify_event("authorization.grant.created",
           grant_id: grant.public_id,
           client_id: @token_authority_client.public_id,
-          user_id: current_user.id,
           expires_at: grant.expires_at&.iso8601,
           scopes: grant.scopes)
 

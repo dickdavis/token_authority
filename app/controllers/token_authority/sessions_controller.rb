@@ -48,7 +48,6 @@ module TokenAuthority
 
         notify_event("token.exchange.completed",
           client_id: params[:client_id],
-          user_id: @authorization_grant.user_id,
           session_id: token_authority_session&.id,
           access_token_expires_in: expiration)
 
@@ -105,7 +104,6 @@ module TokenAuthority
 
         notify_event("token.refresh.completed",
           client_id: params[:client_id],
-          user_id: old_session&.user_id,
           old_session_id: old_session&.id,
           new_session_id: new_session&.id)
 
@@ -143,7 +141,6 @@ module TokenAuthority
     rescue TokenAuthority::RevokedSessionError => error
       notify_event("security.token.theft_detected",
         client_id: error.client_id,
-        user_id: error.user_id,
         refreshed_session_id: error.refreshed_session_id,
         revoked_session_id: error.revoked_session_id)
 
@@ -168,8 +165,7 @@ module TokenAuthority
 
       notify_event("token.revocation.completed",
         client_id: @token_authority_client&.public_id,
-        session_id: token_authority_session&.id,
-        user_id: token_authority_session&.user_id)
+        session_id: token_authority_session&.id)
 
       head :ok
     rescue JWT::DecodeError
@@ -188,8 +184,7 @@ module TokenAuthority
 
       notify_event("token.revocation.completed",
         client_id: @token_authority_client&.public_id,
-        session_id: token_authority_session&.id,
-        user_id: token_authority_session&.user_id)
+        session_id: token_authority_session&.id)
 
       head :ok
     rescue JWT::DecodeError
@@ -208,8 +203,7 @@ module TokenAuthority
 
       notify_event("token.revocation.completed",
         client_id: @token_authority_client&.public_id,
-        session_id: token_authority_session&.id,
-        user_id: token_authority_session&.user_id)
+        session_id: token_authority_session&.id)
 
       head :ok
     rescue JWT::DecodeError

@@ -65,7 +65,6 @@ module TokenAuthority
         notify_event("security.session.revoked",
           request_id: request_id,
           session_id: id,
-          user_id: user_id,
           client_id: token_authority_authorization_grant.resolved_client&.public_id,
           reason: reason,
           related_session_ids: related_session_ids)

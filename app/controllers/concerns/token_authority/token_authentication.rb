@@ -33,7 +33,6 @@ module TokenAuthority
       @decoded_token = access_token
 
       notify_event("authentication.token.succeeded",
-        user_id: access_token.user_id,
         session_id: oauth_session.id,
         token_scopes: access_token.scope)
     rescue JWT::DecodeError, ActiveModel::UnknownAttributeError

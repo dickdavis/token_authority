@@ -6,9 +6,16 @@ module TokenAuthority
   class RefreshToken
     include TokenAuthority::ClaimValidatable
 
-    def self.default(exp:)
+    def self.default(exp:, resources: [])
+      # Use resources for aud claim if provided, otherwise fall back to config
+      aud = if resources.any?
+        (resources.size == 1) ? resources.first : resources
+      else
+        TokenAuthority.config.rfc_9068_audience_url
+      end
+
       new(
-        aud: TokenAuthority.config.rfc_9068_audience_url,
+        aud:,
         exp:,
         iat: Time.zone.now.to_i,
         iss: TokenAuthority.config.rfc_9068_issuer_url,

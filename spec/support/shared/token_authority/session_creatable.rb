@@ -75,3 +75,39 @@ RSpec.shared_examples "a model that creates TokenAuthority sessions" do
     end
   end
 end
+
+RSpec.shared_examples "a model that creates TokenAuthority sessions with RFC 8707 resources" do
+  context "when resources are provided (RFC 8707)" do
+    context "with a single resource" do
+      let(:resources) { ["https://api.example.com"] }
+
+      it "sets the access token aud claim to the single resource" do
+        results = method_call_with_resources
+        token = TokenAuthority::JsonWebToken.decode(results.access_token)
+        expect(token[:aud]).to eq("https://api.example.com")
+      end
+
+      it "sets the refresh token aud claim to the single resource" do
+        results = method_call_with_resources
+        token = TokenAuthority::JsonWebToken.decode(results.refresh_token)
+        expect(token[:aud]).to eq("https://api.example.com")
+      end
+    end
+
+    context "with multiple resources" do
+      let(:resources) { ["https://api1.example.com", "https://api2.example.com"] }
+
+      it "sets the access token aud claim to the array of resources" do
+        results = method_call_with_resources
+        token = TokenAuthority::JsonWebToken.decode(results.access_token)
+        expect(token[:aud]).to match_array(resources)
+      end
+
+      it "sets the refresh token aud claim to the array of resources" do
+        results = method_call_with_resources
+        token = TokenAuthority::JsonWebToken.decode(results.refresh_token)
+        expect(token[:aud]).to match_array(resources)
+      end
+    end
+  end
+end

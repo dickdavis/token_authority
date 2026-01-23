@@ -38,8 +38,8 @@ module TokenAuthority
       token_authority_sessions.created_status.order(created_at: :desc).first
     end
 
-    def redeem
-      create_token_authority_session(grant: self) do
+    def redeem(resources: [])
+      create_token_authority_session(grant: self, resources:) do
         update(redeemed: true)
       end
     rescue TokenAuthority::ServerError => error

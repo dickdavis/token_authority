@@ -24,7 +24,7 @@ module TokenAuthority
     validates :access_token_jti, presence: true, uniqueness: true, format: {with: VALID_UUID_REGEX}
     validates :refresh_token_jti, presence: true, uniqueness: true, format: {with: VALID_UUID_REGEX}
 
-    def refresh(token:, client_id:)
+    def refresh(token:, client_id:, resources: [])
       raise TokenAuthority::ServerError, I18n.t("token_authority.errors.mismatched_refresh_token") unless token.jti == refresh_token_jti
       raise TokenAuthority::InvalidGrantError unless token.valid?
 
@@ -40,7 +40,7 @@ module TokenAuthority
         )
       end
 
-      create_token_authority_session(grant: token_authority_authorization_grant) do
+      create_token_authority_session(grant: token_authority_authorization_grant, resources:) do
         update(status: "refreshed")
       end
     rescue TokenAuthority::ServerError => error

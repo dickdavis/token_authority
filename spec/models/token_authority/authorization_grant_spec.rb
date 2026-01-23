@@ -140,6 +140,12 @@ RSpec.describe TokenAuthority::AuthorizationGrant, type: :model do
 
       it_behaves_like "a model that creates TokenAuthority sessions"
       it_behaves_like "updates the redeemed attribute"
+
+      describe "RFC 8707 resource indicators" do
+        let(:method_call_with_resources) { token_authority_authorization_grant.redeem(resources:) }
+
+        it_behaves_like "a model that creates TokenAuthority sessions with RFC 8707 resources"
+      end
     end
 
     context "when the token authority client has a confidential client type" do
@@ -147,6 +153,12 @@ RSpec.describe TokenAuthority::AuthorizationGrant, type: :model do
 
       it_behaves_like "a model that creates TokenAuthority sessions"
       it_behaves_like "updates the redeemed attribute"
+
+      describe "RFC 8707 resource indicators" do
+        let(:method_call_with_resources) { token_authority_authorization_grant.redeem(resources:) }
+
+        it_behaves_like "a model that creates TokenAuthority sessions with RFC 8707 resources"
+      end
     end
 
     context "when using a URL-based client" do
@@ -171,6 +183,12 @@ RSpec.describe TokenAuthority::AuthorizationGrant, type: :model do
 
       it_behaves_like "a model that creates TokenAuthority sessions"
       it_behaves_like "updates the redeemed attribute"
+
+      describe "RFC 8707 resource indicators" do
+        let(:method_call_with_resources) { token_authority_authorization_grant.redeem(resources:) }
+
+        it_behaves_like "a model that creates TokenAuthority sessions with RFC 8707 resources"
+      end
     end
   end
 end

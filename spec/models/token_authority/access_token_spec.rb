@@ -41,15 +41,39 @@ RSpec.describe TokenAuthority::AccessToken, type: :model do
     let(:exp) { 1.hour.from_now.to_i }
 
     it "returns an access token with default claims" do
-      refresh_token = described_class.default(exp:, user_id:)
+      access_token = described_class.default(exp:, user_id:)
       aggregate_failures do
-        expect(refresh_token).to be_a(described_class)
-        expect(refresh_token.aud).to eq(TokenAuthority.config.rfc_9068_audience_url)
-        expect(refresh_token.exp).to eq(exp)
-        expect(refresh_token.iat).to be_a(Integer)
-        expect(refresh_token.iss).to eq(TokenAuthority.config.rfc_9068_issuer_url)
-        expect(refresh_token.jti).to match(TokenAuthority::Session::VALID_UUID_REGEX)
-        expect(refresh_token.user_id).to eq(user_id)
+        expect(access_token).to be_a(described_class)
+        expect(access_token.aud).to eq(TokenAuthority.config.rfc_9068_audience_url)
+        expect(access_token.exp).to eq(exp)
+        expect(access_token.iat).to be_a(Integer)
+        expect(access_token.iss).to eq(TokenAuthority.config.rfc_9068_issuer_url)
+        expect(access_token.jti).to match(TokenAuthority::Session::VALID_UUID_REGEX)
+        expect(access_token.user_id).to eq(user_id)
+      end
+    end
+
+    context "with resources parameter (RFC 8707)" do
+      context "when resources is empty" do
+        it "uses the configured audience URL" do
+          access_token = described_class.default(exp:, user_id:, resources: [])
+          expect(access_token.aud).to eq(TokenAuthority.config.rfc_9068_audience_url)
+        end
+      end
+
+      context "when resources has a single value" do
+        it "sets aud to that single value as a string" do
+          access_token = described_class.default(exp:, user_id:, resources: ["https://api.example.com"])
+          expect(access_token.aud).to eq("https://api.example.com")
+        end
+      end
+
+      context "when resources has multiple values" do
+        it "sets aud to the array of resources" do
+          resources = ["https://api1.example.com", "https://api2.example.com"]
+          access_token = described_class.default(exp:, user_id:, resources:)
+          expect(access_token.aud).to eq(resources)
+        end
       end
     end
   end

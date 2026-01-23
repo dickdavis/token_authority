@@ -6,7 +6,9 @@ module TokenAuthority
   class RefreshToken
     include TokenAuthority::ClaimValidatable
 
-    def self.default(exp:, resources: [])
+    attr_accessor :scope
+
+    def self.default(exp:, resources: [], scopes: [])
       # Use resources for aud claim if provided, otherwise fall back to config
       aud = if resources.any?
         (resources.size == 1) ? resources.first : resources
@@ -14,12 +16,16 @@ module TokenAuthority
         TokenAuthority.config.rfc_9068_audience_url
       end
 
+      # Only include scope if scopes are provided
+      scope_claim = scopes.any? ? scopes.join(" ") : nil
+
       new(
         aud:,
         exp:,
         iat: Time.zone.now.to_i,
         iss: TokenAuthority.config.rfc_9068_issuer_url,
-        jti: SecureRandom.uuid
+        jti: SecureRandom.uuid,
+        scope: scope_claim
       )
     end
 
@@ -28,7 +34,7 @@ module TokenAuthority
     end
 
     def to_h
-      {aud:, exp:, iat:, iss:, jti:}
+      {aud:, exp:, iat:, iss:, jti:, scope:}.compact
     end
 
     def to_encoded_token

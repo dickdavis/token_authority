@@ -49,6 +49,29 @@ RSpec.describe TokenAuthority::RefreshToken, type: :model do
         end
       end
     end
+
+    context "with scopes parameter" do
+      context "when scopes is empty" do
+        it "does not set scope claim" do
+          refresh_token = described_class.default(exp:, scopes: [])
+          expect(refresh_token.scope).to be_nil
+        end
+      end
+
+      context "when scopes is provided" do
+        it "sets scope as space-delimited string" do
+          refresh_token = described_class.default(exp:, scopes: ["read", "write"])
+          expect(refresh_token.scope).to eq("read write")
+        end
+      end
+
+      context "when scopes has a single value" do
+        it "sets scope to that single value" do
+          refresh_token = described_class.default(exp:, scopes: ["read"])
+          expect(refresh_token.scope).to eq("read")
+        end
+      end
+    end
   end
 
   describe ".from_token" do
@@ -70,6 +93,19 @@ RSpec.describe TokenAuthority::RefreshToken, type: :model do
           jti: model.jti
         }
       )
+    end
+
+    context "when scope is present" do
+      let(:model_with_scope) do
+        described_class.default(
+          exp: 1.hour.from_now.to_i,
+          scopes: ["read", "write"]
+        )
+      end
+
+      it "includes scope in the hash" do
+        expect(model_with_scope.to_h[:scope]).to eq("read write")
+      end
     end
   end
 

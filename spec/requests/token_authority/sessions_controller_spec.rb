@@ -242,9 +242,7 @@ RSpec.describe TokenAuthority::SessionsController, type: :request do
 
       context "with RFC 8707 resource indicators" do
         let(:rfc8707_authorization_grant) do
-          create(:token_authority_authorization_grant, user:, token_authority_client:).tap do |grant|
-            grant.token_authority_challenge.update!(resources: granted_resources)
-          end
+          create(:token_authority_authorization_grant, user:, token_authority_client:, resources: granted_resources)
         end
         let(:code) { rfc8707_authorization_grant.public_id }
         let(:granted_resources) { ["https://api1.example.com", "https://api2.example.com"] }
@@ -336,7 +334,7 @@ RSpec.describe TokenAuthority::SessionsController, type: :request do
 
       context "when client did not use additional security challenges for authorize request" do
         before_all do
-          token_authority_authorization_grant.token_authority_challenge.update!(
+          token_authority_authorization_grant.update!(
             code_challenge: nil,
             code_challenge_method: nil,
             redirect_uri: nil
@@ -350,7 +348,7 @@ RSpec.describe TokenAuthority::SessionsController, type: :request do
 
       context "when client provided a redirect_uri in authorize request" do
         before do
-          token_authority_authorization_grant.reload.token_authority_challenge.update!(
+          token_authority_authorization_grant.reload.update!(
             code_challenge: nil,
             code_challenge_method: nil,
             redirect_uri: token_authority_client.primary_redirect_uri
@@ -396,7 +394,7 @@ RSpec.describe TokenAuthority::SessionsController, type: :request do
 
       context "when client secured authorize request with PKCE" do
         before_all do
-          token_authority_authorization_grant.token_authority_challenge.update!(
+          token_authority_authorization_grant.update!(
             redirect_uri: nil
           )
         end
@@ -505,9 +503,7 @@ RSpec.describe TokenAuthority::SessionsController, type: :request do
 
       context "with RFC 8707 resource indicators" do
         let(:rfc8707_authorization_grant) do
-          create(:token_authority_authorization_grant, user:, token_authority_client:).tap do |grant|
-            grant.token_authority_challenge.update!(resources: granted_resources)
-          end
+          create(:token_authority_authorization_grant, user:, token_authority_client:, resources: granted_resources)
         end
         let(:rfc8707_session) { create(:token_authority_session, token_authority_authorization_grant: rfc8707_authorization_grant) }
         let(:refresh_token) { TokenAuthority::JsonWebToken.encode(attributes_for(:token_authority_refresh_token, token_authority_session: rfc8707_session)) }

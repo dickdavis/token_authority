@@ -210,9 +210,7 @@ RSpec.describe TokenAuthority::AccessTokenRequest, type: :model do
     context "with RFC 8707 resource indicators" do
       let_it_be(:token_authority_client) { create(:token_authority_client, client_type: "public") }
       let(:token_authority_authorization_grant) do
-        create(:token_authority_authorization_grant, token_authority_client:).tap do |grant|
-          grant.token_authority_challenge.update!(resources: granted_resources)
-        end
+        create(:token_authority_authorization_grant, token_authority_client:, resources: granted_resources)
       end
       let(:granted_resources) { ["https://api1.example.com", "https://api2.example.com"] }
       let(:configured_resources) do
@@ -322,9 +320,7 @@ RSpec.describe TokenAuthority::AccessTokenRequest, type: :model do
   describe "#effective_resources" do
     let_it_be(:token_authority_client) { create(:token_authority_client, client_type: "public") }
     let(:token_authority_authorization_grant) do
-      create(:token_authority_authorization_grant, token_authority_client:).tap do |grant|
-        grant.token_authority_challenge.update!(resources: granted_resources)
-      end
+      create(:token_authority_authorization_grant, token_authority_client:, resources: granted_resources)
     end
     let(:granted_resources) { ["https://api1.example.com", "https://api2.example.com"] }
 
@@ -339,7 +335,7 @@ RSpec.describe TokenAuthority::AccessTokenRequest, type: :model do
     context "when resources is nil" do
       let(:resources) { nil }
 
-      it "returns the granted resources from the challenge" do
+      it "returns the granted resources from the grant" do
         expect(model.effective_resources).to eq(granted_resources)
       end
     end
@@ -347,7 +343,7 @@ RSpec.describe TokenAuthority::AccessTokenRequest, type: :model do
     context "when resources is an empty array" do
       let(:resources) { [] }
 
-      it "returns the granted resources from the challenge" do
+      it "returns the granted resources from the grant" do
         expect(model.effective_resources).to eq(granted_resources)
       end
     end

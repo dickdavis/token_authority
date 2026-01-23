@@ -124,6 +124,25 @@ The concern automatically validates the access token on every request and provid
 
 See [Protecting API Endpoints](https://github.com/dickdavis/token_authority/wiki/Protecting-API-Endpoints) for error handling details.
 
+### Event Logging
+
+TokenAuthority emits structured events using Rails 8.1's event reporting system for monitoring, debugging, and auditing. Events cover the full OAuth lifecycle:
+
+- Authorization requests and consent
+- Token exchanges, refreshes, and revocations
+- Client and token authentication
+- Security events (e.g., token theft detection)
+
+Event logging is enabled by default. Events are automatically logged to `Rails.logger`:
+
+```
+[TokenAuthority] token_authority.authorization.request.received client_id="..." client_type="public" ...
+[TokenAuthority] token_authority.token.exchange.completed client_id="..." user_id=42 session_id=1 ...
+[TokenAuthority] token_authority.security.token.theft_detected client_id="..." user_id=42 ...
+```
+
+See [Event Logging](https://github.com/dickdavis/token_authority/wiki/Event-Logging) for the full event reference and custom subscriber examples.
+
 ### Learn More
 
 - [Installation Guide](https://github.com/dickdavis/token_authority/wiki/Installation-Guide) - Generator options, custom table names
@@ -131,6 +150,7 @@ See [Protecting API Endpoints](https://github.com/dickdavis/token_authority/wiki
 - [User Authentication](https://github.com/dickdavis/token_authority/wiki/User-Authentication) - Custom authentication setups
 - [Protecting API Endpoints](https://github.com/dickdavis/token_authority/wiki/Protecting-API-Endpoints) - Error handling, validation details
 - [Customizing Views](https://github.com/dickdavis/token_authority/wiki/Customizing-Views) - Styling consent screens
+- [Event Logging](https://github.com/dickdavis/token_authority/wiki/Event-Logging) - Structured events for monitoring
 
 ## Development
 

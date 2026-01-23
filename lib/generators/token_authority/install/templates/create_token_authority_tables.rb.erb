@@ -56,26 +56,19 @@ class CreateTokenAuthorityTables < ActiveRecord::Migration<%= migration_version 
       t.string :client_id_url # URL for URL-based client IDs (Client Metadata Document)
       t.<%= user_foreign_key_type %> :user_id
 
+      # PKCE parameters
+      t.string :code_challenge
+      t.string :code_challenge_method, default: "S256"
+      t.string :redirect_uri
+      t.json :resources, null: false, default: []  # RFC 8707 resource indicators
+      t.json :scopes, null: false, default: []     # OAuth scopes (RFC 6749 Section 3.3)
+
       t.timestamps
     end
 
     add_index :token_authority_authorization_grants, :public_id, unique: true
     add_index :token_authority_authorization_grants, :user_id, name: "index_ta_auth_grants_on_user_id"
     add_foreign_key :token_authority_authorization_grants, :<%= user_table_name %>, column: :user_id
-
-    # PKCE Challenges - stores code_challenge for PKCE flow
-    create_table :token_authority_challenges do |t|
-      t.string :code_challenge
-      t.string :code_challenge_method, default: "S256"
-      t.string :redirect_uri
-      t.json :resources, null: false, default: []  # RFC 8707 resource indicators
-      t.references :token_authority_authorization_grant,
-        null: false,
-        foreign_key: { to_table: :token_authority_authorization_grants },
-        index: { name: "index_ta_challenges_on_auth_grant_id" }
-
-      t.timestamps
-    end
 
     # OAuth Sessions - tracks issued tokens and their status
     create_table :token_authority_sessions do |t|

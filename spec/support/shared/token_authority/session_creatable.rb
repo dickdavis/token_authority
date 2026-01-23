@@ -2,6 +2,10 @@
 
 RSpec.shared_examples "a model that creates TokenAuthority sessions" do
   context "when the token authority session is created" do
+    it "instruments the session creation" do
+      expect { method_call }.to instrument("token_authority.session.create")
+    end
+
     it "creates a TokenAuthority::Session record" do
       expect { method_call }.to change(TokenAuthority::Session, :count).by(1)
     end

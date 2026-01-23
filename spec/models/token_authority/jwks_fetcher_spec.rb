@@ -26,6 +26,12 @@ RSpec.describe TokenAuthority::JwksFetcher, type: :model do
           .to_return(status: 200, body: jwks_data.to_json, headers: {"Content-Type" => "application/json"})
       end
 
+      it "instruments the fetch operation with cache_hit false" do
+        expect { described_class.fetch(jwks_uri) }
+          .to instrument("token_authority.jwks.fetch")
+          .with_payload(uri: jwks_uri, cache_hit: false)
+      end
+
       it "fetches JWKS from the URI" do
         result = described_class.fetch(jwks_uri)
 
@@ -56,6 +62,12 @@ RSpec.describe TokenAuthority::JwksFetcher, type: :model do
           jwks: jwks_data,
           expires_at: 1.hour.from_now
         )
+      end
+
+      it "instruments the fetch operation with cache_hit true" do
+        expect { described_class.fetch(jwks_uri) }
+          .to instrument("token_authority.jwks.fetch")
+          .with_payload(uri: jwks_uri, cache_hit: true)
       end
 
       it "returns the cached JWKS without making a request" do

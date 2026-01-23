@@ -64,6 +64,10 @@ module TokenAuthority
     # event_logging_debug_events: Whether to emit debug events (default: false)
     attr_accessor :event_logging_enabled, :event_logging_debug_events
 
+    # Instrumentation
+    # instrumentation_enabled: Whether to emit ActiveSupport::Notifications events (default: true)
+    attr_accessor :instrumentation_enabled
+
     def initialize
       # General
       @secret_key = nil
@@ -129,6 +133,9 @@ module TokenAuthority
       # Event Logging
       @event_logging_enabled = true
       @event_logging_debug_events = false
+
+      # Instrumentation
+      @instrumentation_enabled = true
     end
 
     # Returns true if scopes are enabled

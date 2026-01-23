@@ -26,46 +26,50 @@ module TokenAuthority
     validates :refresh_token_jti, presence: true, uniqueness: true, format: {with: VALID_UUID_REGEX}
 
     def refresh(token:, client_id:, resources: [], scopes: [])
-      raise TokenAuthority::ServerError, I18n.t("token_authority.errors.mismatched_refresh_token") unless token.jti == refresh_token_jti
-      raise TokenAuthority::InvalidGrantError unless token.valid?
+      instrument("session.refresh") do
+        raise TokenAuthority::ServerError, I18n.t("token_authority.errors.mismatched_refresh_token") unless token.jti == refresh_token_jti
+        raise TokenAuthority::InvalidGrantError unless token.valid?
 
-      # Detect stolen refresh token and replay attacks, and then revoke current active token authority session
-      unless created_status? && client_id == token_authority_authorization_grant.resolved_client.public_id
-        session = token_authority_authorization_grant.active_token_authority_session || self
-        session.update(status: "revoked")
-        raise TokenAuthority::RevokedSessionError.new(
-          client_id:,
-          refreshed_session_id: id,
-          revoked_session_id: session.id,
-          user_id:
-        )
-      end
+        # Detect stolen refresh token and replay attacks, and then revoke current active token authority session
+        unless created_status? && client_id == token_authority_authorization_grant.resolved_client.public_id
+          session = token_authority_authorization_grant.active_token_authority_session || self
+          session.update(status: "revoked")
+          raise TokenAuthority::RevokedSessionError.new(
+            client_id:,
+            refreshed_session_id: id,
+            revoked_session_id: session.id,
+            user_id:
+          )
+        end
 
-      create_token_authority_session(grant: token_authority_authorization_grant, resources:, scopes:) do
-        update(status: "refreshed")
+        create_token_authority_session(grant: token_authority_authorization_grant, resources:, scopes:) do
+          update(status: "refreshed")
+        end
       end
     rescue TokenAuthority::ServerError => error
       raise TokenAuthority::ServerError, error.message
     end
 
     def revoke_self_and_active_session(reason: "revocation_requested", request_id: nil)
-      related_session_ids = []
-      ActiveRecord::Base.transaction do
-        update(status: "revoked")
-        active_session = token_authority_authorization_grant.active_token_authority_session
-        if active_session && active_session.id != id
-          active_session.update(status: "revoked")
-          related_session_ids << active_session.id
+      instrument("session.revoke") do
+        related_session_ids = []
+        ActiveRecord::Base.transaction do
+          update(status: "revoked")
+          active_session = token_authority_authorization_grant.active_token_authority_session
+          if active_session && active_session.id != id
+            active_session.update(status: "revoked")
+            related_session_ids << active_session.id
+          end
         end
-      end
 
-      notify_event("security.session.revoked",
-        request_id: request_id,
-        session_id: id,
-        user_id: user_id,
-        client_id: token_authority_authorization_grant.resolved_client&.public_id,
-        reason: reason,
-        related_session_ids: related_session_ids)
+        notify_event("security.session.revoked",
+          request_id: request_id,
+          session_id: id,
+          user_id: user_id,
+          client_id: token_authority_authorization_grant.resolved_client&.public_id,
+          reason: reason,
+          related_session_ids: related_session_ids)
+      end
     end
 
     def self.revoke_for_token(jti:)

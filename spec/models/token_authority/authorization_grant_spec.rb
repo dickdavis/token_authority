@@ -150,6 +150,10 @@ RSpec.describe TokenAuthority::AuthorizationGrant, type: :model do
     context "when the token authority client has a public client type" do
       let_it_be(:token_authority_client) { create(:token_authority_client, client_type: "public") }
 
+      it "instruments the grant redemption" do
+        expect { method_call }.to instrument("token_authority.grant.redeem")
+      end
+
       it_behaves_like "a model that creates TokenAuthority sessions"
       it_behaves_like "updates the redeemed attribute"
 

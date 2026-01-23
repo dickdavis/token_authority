@@ -22,6 +22,12 @@ RSpec.describe TokenAuthority::ClientMetadataDocumentFetcher, type: :model do
         allow(Resolv).to receive(:getaddresses).with("example.com").and_return(["93.184.216.34"])
       end
 
+      it "instruments the fetch operation with cache_hit false" do
+        expect { described_class.fetch(client_id_url) }
+          .to instrument("token_authority.client_metadata.fetch")
+          .with_payload(uri: client_id_url, cache_hit: false)
+      end
+
       it "fetches metadata from the URI" do
         result = described_class.fetch(client_id_url)
 
@@ -52,6 +58,12 @@ RSpec.describe TokenAuthority::ClientMetadataDocumentFetcher, type: :model do
           metadata: metadata,
           expires_at: 1.hour.from_now
         )
+      end
+
+      it "instruments the fetch operation with cache_hit true" do
+        expect { described_class.fetch(client_id_url) }
+          .to instrument("token_authority.client_metadata.fetch")
+          .with_payload(uri: client_id_url, cache_hit: true)
       end
 
       it "returns the cached metadata without making a request" do

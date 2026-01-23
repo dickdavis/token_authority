@@ -8,6 +8,7 @@ module TokenAuthority
   ##
   # Service for fetching and caching client metadata documents from remote URIs
   class ClientMetadataDocumentFetcher
+    extend TokenAuthority::Instrumentation
     include TokenAuthority::EventLogging
 
     # Private IP ranges for SSRF protection
@@ -25,25 +26,29 @@ module TokenAuthority
 
     class << self
       def fetch(uri)
-        validate_url!(uri)
+        instrument("client_metadata.fetch", uri: uri) do |payload|
+          validate_url!(uri)
 
-        cached = ClientMetadataDocumentCache.find_by_uri(uri)
+          cached = ClientMetadataDocumentCache.find_by_uri(uri)
 
-        if cached && !cached.expired?
-          debug_event("client.metadata.cache_hit", uri: uri, expires_at: cached.expires_at&.iso8601)
-          return cached.metadata
+          if cached && !cached.expired?
+            debug_event("client.metadata.cache_hit", uri: uri, expires_at: cached.expires_at&.iso8601)
+            payload[:cache_hit] = true
+            return cached.metadata
+          end
+
+          debug_event("client.metadata.cache_miss", uri: uri)
+          payload[:cache_hit] = false
+
+          # Fetch fresh data and update/create cache entry
+          metadata = fetch_from_uri(uri)
+          validate_metadata!(uri, metadata)
+          store_in_cache(uri, metadata)
+
+          debug_event("client.metadata.fetched", uri: uri, client_name: metadata["client_name"])
+
+          metadata
         end
-
-        debug_event("client.metadata.cache_miss", uri: uri)
-
-        # Fetch fresh data and update/create cache entry
-        metadata = fetch_from_uri(uri)
-        validate_metadata!(uri, metadata)
-        store_in_cache(uri, metadata)
-
-        debug_event("client.metadata.fetched", uri: uri, client_name: metadata["client_name"])
-
-        metadata
       end
 
       def clear_cache(uri)

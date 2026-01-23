@@ -5,15 +5,21 @@ module TokenAuthority
   # Resolves a client_id to either a registered Client (UUID-based) or a
   # ClientMetadataDocument (URL-based).
   class ClientIdResolver
+    extend TokenAuthority::Instrumentation
+
     class << self
       def resolve(client_id)
-        return nil if client_id.blank?
+        instrument("client.resolve") do |payload|
+          return nil if client_id.blank?
 
-        # Check if it's a URL-based client_id
-        if url_based_client_id?(client_id)
-          resolve_url_based(client_id)
-        else
-          resolve_uuid_based(client_id)
+          # Check if it's a URL-based client_id
+          if url_based_client_id?(client_id)
+            payload[:client_type] = "url_based"
+            resolve_url_based(client_id)
+          else
+            payload[:client_type] = "registered"
+            resolve_uuid_based(client_id)
+          end
         end
       end
 

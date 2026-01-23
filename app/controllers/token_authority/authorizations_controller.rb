@@ -1,8 +1,26 @@
 # frozen_string_literal: true
 
 module TokenAuthority
-  ##
-  # Controller for authorizing an OAuth request.
+  # Handles OAuth 2.1 authorization requests (GET /authorize).
+  #
+  # This controller implements the initial step of the authorization code flow.
+  # It validates the authorization request parameters, authenticates the client,
+  # and redirects to the consent screen if everything is valid.
+  #
+  # The controller emits structured events for monitoring authorization requests,
+  # validation failures, and error conditions. Error responses follow OAuth 2.1
+  # specifications, redirecting to the client's redirect_uri when possible.
+  #
+  # @example Authorization request
+  #   GET /authorize?client_id=abc123
+  #     &redirect_uri=https://app.example.com/callback
+  #     &response_type=code
+  #     &state=xyz
+  #     &code_challenge=E9Melhoa...
+  #     &code_challenge_method=S256
+  #     &scope=read+write
+  #
+  # @since 0.2.0
   class AuthorizationsController < ActionController::Base
     include TokenAuthority::ClientAuthentication
     include TokenAuthority::ControllerEventLogging

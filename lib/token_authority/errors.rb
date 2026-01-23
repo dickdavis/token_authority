@@ -1,47 +1,88 @@
 # frozen_string_literal: true
 
 module TokenAuthority
-  ##
-  # Error for when the configuration is invalid.
+  # Raised when the TokenAuthority configuration is invalid or inconsistent.
+  # This typically occurs during initialization or validation when required
+  # configuration options are missing or conflicting.
+  #
+  # @since 0.2.0
   class ConfigurationError < StandardError; end
 
-  ##
-  # Error for when the OAuth client is mismatched.
+  # Raised when the client attempting to use a token or grant doesn't match
+  # the client that originally requested it. This prevents token theft and
+  # unauthorized client access.
+  #
+  # @since 0.2.0
   class ClientMismatchError < StandardError; end
 
-  ##
-  # Error for when the OAuth client is not found.
+  # Raised when a requested OAuth client cannot be found in the database or
+  # via client metadata document resolution.
+  #
+  # @since 0.2.0
   class ClientNotFoundError < StandardError; end
 
-  ##
-  # Error for when an invalid access token is provided.
+  # Raised when an access token fails validation (expired, malformed, or invalid signature).
+  #
+  # @since 0.2.0
   class InvalidAccessTokenError < StandardError; end
 
-  ##
-  # Error for when a grant is invalid
+  # Raised when an authorization grant is invalid, expired, already redeemed,
+  # or the PKCE code verifier doesn't match the challenge.
+  #
+  # Uses I18n for the error message to support internationalization.
+  #
+  # @since 0.2.0
   class InvalidGrantError < StandardError
+    # Returns the localized error message.
+    # @return [String] the error message
     def message
       I18n.t("token_authority.errors.invalid_grant")
     end
   end
 
-  ##
-  # Error for when client redirection URI is invalid.
+  # Raised when a client's redirect URI cannot be parsed or is otherwise invalid.
+  # This prevents open redirect vulnerabilities.
+  #
+  # @since 0.2.0
   class InvalidRedirectUrlError < StandardError; end
 
-  ##
-  # Error for when an authorization header is not provided.
+  # Raised when a protected endpoint is accessed without the required Authorization header.
+  #
+  # @since 0.2.0
   class MissingAuthorizationHeaderError < StandardError; end
 
-  ##
-  # Error for when OAuth Session is not found.
+  # Raised when an OAuth session cannot be found by token JTI or session ID.
+  #
+  # @since 0.2.0
   class OAuthSessionNotFound < StandardError; end
 
-  ##
-  # Error for when an OAuthSession is revoked.
+  # Raised when attempting to use a revoked session.
+  # This can indicate a refresh token replay attack where a stolen token
+  # is used after the legitimate client has already refreshed.
+  #
+  # Captures context about both the session being refreshed and the session
+  # that was revoked to aid in security auditing.
+  #
+  # @since 0.2.0
   class RevokedSessionError < StandardError
-    attr_reader :client_id, :refreshed_session_id, :revoked_session_id, :user_id
+    # @return [String] the client ID that attempted the refresh
+    attr_reader :client_id
 
+    # @return [Integer] the session ID that was being refreshed
+    attr_reader :refreshed_session_id
+
+    # @return [Integer] the session ID that was revoked
+    attr_reader :revoked_session_id
+
+    # @return [Integer] the user ID associated with the session
+    attr_reader :user_id
+
+    # Creates a new RevokedSessionError with security context.
+    #
+    # @param client_id [String] the client ID
+    # @param refreshed_session_id [Integer] the session being refreshed
+    # @param revoked_session_id [Integer] the session that was revoked
+    # @param user_id [Integer] the user ID
     def initialize(client_id:, refreshed_session_id:, revoked_session_id:, user_id:)
       super()
       @client_id = client_id
@@ -50,90 +91,129 @@ module TokenAuthority
       @user_id = user_id
     end
 
+    # Returns the localized error message with context.
+    # @return [String] the error message
     def message
       I18n.t("token_authority.errors.revoked_session", client_id:, refreshed_session_id:, revoked_session_id:, user_id:)
     end
   end
 
-  ##
-  # Error for when server experiences an error.
+  # Raised for unexpected server-side errors during OAuth flows.
+  # This is a catch-all for internal processing errors.
+  #
+  # @since 0.2.0
   class ServerError < StandardError; end
 
-  ##
-  # Error for when an unauthorized access token is provided.
+  # Raised when an access token is valid but the user is not authorized
+  # to access the requested resource.
+  #
+  # @since 0.2.0
   class UnauthorizedAccessTokenError < StandardError; end
 
-  ##
-  # Error for when a PKCE challenge has failed.
+  # Raised when PKCE code challenge verification fails.
+  # This indicates the code_verifier doesn't match the original code_challenge,
+  # which could indicate an interception attack.
+  #
+  # @since 0.2.0
   class UnsuccessfulChallengeError < StandardError; end
 
-  ##
-  # Error for when client provides an unsupported grant type param.
+  # Raised when a client requests a grant type that is not supported
+  # by the authorization server.
+  #
+  # @since 0.2.0
   class UnsupportedGrantTypeError < StandardError; end
 
-  # RFC 7591 Dynamic Client Registration errors
-
-  ##
-  # Error for when one or more redirect_uris are invalid.
+  # Raised during client registration (RFC 7591) when one or more
+  # redirect URIs are malformed or use an invalid scheme.
+  #
+  # @since 0.2.0
   class InvalidRedirectUrisError < StandardError
+    # Creates a new InvalidRedirectUrisError.
+    # @param msg [String] custom error message
     def initialize(msg = "One or more redirect_uris are invalid")
       super
     end
   end
 
-  ##
-  # Error for when client metadata is invalid.
+  # Raised during client registration (RFC 7591) when the submitted
+  # client metadata fails validation.
+  #
+  # @since 0.2.0
   class InvalidClientMetadataError < StandardError
+    # Creates a new InvalidClientMetadataError.
+    # @param msg [String] custom error message
     def initialize(msg = "Client metadata is invalid")
       super
     end
   end
 
-  ##
-  # Error for when software statement is invalid or could not be verified.
+  # Raised during client registration (RFC 7591) when a software statement
+  # JWT cannot be verified or contains invalid claims.
+  #
+  # @since 0.2.0
   class InvalidSoftwareStatementError < StandardError
+    # Creates a new InvalidSoftwareStatementError.
+    # @param msg [String] custom error message
     def initialize(msg = "Software statement is invalid or could not be verified")
       super
     end
   end
 
-  ##
-  # Error for when software statement is not approved for use.
+  # Raised during client registration (RFC 7591) when a software statement
+  # is valid but not approved for use with this authorization server.
+  #
+  # @since 0.2.0
   class UnapprovedSoftwareStatementError < StandardError
+    # Creates a new UnapprovedSoftwareStatementError.
+    # @param msg [String] custom error message
     def initialize(msg = "Software statement is not approved for use with this authorization server")
       super
     end
   end
 
-  ##
-  # Error for when initial access token is invalid or missing.
+  # Raised during client registration (RFC 7591) when an initial access token
+  # is required but missing or fails validation.
+  #
+  # @since 0.2.0
   class InvalidInitialAccessTokenError < StandardError
+    # Creates a new InvalidInitialAccessTokenError.
+    # @param msg [String] custom error message
     def initialize(msg = "Initial access token is invalid or missing")
       super
     end
   end
 
-  # Client Metadata Document errors
-
-  ##
-  # Error for when the client_id URL is invalid (not HTTPS, has fragment, etc.)
+  # Raised when a client_id URL for client metadata documents is invalid.
+  # URLs must be HTTPS, not contain fragments, and meet other security requirements.
+  #
+  # @since 0.2.0
   class InvalidClientMetadataDocumentUrlError < StandardError
+    # Creates a new InvalidClientMetadataDocumentUrlError.
+    # @param msg [String] custom error message
     def initialize(msg = "Client ID URL is invalid")
       super
     end
   end
 
-  ##
-  # Error for when fetching the client metadata document fails.
+  # Raised when fetching a client metadata document fails due to network errors,
+  # timeouts, or HTTP error responses.
+  #
+  # @since 0.2.0
   class ClientMetadataDocumentFetchError < StandardError
+    # Creates a new ClientMetadataDocumentFetchError.
+    # @param msg [String] custom error message
     def initialize(msg = "Failed to fetch client metadata document")
       super
     end
   end
 
-  ##
-  # Error for when the client metadata document content is invalid.
+  # Raised when a fetched client metadata document contains invalid JSON
+  # or doesn't meet the required schema.
+  #
+  # @since 0.2.0
   class InvalidClientMetadataDocumentError < StandardError
+    # Creates a new InvalidClientMetadataDocumentError.
+    # @param msg [String] custom error message
     def initialize(msg = "Client metadata document is invalid")
       super
     end

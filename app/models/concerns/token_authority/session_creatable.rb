@@ -1,16 +1,78 @@
 # frozen_string_literal: true
 
 module TokenAuthority
-  ##
-  # Provides support for creating token authority sessions
+  # Provides session creation functionality for authorization grants and token refreshes.
+  #
+  # This concern encapsulates the complex logic of creating a new OAuth session with
+  # access and refresh token pairs. It handles:
+  # - Generating access and refresh tokens with appropriate lifetimes
+  # - Creating the session record with JTI references
+  # - Yielding to allow the caller to update related records (e.g., marking grant as redeemed)
+  # - Returning a TokenContainer with all token data
+  #
+  # Used by both AuthorizationGrant (when redeeming) and Session (when refreshing).
+  #
+  # @example In a model
+  #   class AuthorizationGrant < ApplicationRecord
+  #     include TokenAuthority::SessionCreatable
+  #
+  #     def redeem(resources: [], scopes: [])
+  #       create_token_authority_session(grant: self, resources:, scopes:) do
+  #         update(redeemed: true)
+  #       end
+  #     end
+  #   end
+  #
+  # @since 0.2.0
   module SessionCreatable
     extend ActiveSupport::Concern
     include TokenAuthority::Instrumentation
 
+    # Container for token response data.
+    #
+    # @!attribute [r] access_token
+    #   The encoded JWT access token string.
+    #   @return [String]
+    #
+    # @!attribute [r] refresh_token
+    #   The encoded JWT refresh token string.
+    #   @return [String]
+    #
+    # @!attribute [r] expiration
+    #   The Unix timestamp when the access token expires.
+    #   @return [Integer]
+    #
+    # @!attribute [r] scope
+    #   Space-delimited scope string, or nil if no scopes.
+    #   @return [String, nil]
+    #
+    # @!attribute [r] token_authority_session
+    #   The created Session record.
+    #   @return [TokenAuthority::Session]
     TokenContainer = Data.define(:access_token, :refresh_token, :expiration, :scope, :token_authority_session)
 
     private
 
+    # Creates a new token session with access and refresh tokens.
+    #
+    # Generates token pairs based on the client's configured lifetimes, creates
+    # a Session record, and yields to allow the caller to perform additional
+    # actions (like marking a grant as redeemed).
+    #
+    # Emits instrumentation events for monitoring session creation performance.
+    #
+    # @param grant [TokenAuthority::AuthorizationGrant] the authorization grant
+    # @param resources [Array<String>] resource indicators for the tokens
+    # @param scopes [Array<String>] scope tokens for the tokens
+    #
+    # @yield allows the caller to update related records within the session creation
+    #
+    # @return [TokenContainer] container with access_token, refresh_token, expiration,
+    #   scope, and token_authority_session
+    #
+    # @raise [TokenAuthority::ServerError] if session creation fails validation
+    #
+    # @api private
     def create_token_authority_session(grant:, resources: [], scopes: [])
       client = grant.resolved_client
 

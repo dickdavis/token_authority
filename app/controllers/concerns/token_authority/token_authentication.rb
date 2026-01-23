@@ -1,8 +1,32 @@
 # frozen_string_literal: true
 
 module TokenAuthority
-  ##
-  # Concern for authenticating users via JWT access tokens.
+  # Provides JWT access token authentication for protected API endpoints.
+  #
+  # This concern enables host applications to protect their API endpoints using
+  # JWT access tokens issued by TokenAuthority. It validates tokens, checks
+  # session status, and provides helper methods to access the authenticated user
+  # and token scopes.
+  #
+  # The concern automatically:
+  # - Extracts and validates the Bearer token from the Authorization header
+  # - Verifies the token signature and claims
+  # - Checks that the session is still active (not revoked or expired)
+  # - Emits authentication events for monitoring
+  # - Handles authentication errors with JSON error responses
+  #
+  # @example Protecting an API endpoint
+  #   class Api::UsersController < ApplicationController
+  #     include TokenAuthority::TokenAuthentication
+  #
+  #     def show
+  #       # token_user is the authenticated user
+  #       # token_scope contains the granted scopes
+  #       render json: token_user
+  #     end
+  #   end
+  #
+  # @since 0.2.0
   module TokenAuthentication
     extend ActiveSupport::Concern
 
@@ -18,6 +42,22 @@ module TokenAuthority
 
     private
 
+    # Extracts, decodes, and validates the JWT access token.
+    #
+    # Verifies that:
+    # - An Authorization header is present
+    # - The token can be decoded and has a valid signature
+    # - A matching session exists and is still active
+    # - The token passes all claim validations
+    #
+    # Sets @decoded_token instance variable on success.
+    #
+    # @return [void]
+    #
+    # @raise [TokenAuthority::MissingAuthorizationHeaderError] if no header present
+    # @raise [TokenAuthority::InvalidAccessTokenError] if token is malformed
+    # @raise [TokenAuthority::UnauthorizedAccessTokenError] if token is invalid or revoked
+    # @api private
     def decode_token
       bearer_token_header = request.headers["AUTHORIZATION"]
       raise TokenAuthority::MissingAuthorizationHeaderError if bearer_token_header.blank?
@@ -39,14 +79,25 @@ module TokenAuthority
       raise TokenAuthority::InvalidAccessTokenError
     end
 
+    # Returns the user associated with the authenticated token.
+    #
+    # @return [User] the user from the configured user_class
+    # @api private
     def token_user
       @token_user ||= TokenAuthority.config.user_class.constantize.find(@decoded_token.user_id)
     end
 
+    # Returns the scopes granted in the authenticated token.
+    #
+    # @return [Array<String>] the scope tokens
+    # @api private
     def token_scope
       @token_scope ||= @decoded_token.scope&.split || []
     end
 
+    # Renders error response for missing Authorization header.
+    # @return [void]
+    # @api private
     def missing_auth_header_response
       notify_event("authentication.token.failed",
         failure_reason: "missing_authorization_header")
@@ -54,6 +105,9 @@ module TokenAuthority
       render json: {error: I18n.t("token_authority.errors.missing_auth_header")}, status: :unauthorized
     end
 
+    # Renders error response for invalid token format.
+    # @return [void]
+    # @api private
     def invalid_token_response
       notify_event("authentication.token.failed",
         failure_reason: "invalid_token_format")
@@ -61,6 +115,9 @@ module TokenAuthority
       render json: {error: I18n.t("token_authority.errors.invalid_token")}, status: :unauthorized
     end
 
+    # Renders error response for unauthorized token.
+    # @return [void]
+    # @api private
     def unauthorized_token_response
       notify_event("authentication.token.failed",
         failure_reason: "unauthorized_token")

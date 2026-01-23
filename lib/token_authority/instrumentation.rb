@@ -1,34 +1,71 @@
 # frozen_string_literal: true
 
 module TokenAuthority
-  ##
-  # Module for emitting ActiveSupport::Notifications instrumentation events.
-  # This module provides automatic timing data that APM tools (New Relic, Datadog, Skylight) auto-capture.
+  # Provides instrumentation capabilities using ActiveSupport::Notifications.
   #
-  # All events are namespaced with "token_authority." prefix (e.g., "token_authority.jwt_encode").
+  # This module emits performance and timing data that APM tools (New Relic, Datadog,
+  # Skylight) can automatically capture. It can be included in classes or extended
+  # in modules to add instrumentation to methods.
   #
-  # Usage:
-  #   # For modules/classes with class methods (extend):
-  #   extend TokenAuthority::Instrumentation
+  # All events are automatically namespaced with "token_authority." prefix to avoid
+  # conflicts with other instrumentation in the application.
   #
-  #   def self.some_method
-  #     instrument("event_name", key: value) { ... }
+  # @example Using in a module with class methods
+  #   module MyModule
+  #     extend TokenAuthority::Instrumentation
+  #
+  #     def self.process_data
+  #       instrument("process_data", record_count: 100) do |payload|
+  #         # Do work here
+  #         # Can add additional payload data: payload[:rows_processed] = 42
+  #       end
+  #     end
   #   end
   #
-  #   # For classes with instance methods (include):
-  #   include TokenAuthority::Instrumentation
+  # @example Using in a class with instance methods
+  #   class MyClass
+  #     include TokenAuthority::Instrumentation
   #
-  #   def some_method
-  #     instrument("event_name", key: value) { ... }
+  #     def process_record
+  #       instrument("process_record") do
+  #         # Do work here
+  #       end
+  #     end
   #   end
+  #
+  # @since 0.2.0
   module Instrumentation
+    # The namespace prefix for all instrumentation events.
+    # @return [String]
     NAMESPACE = "token_authority"
 
-    # Core instrumentation method - works as both class and instance method
-    # @param event_name [String] The event name (will be prefixed with "token_authority.")
-    # @param payload [Hash] The event payload
-    # @yield [payload] The block to instrument; payload can be modified inside the block
-    # @return The result of the block
+    # Wraps a block of code with instrumentation timing and error tracking.
+    #
+    # If instrumentation is disabled via configuration, the block is executed
+    # without emitting notifications. Errors are captured in the payload before
+    # being re-raised.
+    #
+    # @param event_name [String] the event name (will be prefixed with "token_authority.")
+    # @param payload [Hash] initial payload data for the event
+    #
+    # @yield [payload] the block to instrument; the payload can be modified within the block
+    # @yieldparam payload [Hash] the mutable event payload
+    #
+    # @return the result of the yielded block
+    #
+    # @raise re-raises any exception from the block after capturing it in the payload
+    #
+    # @example Basic usage
+    #   instrument("database.query", table: "users") do |payload|
+    #     result = run_query
+    #     payload[:rows] = result.count
+    #     result
+    #   end
+    #
+    # @example Error handling
+    #   instrument("risky_operation") do
+    #     raise "Something went wrong"  # Error is logged to payload before re-raising
+    #   end
     def instrument(event_name, **payload, &block)
       return yield(payload) unless TokenAuthority.config.instrumentation_enabled
 

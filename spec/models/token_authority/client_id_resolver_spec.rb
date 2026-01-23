@@ -24,6 +24,12 @@ RSpec.describe TokenAuthority::ClientIdResolver, type: :model do
         expect(result).to eq(client)
       end
 
+      it "instruments client resolution for registered clients" do
+        expect { described_class.resolve(client.public_id) }
+          .to instrument("token_authority.client.resolve")
+          .with_payload(client_type: "registered")
+      end
+
       context "when client does not exist" do
         it "raises ClientNotFoundError" do
           expect { described_class.resolve("non-existent-uuid") }
@@ -54,6 +60,12 @@ RSpec.describe TokenAuthority::ClientIdResolver, type: :model do
 
         expect(result).to be_a(TokenAuthority::ClientMetadataDocument)
         expect(result.public_id).to eq(client_id_url)
+      end
+
+      it "instruments client resolution for URL-based clients" do
+        expect { described_class.resolve(client_id_url) }
+          .to instrument("token_authority.client.resolve")
+          .with_payload(client_type: "url_based")
       end
 
       context "when fetching fails with InvalidClientMetadataDocumentUrlError" do

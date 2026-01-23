@@ -35,8 +35,10 @@ module TokenAuthority
     end
 
     def redeem(resources: [], scopes: [])
-      create_token_authority_session(grant: self, resources:, scopes:) do
-        update(redeemed: true)
+      instrument("grant.redeem") do
+        create_token_authority_session(grant: self, resources:, scopes:) do
+          update(redeemed: true)
+        end
       end
     rescue TokenAuthority::ServerError => error
       raise TokenAuthority::ServerError, error.message

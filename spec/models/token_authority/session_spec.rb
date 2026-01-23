@@ -60,6 +60,10 @@ RSpec.describe TokenAuthority::Session, type: :model do
     let(:token_authority_refresh_token) { build(:token_authority_refresh_token, token_authority_session:) }
     let(:client_id) { token_authority_client.public_id }
 
+    it "instruments the refresh operation" do
+      expect { method_call }.to instrument("token_authority.session.refresh")
+    end
+
     it_behaves_like "a model that creates TokenAuthority sessions"
 
     describe "RFC 8707 resource indicators" do
@@ -261,6 +265,11 @@ RSpec.describe TokenAuthority::Session, type: :model do
 
     describe "#revoke_self_and_active_session" do
       let(:method_call) { token_authority_session.revoke_self_and_active_session }
+
+      it "instruments the revocation operation" do
+        token_authority_session = create(:token_authority_session, token_authority_authorization_grant: create(:token_authority_authorization_grant, redeemed: true))
+        expect { token_authority_session.revoke_self_and_active_session }.to instrument("token_authority.session.revoke")
+      end
 
       it_behaves_like "a revocable TokenAuthority session"
     end

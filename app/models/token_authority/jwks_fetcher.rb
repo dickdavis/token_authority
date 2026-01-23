@@ -4,21 +4,28 @@ module TokenAuthority
   ##
   # Service for fetching and caching JWKS from a remote URI using database storage
   class JwksFetcher
+    extend TokenAuthority::Instrumentation
+
     class FetchError < StandardError; end
 
     class << self
       def fetch(uri)
-        cached = JwksCache.find_by_uri(uri)
+        instrument("jwks.fetch", uri: uri) do |payload|
+          cached = JwksCache.find_by_uri(uri)
 
-        if cached && !cached.expired?
-          return cached.to_jwk_set
+          if cached && !cached.expired?
+            payload[:cache_hit] = true
+            return cached.to_jwk_set
+          end
+
+          payload[:cache_hit] = false
+
+          # Fetch fresh data and update/create cache entry
+          jwks_data = fetch_from_uri(uri)
+          store_in_cache(uri, jwks_data)
+
+          JWT::JWK::Set.new(jwks_data)
         end
-
-        # Fetch fresh data and update/create cache entry
-        jwks_data = fetch_from_uri(uri)
-        store_in_cache(uri, jwks_data)
-
-        JWT::JWK::Set.new(jwks_data)
       end
 
       def clear_cache(uri)

@@ -28,7 +28,8 @@ module TokenAuthority
 
     def new
       client_name = @token_authority_client.name
-      render :new, locals: {client_name:}
+      resources = @authorization_request.resources || []
+      render :new, locals: {client_name:, resources:}
     end
 
     def create
@@ -43,7 +44,8 @@ module TokenAuthority
         challenge_params: {
           code_challenge: @authorization_request.code_challenge,
           code_challenge_method: @authorization_request.code_challenge_method,
-          redirect_uri: @authorization_request.redirect_uri
+          redirect_uri: @authorization_request.redirect_uri,
+          resources: @authorization_request.resources || []
         }
       )
 

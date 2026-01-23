@@ -38,7 +38,7 @@ module TokenAuthority
     end
 
     def scopes_supported
-      TokenAuthority.config.rfc_8414_scopes_supported
+      TokenAuthority.config.scopes&.keys || []
     end
 
     def service_documentation

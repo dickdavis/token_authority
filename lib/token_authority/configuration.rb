@@ -16,7 +16,14 @@ module TokenAuthority
     attr_accessor :consent_page_layout, :error_page_layout
 
     # Server Metadata (RFC 8414)
-    attr_accessor :rfc_8414_scopes_supported, :rfc_8414_service_documentation
+    attr_accessor :rfc_8414_service_documentation
+
+    # Scopes
+    # scopes: Hash mapping scope strings to display names
+    #   - nil or {} = scopes disabled
+    #   - { "read" => "Read access", "write" => "Write access" } = only these scopes allowed
+    # require_scope: Whether the scope param is required (default: false)
+    attr_accessor :scopes, :require_scope
 
     # Protected Resource Metadata (RFC 9728)
     attr_accessor :rfc_9728_resource, :rfc_9728_scopes_supported, :rfc_9728_authorization_servers,
@@ -56,12 +63,6 @@ module TokenAuthority
       # General
       @secret_key = nil
 
-      # JWT Access Tokens (RFC 9068)
-      @rfc_9068_audience_url = nil
-      @rfc_9068_issuer_url = nil
-      @rfc_9068_default_access_token_duration = 300 # 5 minutes in seconds
-      @rfc_9068_default_refresh_token_duration = 1_209_600 # 14 days in seconds
-
       # User Authentication
       @authenticatable_controller = "ApplicationController"
       @user_class = "User"
@@ -70,8 +71,17 @@ module TokenAuthority
       @consent_page_layout = "application"
       @error_page_layout = "application"
 
+      # Scopes
+      @scopes = nil
+      @require_scope = false
+
+      # JWT Access Tokens (RFC 9068)
+      @rfc_9068_audience_url = nil
+      @rfc_9068_issuer_url = nil
+      @rfc_9068_default_access_token_duration = 300 # 5 minutes in seconds
+      @rfc_9068_default_refresh_token_duration = 1_209_600 # 14 days in seconds
+
       # Server Metadata (RFC 8414)
-      @rfc_8414_scopes_supported = []
       @rfc_8414_service_documentation = nil
 
       # Protected Resource Metadata (RFC 9728)
@@ -112,6 +122,11 @@ module TokenAuthority
       @rfc_8707_require_resource = false
     end
 
+    # Returns true if scopes are enabled
+    def scopes_enabled?
+      scopes.is_a?(Hash) && scopes.any?
+    end
+
     # Returns true if RFC 8707 resource indicators are enabled
     def rfc_8707_enabled?
       rfc_8707_resources.is_a?(Hash) && rfc_8707_resources.any?
@@ -119,6 +134,10 @@ module TokenAuthority
 
     # Validates configuration and raises errors for invalid combinations
     def validate!
+      if require_scope && !scopes_enabled?
+        raise ConfigurationError, "require_scope is true but no scopes are configured"
+      end
+
       if rfc_8707_require_resource && !rfc_8707_enabled?
         raise ConfigurationError, "rfc_8707_require_resource is true but no rfc_8707_resources are configured"
       end

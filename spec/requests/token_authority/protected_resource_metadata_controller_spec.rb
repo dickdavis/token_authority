@@ -2,7 +2,7 @@
 
 require "rails_helper"
 
-RSpec.describe TokenAuthority::ResourceMetadataController, type: :request do
+RSpec.describe TokenAuthority::ProtectedResourceMetadataController, type: :request do
   describe "GET /.well-known/oauth-protected-resource" do
     subject(:call_endpoint) { get "/.well-known/oauth-protected-resource" }
 

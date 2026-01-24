@@ -17,7 +17,7 @@ module TokenAuthority
   #
   # @see https://www.rfc-editor.org/rfc/rfc9728.html RFC 9728
   # @since 0.3.0
-  class ResourceMetadataController < ActionController::API
+  class ProtectedResourceMetadataController < ActionController::API
     # Returns metadata for the protected resource identified by request subdomain.
     #
     # The subdomain is extracted from the request and used to look up configuration.

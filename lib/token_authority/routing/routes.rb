@@ -92,7 +92,7 @@ module ActionDispatch
       # @see https://www.rfc-editor.org/rfc/rfc9728.html RFC 9728
       def token_authority_protected_resource_route
         get "/.well-known/oauth-protected-resource",
-          to: "token_authority/resource_metadata#show"
+          to: "token_authority/protected_resource_metadata#show"
       end
     end
   end

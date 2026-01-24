@@ -218,4 +218,33 @@ module TokenAuthority
       super
     end
   end
+
+  # Raised when no protected resource configuration exists for the requested subdomain.
+  #
+  # This error occurs in the RFC 9728 protected resource metadata endpoint when:
+  # 1. A subdomain-specific request arrives but that subdomain isn't in protected_resources
+  # 2. The fallback protected_resource configuration is also empty or nil
+  # 3. A bare domain request arrives but protected_resource isn't configured
+  #
+  # The ResourceMetadataController catches this error and returns HTTP 404, which is
+  # semantically correct: the client is asking about a resource that doesn't exist in
+  # the configuration. This differs from a 500 error which would imply a server problem.
+  #
+  # This separation of concerns (model raises domain error, controller maps to HTTP status)
+  # keeps the model focused on business logic without coupling it to HTTP semantics.
+  #
+  # @example Subdomain not configured
+  #   # config.protected_resources = { "api" => {...} }
+  #   # Request to mcp.example.com/.well-known/oauth-protected-resource
+  #   # Raises this error because "mcp" isn't configured
+  #
+  # @see ResourceMetadataController#show
+  # @since 0.3.0
+  class ResourceNotConfiguredError < StandardError
+    # Creates a new ResourceNotConfiguredError.
+    # @param msg [String] custom error message
+    def initialize(msg = "No protected resource configuration found for this subdomain")
+      super
+    end
+  end
 end

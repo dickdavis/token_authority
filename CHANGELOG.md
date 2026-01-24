@@ -1,5 +1,16 @@
 ## [Unreleased]
 
+## [0.2.1] - 2025-01-24
+
+### Fixes
+
+- Implemented support for all mandatory access token JWT claims
+- Disable turbo on consent screen to allow redirects
+
+### Documentation
+
+- Update README to include link to MCP Quickstart guide.
+
 ## [0.2.0] - 2025-01-23
 
 - Implemented support for OAuth 2.1 authorization flows and JSON Web Token (JWT) Profile for OAuth 2.0 Access Tokens (RFC 9068).
@@ -18,6 +29,7 @@
 
 - Initial release
 
-[Unreleased]: https://github.com/dickdavis/token_authority/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/dickdavis/token_authority/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/dickdavis/token_authority/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/dickdavis/token_authority/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/dickdavis/token_authority/releases/tag/v0.1.0

@@ -9,13 +9,8 @@ RSpec.describe TokenAuthority::ResourceMetadataController, type: :request do
     let!(:original_config) do
       {
         rfc_9068_issuer_url: TokenAuthority.config.rfc_9068_issuer_url,
-        scopes: TokenAuthority.config.scopes,
-        rfc_9728_resource: TokenAuthority.config.rfc_9728_resource,
-        rfc_9728_scopes_supported: TokenAuthority.config.rfc_9728_scopes_supported,
-        rfc_9728_authorization_servers: TokenAuthority.config.rfc_9728_authorization_servers,
-        rfc_9728_bearer_methods_supported: TokenAuthority.config.rfc_9728_bearer_methods_supported,
-        rfc_9728_resource_name: TokenAuthority.config.rfc_9728_resource_name,
-        rfc_9728_resource_documentation: TokenAuthority.config.rfc_9728_resource_documentation
+        protected_resource: TokenAuthority.config.protected_resource,
+        protected_resources: TokenAuthority.config.protected_resources
       }
     end
 
@@ -29,56 +24,87 @@ RSpec.describe TokenAuthority::ResourceMetadataController, type: :request do
       end
     end
 
-    it "responds with HTTP status ok" do
-      call_endpoint
-      expect(response).to have_http_status(:ok)
-    end
-
-    it "responds with JSON content type" do
-      call_endpoint
-      expect(response.content_type).to include("application/json")
-    end
-
-    it "responds with the required metadata fields" do
-      call_endpoint
-      body = response.parsed_body
-
-      aggregate_failures do
-        expect(body["resource"]).to eq("http://localhost:3000")
-        expect(body["authorization_servers"]).to eq(["http://localhost:3000"])
-      end
-    end
-
-    context "when scopes_supported is configured" do
+    context "when protected_resource is configured" do
       before do
-        TokenAuthority.config.rfc_9728_scopes_supported = ["api:read", "api:write"]
+        TokenAuthority.config.protected_resource = {
+          resource: "http://localhost:3000/api/",
+          resource_name: "Demo API",
+          scopes_supported: %w[read write]
+        }
       end
 
-      it "includes scopes_supported in the response" do
+      it "responds with HTTP status ok" do
         call_endpoint
-        expect(response.parsed_body["scopes_supported"]).to eq(["api:read", "api:write"])
-      end
-    end
-
-    context "when resource_name is configured" do
-      before do
-        TokenAuthority.config.rfc_9728_resource_name = "Example API"
+        expect(response).to have_http_status(:ok)
       end
 
-      it "includes resource_name in the response" do
+      it "responds with JSON content type" do
         call_endpoint
-        expect(response.parsed_body["resource_name"]).to eq("Example API")
+        expect(response.content_type).to include("application/json")
+      end
+
+      it "responds with the required metadata fields" do
+        call_endpoint
+        body = response.parsed_body
+
+        aggregate_failures do
+          expect(body["resource"]).to eq("http://localhost:3000/api/")
+          expect(body["authorization_servers"]).to eq(["http://localhost:3000"])
+        end
+      end
+
+      it "includes configured scopes_supported" do
+        call_endpoint
+        expect(response.parsed_body["scopes_supported"]).to eq(["read", "write"])
+      end
+
+      it "includes configured resource_name" do
+        call_endpoint
+        expect(response.parsed_body["resource_name"]).to eq("Demo API")
       end
     end
 
-    context "when resource_documentation is configured" do
+    context "when protected_resource includes resource_documentation" do
       before do
-        TokenAuthority.config.rfc_9728_resource_documentation = "https://example.com/docs"
+        TokenAuthority.config.protected_resource = {
+          resource: "http://localhost:3000/api/",
+          resource_documentation: "https://example.com/docs"
+        }
       end
 
       it "includes resource_documentation in the response" do
         call_endpoint
         expect(response.parsed_body["resource_documentation"]).to eq("https://example.com/docs")
+      end
+    end
+
+    context "when no protected resource is configured" do
+      before do
+        TokenAuthority.config.protected_resource = {}
+        TokenAuthority.config.protected_resources = {}
+      end
+
+      it "responds with HTTP status not_found" do
+        call_endpoint
+        expect(response).to have_http_status(:not_found)
+      end
+    end
+
+    context "when protected_resources is configured with subdomains" do
+      before do
+        TokenAuthority.config.protected_resource = {}
+        TokenAuthority.config.protected_resources = {
+          "api" => {
+            resource: "https://api.example.com",
+            resource_name: "REST API"
+          }
+        }
+      end
+
+      it "returns 404 when subdomain does not match" do
+        # Without subdomain, it falls back to protected_resource which is empty
+        call_endpoint
+        expect(response).to have_http_status(:not_found)
       end
     end
   end

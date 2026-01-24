@@ -76,35 +76,46 @@ TokenAuthority.configure do |config|
   # Protected Resource Metadata (RFC 9728)
   # ==========================================================================
 
-  # The protected resource's identifier URL.
-  # Defaults to rfc_9068_issuer_url if not set.
-  # config.rfc_9728_resource = "https://api.example.com/"
+  # Protected resource configuration for requests without a subdomain.
+  # This is the default configuration used when no subdomain-specific config is found.
+  # config.protected_resource = {
+  #   resource: "https://api.example.com/",
+  #   resource_name: "Example API",
+  #   scopes_supported: %w[read write],
+  #   authorization_servers: ["https://auth.example.com"],  # Defaults to issuer if not set
+  #   bearer_methods_supported: ["header"],
+  #   jwks_uri: "https://api.example.com/.well-known/jwks.json",
+  #   resource_documentation: "https://example.com/docs/api",
+  #   resource_policy_uri: "https://example.com/privacy",
+  #   resource_tos_uri: "https://example.com/tos"
+  # }
 
-  # Scopes accepted by the protected resource.
-  # Falls back to config.scopes keys if not set.
-  # config.rfc_9728_scopes_supported = ["api:read", "api:write"]
-
-  # List of authorization server issuer URLs that can issue tokens for this resource.
-  # Defaults to the local authorization server (rfc_9068_issuer_url) if not set.
-  # config.rfc_9728_authorization_servers = ["https://auth.example.com"]
-
-  # Token presentation methods supported by the resource (e.g., "header", "body", "query").
-  # config.rfc_9728_bearer_methods_supported = ["header"]
-
-  # URL to the resource's JSON Web Key Set (JWKS).
-  # config.rfc_9728_jwks_uri = "https://api.example.com/.well-known/jwks.json"
-
-  # Human-readable name for the protected resource.
-  # config.rfc_9728_resource_name = "Example API"
-
-  # URL to developer documentation for the protected resource.
-  # config.rfc_9728_resource_documentation = "https://example.com/docs/api"
-
-  # URL to the resource's privacy policy.
-  # config.rfc_9728_resource_policy_uri = "https://example.com/privacy"
-
-  # URL to the resource's terms of service.
-  # config.rfc_9728_resource_tos_uri = "https://example.com/tos"
+  # Protected resource configuration keyed by subdomain.
+  # Use this to serve different metadata based on the request subdomain.
+  # config.protected_resources = {
+  #   "api" => {
+  #     resource: "https://api.example.com",
+  #     resource_name: "REST API",
+  #     scopes_supported: %w[read write],
+  #     authorization_servers: ["https://auth.example.com"],
+  #     bearer_methods_supported: ["header"],
+  #     jwks_uri: "https://api.example.com/.well-known/jwks.json",
+  #     resource_documentation: "https://example.com/docs/api",
+  #     resource_policy_uri: "https://example.com/privacy",
+  #     resource_tos_uri: "https://example.com/tos"
+  #   },
+  #   "mcp" => {
+  #     resource: "https://mcp.example.com",
+  #     resource_name: "MCP Server",
+  #     scopes_supported: %w[mcp:tools mcp:resources],
+  #     authorization_servers: ["https://auth.example.com"],
+  #     bearer_methods_supported: ["header"],
+  #     jwks_uri: "https://mcp.example.com/.well-known/jwks.json",
+  #     resource_documentation: "https://example.com/docs/mcp",
+  #     resource_policy_uri: "https://example.com/privacy",
+  #     resource_tos_uri: "https://example.com/tos"
+  #   }
+  # }
 
   # ==========================================================================
   # Scopes

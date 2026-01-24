@@ -99,50 +99,59 @@ module TokenAuthority
     #   @return [Boolean] true if scope is required (default: false)
     attr_accessor :require_scope
 
-    # @!attribute [rw] rfc_9728_resource
-    #   The resource URI for protected resource metadata per RFC 9728.
-    #   @return [String, nil] resource URI
-    attr_accessor :rfc_9728_resource
+    # @!attribute [rw] protected_resource
+    #   Default protected resource metadata served when no subdomain matches (RFC 9728).
+    #
+    #   This configuration serves two purposes:
+    #   1. For single-resource deployments, it's the only config needed
+    #   2. For multi-resource deployments, it's the fallback when a subdomain doesn't
+    #      match any entry in protected_resources
+    #
+    #   The hash keys match RFC 9728 field names. Only the :resource field is required;
+    #   all others are optional and will be omitted from responses if not set.
+    #
+    #   @example Single resource configuration
+    #     config.protected_resource = {
+    #       resource: "https://api.example.com",
+    #       resource_name: "Example API",
+    #       scopes_supported: %w[read write admin],
+    #       bearer_methods_supported: %w[header],
+    #       jwks_uri: "https://api.example.com/.well-known/jwks.json"
+    #     }
+    #
+    #   @return [Hash, nil] resource metadata hash
+    #   @see #protected_resources for multi-tenant scenarios
+    attr_accessor :protected_resource
 
-    # @!attribute [rw] rfc_9728_scopes_supported
-    #   Array of OAuth scopes supported by the protected resource per RFC 9728.
-    #   @return [Array<String>, nil] supported scopes
-    attr_accessor :rfc_9728_scopes_supported
-
-    # @!attribute [rw] rfc_9728_authorization_servers
-    #   Array of authorization server issuer URLs per RFC 9728.
-    #   @return [Array<String>, nil] authorization server URLs
-    attr_accessor :rfc_9728_authorization_servers
-
-    # @!attribute [rw] rfc_9728_bearer_methods_supported
-    #   Array of bearer token methods supported per RFC 9728.
-    #   @return [Array<String>, nil] bearer methods
-    attr_accessor :rfc_9728_bearer_methods_supported
-
-    # @!attribute [rw] rfc_9728_jwks_uri
-    #   URL to the JWKS for protected resource per RFC 9728.
-    #   @return [String, nil] JWKS URI
-    attr_accessor :rfc_9728_jwks_uri
-
-    # @!attribute [rw] rfc_9728_resource_name
-    #   Human-readable name of the protected resource per RFC 9728.
-    #   @return [String, nil] resource name
-    attr_accessor :rfc_9728_resource_name
-
-    # @!attribute [rw] rfc_9728_resource_documentation
-    #   URL to documentation for the protected resource per RFC 9728.
-    #   @return [String, nil] documentation URL
-    attr_accessor :rfc_9728_resource_documentation
-
-    # @!attribute [rw] rfc_9728_resource_policy_uri
-    #   URL to privacy policy for the protected resource per RFC 9728.
-    #   @return [String, nil] policy URI
-    attr_accessor :rfc_9728_resource_policy_uri
-
-    # @!attribute [rw] rfc_9728_resource_tos_uri
-    #   URL to terms of service for the protected resource per RFC 9728.
-    #   @return [String, nil] TOS URI
-    attr_accessor :rfc_9728_resource_tos_uri
+    # @!attribute [rw] protected_resources
+    #   Subdomain-keyed protected resource metadata for multi-tenant deployments (RFC 9728).
+    #
+    #   Maps subdomain strings to resource metadata hashes. When a request arrives at
+    #   the /.well-known/oauth-protected-resource endpoint, the controller extracts
+    #   the subdomain and looks it up in this hash. This enables a single authorization
+    #   server to describe multiple protected resources at different subdomains.
+    #
+    #   The lookup falls back to protected_resource (singular) if the subdomain isn't
+    #   found, allowing hybrid deployments where some resources have dedicated subdomains
+    #   and others use the default.
+    #
+    #   @example Multi-tenant API deployment
+    #     config.protected_resources = {
+    #       "api" => {
+    #         resource: "https://api.example.com",
+    #         resource_name: "REST API",
+    #         scopes_supported: %w[api:read api:write]
+    #       },
+    #       "mcp" => {
+    #         resource: "https://mcp.example.com",
+    #         resource_name: "MCP Server",
+    #         scopes_supported: %w[mcp:tools mcp:prompts mcp:resources]
+    #       }
+    #     }
+    #
+    #   @return [Hash{String => Hash}, nil] subdomain-to-metadata mapping
+    #   @see #protected_resource for the fallback configuration
+    attr_accessor :protected_resources
 
     # @!attribute [rw] rfc_7591_enabled
     #   Enable dynamic client registration per RFC 7591.
@@ -292,15 +301,8 @@ module TokenAuthority
       @rfc_8414_service_documentation = nil
 
       # Protected Resource Metadata (RFC 9728)
-      @rfc_9728_resource = nil
-      @rfc_9728_scopes_supported = nil
-      @rfc_9728_authorization_servers = nil
-      @rfc_9728_bearer_methods_supported = nil
-      @rfc_9728_jwks_uri = nil
-      @rfc_9728_resource_name = nil
-      @rfc_9728_resource_documentation = nil
-      @rfc_9728_resource_policy_uri = nil
-      @rfc_9728_resource_tos_uri = nil
+      @protected_resource = {}
+      @protected_resources = {}
 
       # Dynamic Client Registration (RFC 7591)
       @rfc_7591_enabled = false
@@ -366,6 +368,43 @@ module TokenAuthority
       if rfc_8707_require_resource && !rfc_8707_enabled?
         raise ConfigurationError, "rfc_8707_require_resource is true but no rfc_8707_resources are configured"
       end
+    end
+
+    # Resolves protected resource configuration using subdomain-aware lookup.
+    #
+    # This implements the fallback strategy that makes both single-resource and
+    # multi-resource deployments work with the same configuration structure:
+    #
+    # 1. If resource_key is present (e.g., "api"), look it up in protected_resources
+    # 2. If not found or resource_key is blank, fall back to protected_resource (singular)
+    # 3. If result is an empty hash, convert to nil (represents "not configured")
+    #
+    # The empty hash conversion is important: it allows distinguishing between "resource
+    # explicitly configured but empty" (which should 404) and "not configured at all"
+    # (which also should 404). Both result in nil, triggering ResourceNotConfiguredError.
+    #
+    # @param resource_key [String, nil] the subdomain or lookup key
+    # @return [Hash, nil] the resource metadata, or nil if not configured
+    #
+    # @example Subdomain-specific lookup
+    #   config.protected_resources = { "api" => { resource: "https://api.example.com" } }
+    #   config.protected_resource_for("api")  # => { resource: "https://api.example.com" }
+    #
+    # @example Fallback to default
+    #   config.protected_resource = { resource: "https://api.example.com" }
+    #   config.protected_resource_for("unknown")  # => { resource: "https://api.example.com" }
+    #
+    # @example Not configured
+    #   config.protected_resource = {}
+    #   config.protected_resource_for(nil)  # => nil (will cause 404)
+    def protected_resource_for(resource_key)
+      result = if resource_key.present?
+        protected_resources&.dig(resource_key) || protected_resource
+      else
+        protected_resource
+      end
+
+      result.presence  # Convert empty hash to nil
     end
   end
 

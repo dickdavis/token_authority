@@ -66,7 +66,8 @@ Add the engine routes to your `config/routes.rb`:
 
 ```ruby
 Rails.application.routes.draw do
-  token_authority_routes
+  token_authority_auth_server_routes
+  token_authority_protected_resource_route
 end
 ```
 
@@ -79,7 +80,24 @@ To mount the engine at a different path, use the `at` option:
 
 ```ruby
 Rails.application.routes.draw do
-  token_authority_routes(at: "/auth")
+  token_authority_auth_server_routes(at: "/auth")
+  token_authority_protected_resource_route
+end
+```
+
+For applications with multiple protected resources, each resource must be on its own subdomain. This is because RFC 9728 defines a fixed well-known path (`/.well-known/oauth-protected-resource`) that can only exist once per host:
+
+```ruby
+Rails.application.routes.draw do
+  token_authority_auth_server_routes
+
+  constraints subdomain: "api" do
+    token_authority_protected_resource_route
+  end
+
+  constraints subdomain: "mcp" do
+    token_authority_protected_resource_route
+  end
 end
 ```
 

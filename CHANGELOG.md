@@ -1,5 +1,10 @@
 ## [Unreleased]
 
+### Breaking
+
+- Replaced `rfc_9728_*` config options with `protected_resource` and `protected_resources` hashes
+- Replaced `token_authority_routes` with `token_authority_auth_server_routes` and `token_authority_protected_resource_route`
+
 ## [0.2.1] - 2025-01-24
 
 ### Fixes

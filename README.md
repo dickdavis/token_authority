@@ -16,7 +16,7 @@ This project aims to implement the OAuth standards specified in the [MCP Authori
 
 ## Usage
 
-TokenAuthority is simple to install and configure.
+TokenAuthority is simple to install and configure. For MCP server developers, see the [MCP Quickstart](https://github.com/dickdavis/token_authority/wiki/MCP-Quickstart) guide for a complete working example.
 
 ### Installation
 

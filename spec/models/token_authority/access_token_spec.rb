@@ -45,10 +45,10 @@ RSpec.describe TokenAuthority::AccessToken, type: :model do
       access_token = described_class.default(exp:, user_id:, client_id:)
       aggregate_failures do
         expect(access_token).to be_a(described_class)
-        expect(access_token.aud).to eq(TokenAuthority.config.rfc_9068_audience_url)
+        expect(access_token.aud).to eq(TokenAuthority.config.audience_url)
         expect(access_token.exp).to eq(exp)
         expect(access_token.iat).to be_a(Integer)
-        expect(access_token.iss).to eq(TokenAuthority.config.rfc_9068_issuer_url)
+        expect(access_token.iss).to eq(TokenAuthority.config.issuer_url)
         expect(access_token.jti).to match(TokenAuthority::Session::VALID_UUID_REGEX)
         expect(access_token.sub).to eq(user_id.to_s)
         expect(access_token.client_id).to eq(client_id)
@@ -59,7 +59,7 @@ RSpec.describe TokenAuthority::AccessToken, type: :model do
       context "when resources is empty" do
         it "uses the configured audience URL" do
           access_token = described_class.default(exp:, user_id:, client_id:, resources: [])
-          expect(access_token.aud).to eq(TokenAuthority.config.rfc_9068_audience_url)
+          expect(access_token.aud).to eq(TokenAuthority.config.audience_url)
         end
       end
 

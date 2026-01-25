@@ -10,21 +10,23 @@ module TokenAuthority
   # Configuration is typically set in a Rails initializer using a configure block
   # that yields this configuration object.
   #
-  # @example Basic configuration
+  # @example Minimal configuration
   #   TokenAuthority.configure do |config|
   #     config.secret_key = Rails.application.credentials.secret_key_base
-  #     config.user_class = "User"
-  #     config.rfc_9068_audience_url = "https://api.example.com"
-  #     config.rfc_9068_issuer_url = "https://example.com"
-  #   end
   #
-  # @example Enabling scopes
-  #   TokenAuthority.configure do |config|
   #     config.scopes = {
   #       "read" => "Read access to your data",
   #       "write" => "Write access to your data"
   #     }
-  #     config.require_scope = true
+  #
+  #     config.resources = {
+  #       api: {
+  #         resource: "https://example.com/api",
+  #         resource_name: "My API",
+  #         scopes_supported: %w[read write],
+  #         authorization_servers: ["https://example.com"]
+  #       }
+  #     }
   #   end
   #
   # @since 0.2.0
@@ -100,7 +102,7 @@ module TokenAuthority
 
     # @!attribute [rw] require_scope
     #   Whether clients must include a scope parameter in authorization requests.
-    #   @return [Boolean] true if scope is required (default: false)
+    #   @return [Boolean] true if scope is required (default: true)
     attr_accessor :require_scope
 
     # ==========================================================================
@@ -108,9 +110,9 @@ module TokenAuthority
     # ==========================================================================
 
     # @!attribute [rw] resources
-    #   Protected resource metadata keyed by subdomain (RFC 9728).
+    #   Protected resource metadata keyed by resource identifier (RFC 9728).
     #
-    #   Maps subdomain symbols to resource metadata hashes. When a request arrives at
+    #   Maps resource symbols to metadata hashes. When a request arrives at
     #   the /.well-known/oauth-protected-resource endpoint, the controller extracts
     #   the subdomain and looks it up in this hash. If no match is found, the first
     #   resource in the hash is used as the default.
@@ -122,12 +124,33 @@ module TokenAuthority
     #   validate! method raises ConfigurationError if any entry is missing this field.
     #   All other fields are optional and will be omitted from responses if not set.
     #
-    #   @example Single resource deployment
+    #   == Available Resource Options
+    #
+    #   [resource]                  (Required) The protected resource URI. Used as the
+    #                               audience (aud) claim in JWT access tokens.
+    #   [resource_name]             Human-readable name shown on the consent screen.
+    #   [scopes_supported]          Array of scope strings this resource accepts.
+    #   [authorization_servers]     Array of authorization server URLs. The first entry
+    #                               is used as the issuer (iss) claim if rfc_9068_issuer_url
+    #                               is not set. Also appears in RFC 9728 metadata responses.
+    #   [bearer_methods_supported]  Array of supported bearer token methods (e.g., ["header"]).
+    #   [jwks_uri]                  URI for the JSON Web Key Set endpoint.
+    #   [resource_documentation]    URL for API documentation.
+    #   [resource_policy_uri]       URL for the privacy policy.
+    #   [resource_tos_uri]          URL for terms of service.
+    #
+    #   @example Single resource with all options
     #     config.resources = {
     #       api: {
-    #         resource: "https://api.example.com",
+    #         resource: "https://example.com/api",
     #         resource_name: "Example API",
-    #         scopes_supported: %w[read write admin]
+    #         scopes_supported: %w[read write admin],
+    #         authorization_servers: ["https://example.com"],
+    #         bearer_methods_supported: ["header"],
+    #         jwks_uri: "https://example.com/.well-known/jwks.json",
+    #         resource_documentation: "https://example.com/docs/api",
+    #         resource_policy_uri: "https://example.com/privacy",
+    #         resource_tos_uri: "https://example.com/terms"
     #       }
     #     }
     #
@@ -136,21 +159,23 @@ module TokenAuthority
     #       api: {
     #         resource: "https://api.example.com",
     #         resource_name: "REST API",
-    #         scopes_supported: %w[api:read api:write]
+    #         scopes_supported: %w[api:read api:write],
+    #         authorization_servers: ["https://auth.example.com"]
     #       },
     #       mcp: {
     #         resource: "https://mcp.example.com",
     #         resource_name: "MCP Server",
-    #         scopes_supported: %w[mcp:tools mcp:prompts mcp:resources]
+    #         scopes_supported: %w[mcp:tools mcp:prompts mcp:resources],
+    #         authorization_servers: ["https://auth.example.com"]
     #       }
     #     }
     #
-    #   @return [Hash{Symbol => Hash}, nil] subdomain-to-metadata mapping
+    #   @return [Hash{Symbol => Hash}, nil] resource identifier to metadata mapping
     attr_accessor :resources
 
     # @!attribute [rw] require_resource
     #   Whether clients must include a resource parameter in authorization requests.
-    #   @return [Boolean] true if resource is required (default: false)
+    #   @return [Boolean] true if resource is required (default: true)
     attr_accessor :require_resource
 
     # ==========================================================================
@@ -194,7 +219,7 @@ module TokenAuthority
 
     # @!attribute [rw] rfc_7591_enabled
     #   Enable dynamic client registration per RFC 7591.
-    #   @return [Boolean] true if enabled (default: false)
+    #   @return [Boolean] true if enabled (default: true)
     attr_accessor :rfc_7591_enabled
 
     # @!attribute [rw] rfc_7591_require_initial_access_token
@@ -303,12 +328,12 @@ module TokenAuthority
       @error_page_layout = "application"
 
       # Scopes
-      @scopes = nil
-      @require_scope = false
+      @scopes = {}
+      @require_scope = true
 
       # Resources
       @resources = {}
-      @require_resource = false
+      @require_resource = true
 
       # JWT Access Tokens (RFC 9068)
       @rfc_9068_audience_url = nil
@@ -320,7 +345,7 @@ module TokenAuthority
       @rfc_8414_service_documentation = nil
 
       # Dynamic Client Registration (RFC 7591)
-      @rfc_7591_enabled = false
+      @rfc_7591_enabled = true
       @rfc_7591_require_initial_access_token = false
       @rfc_7591_initial_access_token_validator = nil
       @rfc_7591_allowed_grant_types = %w[authorization_code refresh_token]
@@ -394,16 +419,14 @@ module TokenAuthority
     # @raise [ConfigurationError] if require_scope is true but scopes are not configured
     # @raise [ConfigurationError] if require_resource is true but no resources are configured
     # @raise [ConfigurationError] if any resource entry is missing the required :resource field
+    # @raise [ConfigurationError] if no issuer URL is available
     # @return [void]
     def validate!
       if require_scope && !scopes_enabled?
         raise ConfigurationError, "require_scope is true but no scopes are configured"
       end
 
-      if require_resource && !resources_enabled?
-        raise ConfigurationError, "require_resource is true but no resources are configured"
-      end
-
+      # Validate resource entries first (before checking if any valid resources exist)
       if resources.is_a?(Hash)
         resources.each do |key, config|
           next unless config.is_a?(Hash)
@@ -412,6 +435,15 @@ module TokenAuthority
             raise ConfigurationError, "resource :#{key} is missing the required :resource field"
           end
         end
+      end
+
+      if require_resource && !resources_enabled?
+        raise ConfigurationError, "require_resource is true but no resources are configured"
+      end
+
+      if issuer_url.blank?
+        raise ConfigurationError,
+          "no issuer URL configured: set rfc_9068_issuer_url or add authorization_servers to a resource"
       end
     end
 
@@ -445,6 +477,65 @@ module TokenAuthority
       else
         resources.values.first
       end
+    end
+
+    # Returns the effective audience URL for JWT tokens.
+    #
+    # The audience URL is determined as follows:
+    # 1. If rfc_9068_audience_url is set, use that value
+    # 2. Otherwise, derive from the first resource's :resource URL
+    #
+    # @return [String, nil] the audience URL, or nil if not configured
+    #
+    # @example Explicit audience URL
+    #   config.rfc_9068_audience_url = "https://api.example.com"
+    #   config.audience_url  # => "https://api.example.com"
+    #
+    # @example Derived from resources
+    #   config.rfc_9068_audience_url = nil
+    #   config.resources = { api: { resource: "https://api.example.com" } }
+    #   config.audience_url  # => "https://api.example.com"
+    def audience_url
+      return rfc_9068_audience_url if rfc_9068_audience_url.present?
+
+      # Derive from first resource's :resource URL
+      return nil unless resources.is_a?(Hash) && resources.any?
+
+      first_resource = resources.values.first
+      return nil unless first_resource.is_a?(Hash)
+
+      first_resource[:resource]
+    end
+
+    # Returns the effective issuer URL for JWT tokens.
+    #
+    # The issuer URL is determined as follows:
+    # 1. If rfc_9068_issuer_url is set, use that value
+    # 2. Otherwise, derive from the first resource's authorization_servers
+    #
+    # @return [String, nil] the issuer URL, or nil if not configured
+    #
+    # @example Explicit issuer URL
+    #   config.rfc_9068_issuer_url = "https://auth.example.com"
+    #   config.issuer_url  # => "https://auth.example.com"
+    #
+    # @example Derived from authorization_servers
+    #   config.rfc_9068_issuer_url = nil
+    #   config.resources = { api: { authorization_servers: ["https://auth.example.com"] } }
+    #   config.issuer_url  # => "https://auth.example.com"
+    def issuer_url
+      return rfc_9068_issuer_url if rfc_9068_issuer_url.present?
+
+      # Derive from first resource's authorization_servers
+      return nil unless resources.is_a?(Hash) && resources.any?
+
+      first_resource = resources.values.first
+      return nil unless first_resource.is_a?(Hash)
+
+      auth_servers = first_resource[:authorization_servers]
+      return nil unless auth_servers.is_a?(Array) && auth_servers.any?
+
+      auth_servers.first
     end
   end
 

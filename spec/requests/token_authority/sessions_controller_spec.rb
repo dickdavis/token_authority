@@ -342,7 +342,7 @@ RSpec.describe TokenAuthority::SessionsController, type: :request do
             expect(response).to have_http_status(:ok)
             access_token = response.parsed_body["access_token"]
             decoded = TokenAuthority::JsonWebToken.decode(access_token)
-            expect(decoded[:aud]).to eq(TokenAuthority.config.rfc_9068_audience_url)
+            expect(decoded[:aud]).to eq(TokenAuthority.config.audience_url)
           end
         end
 

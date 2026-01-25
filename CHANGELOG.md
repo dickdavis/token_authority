@@ -7,6 +7,18 @@
 - Removed `rfc_8707_resources` config option; resource allowlist is now derived from `config.resources`
 - Renamed `rfc_8707_require_resource` to `require_resource`
 - Renamed `rfc_8707_enabled?` method to `resources_enabled?`
+- Changed default for `require_scope` from `false` to `true`
+- Changed default for `require_resource` from `false` to `true`
+- Changed default for `rfc_9068_audience_url` from application URL to `nil`
+- Changed default for `rfc_7591_enabled` from `false` to `true`
+- Changed default for `rfc_9068_issuer_url` from required to `nil`
+- When `rfc_9068_audience_url` is nil, the `:resource` URL is used as the audience claim
+- When `rfc_9068_issuer_url` is nil, it's derived from the first resource's `:authorization_servers`
+
+### Added
+
+- Added `issuer_url` method that returns either `rfc_9068_issuer_url` or derives from `authorization_servers`
+- Added validation requiring either `rfc_9068_issuer_url` or `:authorization_servers` on at least one resource
 
 ## [0.2.1] - 2025-01-24
 

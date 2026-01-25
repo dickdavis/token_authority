@@ -53,56 +53,48 @@ TokenAuthority.configure do |config|
     "profile" => "View your profile information"
   }
 
-  # Require the scope parameter in authorization requests.
-  # config.require_scope = false
+  # Require the scope parameter in authorization requests (default: true).
+  # Set to false for backwards compatibility with existing tests.
+  config.require_scope = false
 
   # ==========================================================================
   # Resources (RFC 9728 / RFC 8707)
   # ==========================================================================
 
-  # Protected resources keyed by subdomain. For single-resource deployments,
+  # Protected resources keyed by identifier. For single-resource deployments,
   # just configure one entry - it will be used for all requests.
   # For multi-resource deployments, add entries for each subdomain.
   # The first entry is used as the default when no subdomain matches.
   #
   # Each entry must include the :resource field (required per RFC 9728).
-  # All other fields are optional.
+  # The :resource URL is used as the audience (aud) claim in access tokens.
+  # The first :authorization_servers entry is used as the issuer (iss) claim.
   config.resources = {
     api: {
-      resource: "http://localhost:3000/api/",  # Required
+      resource: "http://localhost:3000/api/",
       resource_name: "Demo API",
-      scopes_supported: %w[read write delete profile]
+      scopes_supported: %w[read write delete profile],
+      authorization_servers: ["http://localhost:3000/"],
+      bearer_methods_supported: ["header"],
+      resource_documentation: "http://localhost:3000/docs/api"
     }
   }
 
-  # Example multi-resource configuration:
-  # config.resources = {
-  #   api: {
-  #     resource: "https://api.example.com",
-  #     resource_name: "REST API",
-  #     scopes_supported: %w[read write]
-  #   },
-  #   mcp: {
-  #     resource: "https://mcp.example.com",
-  #     resource_name: "MCP Server",
-  #     scopes_supported: %w[mcp:tools mcp:resources]
-  #   }
-  # }
-
-  # Require the resource parameter in authorization requests.
-  # config.require_resource = false
+  # Require the resource parameter in authorization requests (default: true).
+  # Set to false for backwards compatibility with existing tests.
+  config.require_resource = false
 
   # ==========================================================================
   # JWT Access Tokens (RFC 9068)
   # ==========================================================================
 
-  # The audience URL for JWT tokens. This is typically your API's base URL.
-  # Used as the "aud" (audience) claim in issued tokens.
-  config.rfc_9068_audience_url = ENV.fetch("TOKEN_AUTHORITY_AUDIENCE_URL", "http://localhost:3000/api/")
+  # The audience URL for JWT tokens (default: nil).
+  # When nil (recommended), the audience is the resource URL from config.resources.
+  # config.rfc_9068_audience_url = nil
 
-  # The issuer URL for JWT tokens. This is typically your application's base URL.
-  # Used as the "iss" (issuer) claim in issued tokens.
-  config.rfc_9068_issuer_url = ENV.fetch("TOKEN_AUTHORITY_ISSUER_URL", "http://localhost:3000/")
+  # The issuer URL for JWT tokens (default: nil).
+  # When nil, the issuer is derived from the first resource's :authorization_servers.
+  # config.rfc_9068_issuer_url = nil
 
   # Default duration for access tokens in seconds (5 minutes).
   # config.rfc_9068_default_access_token_duration = 300
@@ -121,8 +113,8 @@ TokenAuthority.configure do |config|
   # Dynamic Client Registration (RFC 7591)
   # ==========================================================================
 
-  # Enable dynamic client registration endpoint (/register).
-  # config.rfc_7591_enabled = false
+  # Enable dynamic client registration endpoint (/register) (default: true).
+  # config.rfc_7591_enabled = true
 
   # Require an initial access token for client registration.
   # config.rfc_7591_require_initial_access_token = false

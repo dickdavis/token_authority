@@ -63,77 +63,74 @@ TokenAuthority.configure do |config|
   # Keys are the scope strings (used as the allowlist), values are display names
   # shown on the consent screen.
   #
-  # Set to nil or {} to disable scope validation entirely.
-  # When configured, only these scopes are allowed in authorization requests.
-  # config.scopes = {
-  #   "read" => "Read access to your data",
-  #   "write" => "Write access to your data"
-  # }
+  # IMPORTANT: You must configure at least one scope since require_scope is true by default.
+  config.scopes = {
+    "read" => "Read access to your data",
+    "write" => "Write access to your data"
+  }
 
-  # Require the scope parameter in authorization requests.
+  # Require the scope parameter in authorization requests (default: true).
   # When true, clients must specify at least one scope.
-  # config.require_scope = false
+  # config.require_scope = true
 
   # ==========================================================================
   # Resources (RFC 9728 / RFC 8707)
   # ==========================================================================
 
-  # Protected resources keyed by subdomain. For single-resource deployments,
+  # Protected resources keyed by identifier. For single-resource deployments,
   # just configure one entry - it will be used for all requests.
   # For multi-resource deployments, add entries for each subdomain.
   # The first entry is used as the default when no subdomain matches.
   #
   # Each entry must include the :resource field (required per RFC 9728).
-  # All other fields are optional.
+  # The :resource URL is used as the audience (aud) claim in access tokens.
+  # The first :authorization_servers entry is used as the issuer (iss) claim.
   #
   # Resource indicators (RFC 8707) are automatically enabled when resources are
   # configured. The allowlist of valid resource URIs is derived from the :resource
-  # key in the configuration below. Display names on the consent screen use the
-  # :resource_name key (or the URI if not set).
+  # key in the configuration below.
   #
-  # config.resources = {
-  #   api: {
-  #     resource: "https://api.example.com/",           # Required: resource identifier URI
-  #     resource_name: "Example API",                   # Optional: human-readable name
-  #     scopes_supported: %w[read write],               # Optional: supported scopes
-  #     authorization_servers: ["https://auth.example.com"],  # Optional: defaults to issuer
-  #     bearer_methods_supported: ["header"],           # Optional: how to present tokens
-  #     jwks_uri: "https://api.example.com/.well-known/jwks.json",  # Optional
-  #     resource_documentation: "https://example.com/docs/api",     # Optional
-  #     resource_policy_uri: "https://example.com/privacy",         # Optional
-  #     resource_tos_uri: "https://example.com/tos"                 # Optional
-  #   }
-  # }
+  # IMPORTANT: You must configure at least one resource since require_resource is true by default.
   #
-  # Example multi-resource configuration:
-  # config.resources = {
-  #   api: {
-  #     resource: "https://api.example.com",
-  #     resource_name: "REST API",
-  #     scopes_supported: %w[read write]
-  #   },
-  #   mcp: {
-  #     resource: "https://mcp.example.com",
-  #     resource_name: "MCP Server",
-  #     scopes_supported: %w[mcp:tools mcp:resources]
-  #   }
-  # }
+  # Available options:
+  #   resource (required)        - The protected resource URI (used as aud claim)
+  #   resource_name              - Human-readable name shown on consent screen
+  #   scopes_supported           - Array of scopes this resource accepts
+  #   authorization_servers      - Array of auth server URLs (first used as iss claim)
+  #   bearer_methods_supported   - Array of supported bearer token methods
+  #   jwks_uri                   - URI for JSON Web Key Set endpoint
+  #   resource_documentation     - URL for API documentation
+  #   resource_policy_uri        - URL for privacy policy
+  #   resource_tos_uri           - URL for terms of service
+  config.resources = {
+    api: {
+      resource: ENV.fetch("TOKEN_AUTHORITY_RESOURCE_URL", "http://localhost:3000/api"),
+      resource_name: "My API",
+      scopes_supported: %w[read write],
+      authorization_servers: [ENV.fetch("TOKEN_AUTHORITY_BASE_URL", "http://localhost:3000")],
+      bearer_methods_supported: ["header"],
+      resource_documentation: "http://localhost:3000/docs/api"
+    }
+  }
 
-  # Require the resource parameter in authorization requests.
+  # Require the resource parameter in authorization requests (default: true).
   # When true, clients must specify at least one resource.
-  # config.require_resource = false
+  # config.require_resource = true
 
   # ==========================================================================
   # JWT Access Tokens (RFC 9068)
   # ==========================================================================
 
-  # The audience URL for JWT tokens. This is typically your API's base URL.
-  # Used as the "aud" (audience) claim in issued tokens.
-  config.rfc_9068_audience_url = ENV.fetch("TOKEN_AUTHORITY_AUDIENCE_URL", "http://localhost:3000/api/")
-
-  # The issuer URL for JWT tokens. This is typically your application's base URL.
+  # The issuer URL for JWT tokens (default: nil).
   # Used as the "iss" (issuer) claim in issued tokens.
-  config.rfc_9068_issuer_url = ENV.fetch("TOKEN_AUTHORITY_ISSUER_URL", "http://localhost:3000/")
+  # If nil, the issuer is derived from the first resource's :authorization_servers.
+  # You must configure either this OR :authorization_servers on at least one resource.
+  # config.rfc_9068_issuer_url = nil
+
+  # The audience URL for JWT tokens (default: nil).
+  # When set, this value is used as the "aud" claim for all tokens.
+  # When nil (recommended), the audience is the resource URL from config.resources.
+  # config.rfc_9068_audience_url = nil
 
   # Default duration for access tokens in seconds (5 minutes).
   # This value is used when creating new clients without explicit durations.
@@ -158,12 +155,11 @@ TokenAuthority.configure do |config|
   # Dynamic Client Registration (RFC 7591)
   # ==========================================================================
 
-  # Enable dynamic client registration endpoint (/register).
+  # Enable dynamic client registration endpoint (/register) (default: true).
   # When enabled, clients can register programmatically via POST requests.
-  # Disabled by default for security - enable only if you need this feature.
-  # config.rfc_7591_enabled = false
+  # config.rfc_7591_enabled = true
 
-  # Require an initial access token for client registration.
+  # Require an initial access token for client registration (default: false).
   # When enabled, registration requests must include a Bearer token.
   # config.rfc_7591_require_initial_access_token = false
 

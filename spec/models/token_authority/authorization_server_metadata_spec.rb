@@ -6,14 +6,14 @@ RSpec.describe TokenAuthority::AuthorizationServerMetadata, type: :model do
   subject(:model) { described_class.new(mount_path: mount_path) }
 
   let(:mount_path) { "/oauth" }
-  let!(:original_issuer_url) { TokenAuthority.config.rfc_9068_issuer_url }
+  let!(:original_issuer_url) { TokenAuthority.config.token_issuer_url }
 
   before do
-    TokenAuthority.config.rfc_9068_issuer_url = "https://example.com/"
+    TokenAuthority.config.token_issuer_url = "https://example.com/"
   end
 
   after do
-    TokenAuthority.config.rfc_9068_issuer_url = original_issuer_url
+    TokenAuthority.config.token_issuer_url = original_issuer_url
   end
 
   describe "#to_h" do
@@ -27,18 +27,18 @@ RSpec.describe TokenAuthority::AuthorizationServerMetadata, type: :model do
         expect(result[:revocation_endpoint]).to eq("https://example.com/oauth/revoke")
         expect(result[:response_types_supported]).to eq(["code"])
         expect(result[:grant_types_supported]).to eq(["authorization_code", "refresh_token"])
-        expect(result[:token_endpoint_auth_methods_supported]).to eq(TokenAuthority.config.rfc_7591_allowed_token_endpoint_auth_methods)
+        expect(result[:token_endpoint_auth_methods_supported]).to eq(TokenAuthority.config.dcr_allowed_token_endpoint_auth_methods)
         expect(result[:code_challenge_methods_supported]).to eq(["S256"])
       end
     end
 
     it "strips trailing slash from issuer" do
-      TokenAuthority.config.rfc_9068_issuer_url = "https://example.com/"
+      TokenAuthority.config.token_issuer_url = "https://example.com/"
       expect(model.to_h[:issuer]).to eq("https://example.com")
     end
 
     it "handles issuer without trailing slash" do
-      TokenAuthority.config.rfc_9068_issuer_url = "https://example.com"
+      TokenAuthority.config.token_issuer_url = "https://example.com"
       expect(model.to_h[:issuer]).to eq("https://example.com")
     end
 
@@ -82,11 +82,11 @@ RSpec.describe TokenAuthority::AuthorizationServerMetadata, type: :model do
 
     context "when service_documentation is configured" do
       before do
-        TokenAuthority.config.rfc_8414_service_documentation = "https://example.com/docs/oauth"
+        TokenAuthority.config.authorization_server_documentation = "https://example.com/docs/oauth"
       end
 
       after do
-        TokenAuthority.config.rfc_8414_service_documentation = nil
+        TokenAuthority.config.authorization_server_documentation = nil
       end
 
       it "includes service_documentation in the response" do
@@ -96,7 +96,7 @@ RSpec.describe TokenAuthority::AuthorizationServerMetadata, type: :model do
 
     context "when service_documentation is nil" do
       before do
-        TokenAuthority.config.rfc_8414_service_documentation = nil
+        TokenAuthority.config.authorization_server_documentation = nil
       end
 
       it "omits service_documentation from the response" do

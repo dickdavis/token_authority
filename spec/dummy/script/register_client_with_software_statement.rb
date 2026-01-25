@@ -33,8 +33,8 @@ publisher_jwks = {
 }
 
 # Configure TokenAuthority to trust this software publisher
-TokenAuthority.config.rfc_7591_enabled = true
-TokenAuthority.config.rfc_7591_software_statement_jwks = JWT::JWK::Set.new(publisher_jwks)
+TokenAuthority.config.dcr_enabled = true
+TokenAuthority.config.dcr_software_statement_jwks = JWT::JWK::Set.new(publisher_jwks)
 
 puts "Configured software statement verification with publisher JWKS.\n\n"
 
@@ -163,6 +163,6 @@ else
 end
 
 # Reset configuration
-TokenAuthority.config.rfc_7591_software_statement_jwks = nil
+TokenAuthority.config.dcr_software_statement_jwks = nil
 puts
 puts "(Configuration reset)"

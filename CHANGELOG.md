@@ -9,16 +9,33 @@
 - Renamed `rfc_8707_enabled?` method to `resources_enabled?`
 - Changed default for `require_scope` from `false` to `true`
 - Changed default for `require_resource` from `false` to `true`
-- Changed default for `rfc_9068_audience_url` from application URL to `nil`
-- Changed default for `rfc_7591_enabled` from `false` to `true`
-- Changed default for `rfc_9068_issuer_url` from required to `nil`
-- When `rfc_9068_audience_url` is nil, the `:resource` URL is used as the audience claim
-- When `rfc_9068_issuer_url` is nil, it's derived from the first resource's `:authorization_servers`
+- Changed default for `token_audience_url` from application URL to `nil`
+- Changed default for `dcr_enabled` from `false` to `true`
+- Changed default for `token_issuer_url` from required to `nil`
+- When `token_audience_url` is nil, the `:resource` URL is used as the audience claim
+- When `token_issuer_url` is nil, it's derived from the first resource's `:authorization_servers`
+- Renamed configuration options to remove RFC number prefixes:
+  - `rfc_9068_audience_url` → `token_audience_url`
+  - `rfc_9068_issuer_url` → `token_issuer_url`
+  - `rfc_9068_default_access_token_duration` → `default_access_token_duration`
+  - `rfc_9068_default_refresh_token_duration` → `default_refresh_token_duration`
+  - `rfc_8414_service_documentation` → `authorization_server_documentation`
+  - `rfc_7591_enabled` → `dcr_enabled`
+  - `rfc_7591_require_initial_access_token` → `dcr_require_initial_access_token`
+  - `rfc_7591_initial_access_token_validator` → `dcr_initial_access_token_validator`
+  - `rfc_7591_allowed_grant_types` → `dcr_allowed_grant_types`
+  - `rfc_7591_allowed_response_types` → `dcr_allowed_response_types`
+  - `rfc_7591_allowed_scopes` → `dcr_allowed_scopes`
+  - `rfc_7591_allowed_token_endpoint_auth_methods` → `dcr_allowed_token_endpoint_auth_methods`
+  - `rfc_7591_client_secret_expiration` → `dcr_client_secret_expiration`
+  - `rfc_7591_software_statement_jwks` → `dcr_software_statement_jwks`
+  - `rfc_7591_software_statement_required` → `dcr_software_statement_required`
+  - `rfc_7591_jwks_cache_ttl` → `dcr_jwks_cache_ttl`
 
 ### Added
 
-- Added `issuer_url` method that returns either `rfc_9068_issuer_url` or derives from `authorization_servers`
-- Added validation requiring either `rfc_9068_issuer_url` or `:authorization_servers` on at least one resource
+- Added `issuer_url` method that returns either `token_issuer_url` or derives from `authorization_servers`
+- Added validation requiring either `token_issuer_url` or `:authorization_servers` on at least one resource
 
 ## [0.2.1] - 2025-01-24
 

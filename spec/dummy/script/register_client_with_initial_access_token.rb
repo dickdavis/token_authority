@@ -12,9 +12,9 @@ require "json"
 require "uri"
 
 # Configure protected registration
-TokenAuthority.config.rfc_7591_enabled = true
-TokenAuthority.config.rfc_7591_require_initial_access_token = true
-TokenAuthority.config.rfc_7591_initial_access_token_validator = ->(token) {
+TokenAuthority.config.dcr_enabled = true
+TokenAuthority.config.dcr_require_initial_access_token = true
+TokenAuthority.config.dcr_initial_access_token_validator = ->(token) {
   # In production, validate against your token store/database
   # This example accepts a specific token for demonstration
   token == "my-secret-initial-access-token-12345"
@@ -40,7 +40,7 @@ puts "=" * 70
 puts "RFC 7591 Dynamic Client Registration - Protected Registration"
 puts "=" * 70
 puts
-puts "When rfc_7591_require_initial_access_token is enabled, clients must"
+puts "When dcr_require_initial_access_token is enabled, clients must"
 puts "present a valid initial access token in the Authorization header."
 puts
 puts "Registration endpoint: #{register_url}"
@@ -166,7 +166,7 @@ if response.code == "201"
 end
 
 # Reset configuration
-TokenAuthority.config.rfc_7591_require_initial_access_token = false
-TokenAuthority.config.rfc_7591_initial_access_token_validator = nil
+TokenAuthority.config.dcr_require_initial_access_token = false
+TokenAuthority.config.dcr_initial_access_token_validator = nil
 puts
 puts "(Configuration reset to disable protected registration)"

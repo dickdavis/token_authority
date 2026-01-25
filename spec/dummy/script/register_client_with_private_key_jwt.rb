@@ -13,8 +13,8 @@ require "openssl"
 require "jwt"
 
 # Ensure dynamic registration is enabled
-unless TokenAuthority.config.rfc_7591_enabled
-  TokenAuthority.config.rfc_7591_enabled = true
+unless TokenAuthority.config.dcr_enabled
+  TokenAuthority.config.dcr_enabled = true
   puts "Enabled dynamic client registration for this session.\n\n"
 end
 

@@ -19,8 +19,8 @@ require "token_authority/routing/routes"
 # @example Basic configuration
 #   TokenAuthority.configure do |config|
 #     config.secret_key = Rails.application.credentials.secret_key_base
-#     config.rfc_9068_audience_url = "https://api.example.com"
-#     config.rfc_9068_issuer_url = "https://example.com"
+#     config.token_audience_url = "https://api.example.com"
+#     config.token_issuer_url = "https://example.com"
 #   end
 #
 # @since 0.2.0

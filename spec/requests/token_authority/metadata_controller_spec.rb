@@ -6,14 +6,14 @@ RSpec.describe TokenAuthority::MetadataController, type: :request do
   describe "GET /.well-known/oauth-authorization-server" do
     subject(:call_endpoint) { get "/.well-known/oauth-authorization-server" }
 
-    let!(:original_issuer_url) { TokenAuthority.config.rfc_9068_issuer_url }
+    let!(:original_issuer_url) { TokenAuthority.config.token_issuer_url }
 
     before do
-      TokenAuthority.config.rfc_9068_issuer_url = "http://localhost:3000/"
+      TokenAuthority.config.token_issuer_url = "http://localhost:3000/"
     end
 
     after do
-      TokenAuthority.config.rfc_9068_issuer_url = original_issuer_url
+      TokenAuthority.config.token_issuer_url = original_issuer_url
     end
 
     it "responds with HTTP status ok" do
@@ -37,7 +37,7 @@ RSpec.describe TokenAuthority::MetadataController, type: :request do
         expect(body["revocation_endpoint"]).to eq("http://localhost:3000/oauth/revoke")
         expect(body["response_types_supported"]).to eq(["code"])
         expect(body["grant_types_supported"]).to eq(["authorization_code", "refresh_token"])
-        expect(body["token_endpoint_auth_methods_supported"]).to eq(TokenAuthority.config.rfc_7591_allowed_token_endpoint_auth_methods)
+        expect(body["token_endpoint_auth_methods_supported"]).to eq(TokenAuthority.config.dcr_allowed_token_endpoint_auth_methods)
         expect(body["code_challenge_methods_supported"]).to eq(["S256"])
       end
     end
@@ -59,11 +59,11 @@ RSpec.describe TokenAuthority::MetadataController, type: :request do
 
     context "when service_documentation is configured" do
       before do
-        TokenAuthority.config.rfc_8414_service_documentation = "https://example.com/docs"
+        TokenAuthority.config.authorization_server_documentation = "https://example.com/docs"
       end
 
       after do
-        TokenAuthority.config.rfc_8414_service_documentation = nil
+        TokenAuthority.config.authorization_server_documentation = nil
       end
 
       it "includes service_documentation in the response" do

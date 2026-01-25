@@ -241,8 +241,8 @@ module TokenAuthority
     end
 
     def set_default_durations
-      self.access_token_duration ||= TokenAuthority.config.rfc_9068_default_access_token_duration
-      self.refresh_token_duration ||= TokenAuthority.config.rfc_9068_default_refresh_token_duration
+      self.access_token_duration ||= TokenAuthority.config.default_access_token_duration
+      self.refresh_token_duration ||= TokenAuthority.config.default_refresh_token_duration
     end
 
     def set_client_id_issued_at
@@ -251,9 +251,9 @@ module TokenAuthority
 
     def set_client_secret_expiration
       return if client_type == "public"
-      return unless TokenAuthority.config.rfc_7591_client_secret_expiration
+      return unless TokenAuthority.config.dcr_client_secret_expiration
 
-      self.client_secret_expires_at = Time.current + TokenAuthority.config.rfc_7591_client_secret_expiration
+      self.client_secret_expires_at = Time.current + TokenAuthority.config.dcr_client_secret_expiration
     end
 
     def generate_client_secret_for(secret_id)

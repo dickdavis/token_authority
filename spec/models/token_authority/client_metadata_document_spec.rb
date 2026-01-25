@@ -96,13 +96,13 @@ RSpec.describe TokenAuthority::ClientMetadataDocument, type: :model do
 
   describe "#access_token_duration" do
     it "returns the default access token duration from config" do
-      expect(document.access_token_duration).to eq(TokenAuthority.config.rfc_9068_default_access_token_duration)
+      expect(document.access_token_duration).to eq(TokenAuthority.config.default_access_token_duration)
     end
   end
 
   describe "#refresh_token_duration" do
     it "returns the default refresh token duration from config" do
-      expect(document.refresh_token_duration).to eq(TokenAuthority.config.rfc_9068_default_refresh_token_duration)
+      expect(document.refresh_token_duration).to eq(TokenAuthority.config.default_refresh_token_duration)
     end
   end
 

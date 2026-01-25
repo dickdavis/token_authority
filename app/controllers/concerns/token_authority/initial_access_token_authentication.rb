@@ -13,14 +13,14 @@ module TokenAuthority
     private
 
     def initial_access_token_required?
-      TokenAuthority.config.rfc_7591_require_initial_access_token
+      TokenAuthority.config.dcr_require_initial_access_token
     end
 
     def authenticate_initial_access_token
       token = extract_bearer_token
       raise TokenAuthority::InvalidInitialAccessTokenError if token.blank?
 
-      validator = TokenAuthority.config.rfc_7591_initial_access_token_validator
+      validator = TokenAuthority.config.dcr_initial_access_token_validator
       raise TokenAuthority::InvalidInitialAccessTokenError unless validator&.call(token)
     end
 

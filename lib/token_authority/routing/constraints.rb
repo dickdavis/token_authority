@@ -62,9 +62,9 @@ module TokenAuthority
       # Determines if dynamic client registration is enabled in the configuration.
       #
       # @param _request [ActionDispatch::Request] the Rails request object (unused)
-      # @return [Boolean] true if RFC 7591 dynamic registration is enabled
+      # @return [Boolean] true if dynamic client registration is enabled
       def matches?(_request)
-        TokenAuthority.config.rfc_7591_enabled
+        TokenAuthority.config.dcr_enabled
       end
     end
   end

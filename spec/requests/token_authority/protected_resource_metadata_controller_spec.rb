@@ -8,13 +8,13 @@ RSpec.describe TokenAuthority::ProtectedResourceMetadataController, type: :reque
 
     let!(:original_config) do
       {
-        rfc_9068_issuer_url: TokenAuthority.config.rfc_9068_issuer_url,
+        token_issuer_url: TokenAuthority.config.token_issuer_url,
         resources: TokenAuthority.config.resources
       }
     end
 
     before do
-      TokenAuthority.config.rfc_9068_issuer_url = "http://localhost:3000/"
+      TokenAuthority.config.token_issuer_url = "http://localhost:3000/"
     end
 
     after do

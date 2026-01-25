@@ -281,12 +281,12 @@ RSpec.describe TokenAuthority::Configuration do
       )
     end
 
-    it "does not raise when configuration is valid with rfc_9068_issuer_url" do
+    it "does not raise when configuration is valid with token_issuer_url" do
       config.scopes = {"read" => "Read access"}
       config.require_scope = true
       config.resources = {api: {resource: "https://api.example.com", resource_name: "API"}}
       config.require_resource = true
-      config.rfc_9068_issuer_url = "https://auth.example.com"
+      config.token_issuer_url = "https://auth.example.com"
 
       expect { config.validate! }.not_to raise_error
     end
@@ -301,7 +301,7 @@ RSpec.describe TokenAuthority::Configuration do
         }
       }
       config.require_resource = true
-      config.rfc_9068_issuer_url = nil
+      config.token_issuer_url = nil
 
       expect { config.validate! }.not_to raise_error
     end
@@ -310,7 +310,7 @@ RSpec.describe TokenAuthority::Configuration do
       config.require_scope = false
       config.require_resource = false
       config.resources = {}
-      config.rfc_9068_issuer_url = "https://auth.example.com"
+      config.token_issuer_url = "https://auth.example.com"
 
       expect { config.validate! }.not_to raise_error
     end
@@ -319,7 +319,7 @@ RSpec.describe TokenAuthority::Configuration do
       config.require_scope = false
       config.require_resource = false
       config.resources = nil
-      config.rfc_9068_issuer_url = "https://auth.example.com"
+      config.token_issuer_url = "https://auth.example.com"
 
       expect { config.validate! }.not_to raise_error
     end
@@ -327,32 +327,32 @@ RSpec.describe TokenAuthority::Configuration do
     it "raises error when no issuer URL is available" do
       config.require_scope = false
       config.require_resource = false
-      config.rfc_9068_issuer_url = nil
+      config.token_issuer_url = nil
       config.resources = {}
 
       expect { config.validate! }.to raise_error(
         TokenAuthority::ConfigurationError,
-        "no issuer URL configured: set rfc_9068_issuer_url or add authorization_servers to a resource"
+        "no issuer URL configured: set token_issuer_url or add authorization_servers to a resource"
       )
     end
 
     it "raises error when resources lack authorization_servers and issuer_url is nil" do
       config.require_scope = false
-      config.rfc_9068_issuer_url = nil
+      config.token_issuer_url = nil
       config.resources = {
         api: {resource: "https://api.example.com", resource_name: "API"}
       }
 
       expect { config.validate! }.to raise_error(
         TokenAuthority::ConfigurationError,
-        "no issuer URL configured: set rfc_9068_issuer_url or add authorization_servers to a resource"
+        "no issuer URL configured: set token_issuer_url or add authorization_servers to a resource"
       )
     end
   end
 
   describe "#audience_url" do
-    it "returns rfc_9068_audience_url when set" do
-      config.rfc_9068_audience_url = "https://api.example.com"
+    it "returns token_audience_url when set" do
+      config.token_audience_url = "https://api.example.com"
       config.resources = {
         api: {resource: "https://other.example.com"}
       }
@@ -361,7 +361,7 @@ RSpec.describe TokenAuthority::Configuration do
     end
 
     it "derives from first resource's :resource when audience_url is nil" do
-      config.rfc_9068_audience_url = nil
+      config.token_audience_url = nil
       config.resources = {
         api: {resource: "https://api.example.com"}
       }
@@ -370,7 +370,7 @@ RSpec.describe TokenAuthority::Configuration do
     end
 
     it "uses the first resource when multiple resources exist" do
-      config.rfc_9068_audience_url = nil
+      config.token_audience_url = nil
       config.resources = {
         api: {resource: "https://api.example.com"},
         mcp: {resource: "https://mcp.example.com"}
@@ -380,14 +380,14 @@ RSpec.describe TokenAuthority::Configuration do
     end
 
     it "returns nil when no resources are configured" do
-      config.rfc_9068_audience_url = nil
+      config.token_audience_url = nil
       config.resources = {}
 
       expect(config.audience_url).to be_nil
     end
 
     it "returns nil when resources is nil" do
-      config.rfc_9068_audience_url = nil
+      config.token_audience_url = nil
       config.resources = nil
 
       expect(config.audience_url).to be_nil
@@ -395,8 +395,8 @@ RSpec.describe TokenAuthority::Configuration do
   end
 
   describe "#issuer_url" do
-    it "returns rfc_9068_issuer_url when set" do
-      config.rfc_9068_issuer_url = "https://auth.example.com"
+    it "returns token_issuer_url when set" do
+      config.token_issuer_url = "https://auth.example.com"
       config.resources = {
         api: {
           resource: "https://api.example.com",
@@ -408,7 +408,7 @@ RSpec.describe TokenAuthority::Configuration do
     end
 
     it "derives from first resource's authorization_servers when issuer_url is nil" do
-      config.rfc_9068_issuer_url = nil
+      config.token_issuer_url = nil
       config.resources = {
         api: {
           resource: "https://api.example.com",
@@ -420,7 +420,7 @@ RSpec.describe TokenAuthority::Configuration do
     end
 
     it "uses the first resource when multiple resources exist" do
-      config.rfc_9068_issuer_url = nil
+      config.token_issuer_url = nil
       config.resources = {
         api: {
           resource: "https://api.example.com",
@@ -436,14 +436,14 @@ RSpec.describe TokenAuthority::Configuration do
     end
 
     it "returns nil when no issuer is available" do
-      config.rfc_9068_issuer_url = nil
+      config.token_issuer_url = nil
       config.resources = {}
 
       expect(config.issuer_url).to be_nil
     end
 
     it "returns nil when resources lack authorization_servers" do
-      config.rfc_9068_issuer_url = nil
+      config.token_issuer_url = nil
       config.resources = {
         api: {resource: "https://api.example.com"}
       }
@@ -452,7 +452,7 @@ RSpec.describe TokenAuthority::Configuration do
     end
 
     it "returns nil when authorization_servers is empty" do
-      config.rfc_9068_issuer_url = nil
+      config.token_issuer_url = nil
       config.resources = {
         api: {resource: "https://api.example.com", authorization_servers: []}
       }
@@ -478,12 +478,12 @@ RSpec.describe TokenAuthority::Configuration do
       expect(config.require_resource).to be true
     end
 
-    it "initializes rfc_9068_audience_url as nil" do
-      expect(config.rfc_9068_audience_url).to be_nil
+    it "initializes token_audience_url as nil" do
+      expect(config.token_audience_url).to be_nil
     end
 
-    it "initializes rfc_7591_enabled as true" do
-      expect(config.rfc_7591_enabled).to be true
+    it "initializes dcr_enabled as true" do
+      expect(config.dcr_enabled).to be true
     end
 
     it "initializes client_metadata_document_enabled as true" do

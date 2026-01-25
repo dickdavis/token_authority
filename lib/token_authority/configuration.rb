@@ -131,7 +131,7 @@ module TokenAuthority
     #   [resource_name]             Human-readable name shown on the consent screen.
     #   [scopes_supported]          Array of scope strings this resource accepts.
     #   [authorization_servers]     Array of authorization server URLs. The first entry
-    #                               is used as the issuer (iss) claim if rfc_9068_issuer_url
+    #                               is used as the issuer (iss) claim if token_issuer_url
     #                               is not set. Also appears in RFC 9728 metadata responses.
     #   [bearer_methods_supported]  Array of supported bearer token methods (e.g., ["header"]).
     #   [jwks_uri]                  URI for the JSON Web Key Set endpoint.
@@ -182,96 +182,96 @@ module TokenAuthority
     # JWT Access Tokens (RFC 9068)
     # ==========================================================================
 
-    # @!attribute [rw] rfc_9068_audience_url
+    # @!attribute [rw] token_audience_url
     #   The default audience (aud) claim for JWT access tokens per RFC 9068.
     #   Identifies the intended recipient of the token (typically the API server).
     #   @return [String, nil] the audience URL
-    attr_accessor :rfc_9068_audience_url
+    attr_accessor :token_audience_url
 
-    # @!attribute [rw] rfc_9068_issuer_url
+    # @!attribute [rw] token_issuer_url
     #   The issuer (iss) claim for JWT access tokens per RFC 9068.
     #   Identifies the authorization server that issued the token.
     #   @return [String, nil] the issuer URL
-    attr_accessor :rfc_9068_issuer_url
+    attr_accessor :token_issuer_url
 
-    # @!attribute [rw] rfc_9068_default_access_token_duration
+    # @!attribute [rw] default_access_token_duration
     #   Default lifetime for access tokens in seconds.
     #   @return [Integer] duration in seconds (default: 300)
-    attr_accessor :rfc_9068_default_access_token_duration
+    attr_accessor :default_access_token_duration
 
-    # @!attribute [rw] rfc_9068_default_refresh_token_duration
+    # @!attribute [rw] default_refresh_token_duration
     #   Default lifetime for refresh tokens in seconds.
     #   @return [Integer] duration in seconds (default: 1,209,600)
-    attr_accessor :rfc_9068_default_refresh_token_duration
+    attr_accessor :default_refresh_token_duration
 
     # ==========================================================================
     # Server Metadata (RFC 8414)
     # ==========================================================================
 
-    # @!attribute [rw] rfc_8414_service_documentation
+    # @!attribute [rw] authorization_server_documentation
     #   URL for service documentation in authorization server metadata per RFC 8414.
     #   @return [String, nil] documentation URL
-    attr_accessor :rfc_8414_service_documentation
+    attr_accessor :authorization_server_documentation
 
     # ==========================================================================
     # Dynamic Client Registration (RFC 7591)
     # ==========================================================================
 
-    # @!attribute [rw] rfc_7591_enabled
+    # @!attribute [rw] dcr_enabled
     #   Enable dynamic client registration per RFC 7591.
     #   @return [Boolean] true if enabled (default: true)
-    attr_accessor :rfc_7591_enabled
+    attr_accessor :dcr_enabled
 
-    # @!attribute [rw] rfc_7591_require_initial_access_token
+    # @!attribute [rw] dcr_require_initial_access_token
     #   Require initial access token for client registration per RFC 7591.
     #   @return [Boolean] true if required (default: false)
-    attr_accessor :rfc_7591_require_initial_access_token
+    attr_accessor :dcr_require_initial_access_token
 
-    # @!attribute [rw] rfc_7591_initial_access_token_validator
+    # @!attribute [rw] dcr_initial_access_token_validator
     #   Callable object to validate initial access tokens.
     #   Should accept a token string and return true/false.
     #   @return [Proc, nil] validator callable
-    attr_accessor :rfc_7591_initial_access_token_validator
+    attr_accessor :dcr_initial_access_token_validator
 
-    # @!attribute [rw] rfc_7591_allowed_grant_types
+    # @!attribute [rw] dcr_allowed_grant_types
     #   Array of grant types allowed during client registration per RFC 7591.
     #   @return [Array<String>] allowed grant types
-    attr_accessor :rfc_7591_allowed_grant_types
+    attr_accessor :dcr_allowed_grant_types
 
-    # @!attribute [rw] rfc_7591_allowed_response_types
+    # @!attribute [rw] dcr_allowed_response_types
     #   Array of response types allowed during client registration per RFC 7591.
     #   @return [Array<String>] allowed response types
-    attr_accessor :rfc_7591_allowed_response_types
+    attr_accessor :dcr_allowed_response_types
 
-    # @!attribute [rw] rfc_7591_allowed_scopes
+    # @!attribute [rw] dcr_allowed_scopes
     #   Array of scopes allowed during client registration per RFC 7591.
     #   @return [Array<String>, nil] allowed scopes
-    attr_accessor :rfc_7591_allowed_scopes
+    attr_accessor :dcr_allowed_scopes
 
-    # @!attribute [rw] rfc_7591_allowed_token_endpoint_auth_methods
+    # @!attribute [rw] dcr_allowed_token_endpoint_auth_methods
     #   Array of token endpoint authentication methods allowed per RFC 7591.
     #   @return [Array<String>] allowed auth methods
-    attr_accessor :rfc_7591_allowed_token_endpoint_auth_methods
+    attr_accessor :dcr_allowed_token_endpoint_auth_methods
 
-    # @!attribute [rw] rfc_7591_client_secret_expiration
+    # @!attribute [rw] dcr_client_secret_expiration
     #   Duration in seconds before client secrets expire, or nil for no expiration.
     #   @return [Integer, nil] expiration duration in seconds
-    attr_accessor :rfc_7591_client_secret_expiration
+    attr_accessor :dcr_client_secret_expiration
 
-    # @!attribute [rw] rfc_7591_software_statement_jwks
+    # @!attribute [rw] dcr_software_statement_jwks
     #   JWKS for verifying software statements during registration per RFC 7591.
     #   @return [Hash, nil] JWKS
-    attr_accessor :rfc_7591_software_statement_jwks
+    attr_accessor :dcr_software_statement_jwks
 
-    # @!attribute [rw] rfc_7591_software_statement_required
+    # @!attribute [rw] dcr_software_statement_required
     #   Require software statements during client registration per RFC 7591.
     #   @return [Boolean] true if required (default: false)
-    attr_accessor :rfc_7591_software_statement_required
+    attr_accessor :dcr_software_statement_required
 
-    # @!attribute [rw] rfc_7591_jwks_cache_ttl
+    # @!attribute [rw] dcr_jwks_cache_ttl
     #   Time-to-live for cached JWKS in seconds.
     #   @return [Integer] TTL in seconds (default: 3600)
-    attr_accessor :rfc_7591_jwks_cache_ttl
+    attr_accessor :dcr_jwks_cache_ttl
 
     # ==========================================================================
     # Client Metadata Document (draft-ietf-oauth-client-id-metadata-document)
@@ -336,26 +336,26 @@ module TokenAuthority
       @require_resource = true
 
       # JWT Access Tokens (RFC 9068)
-      @rfc_9068_audience_url = nil
-      @rfc_9068_issuer_url = nil
-      @rfc_9068_default_access_token_duration = 300 # 5 minutes in seconds
-      @rfc_9068_default_refresh_token_duration = 1_209_600 # 14 days in seconds
+      @token_audience_url = nil
+      @token_issuer_url = nil
+      @default_access_token_duration = 300 # 5 minutes in seconds
+      @default_refresh_token_duration = 1_209_600 # 14 days in seconds
 
       # Server Metadata (RFC 8414)
-      @rfc_8414_service_documentation = nil
+      @authorization_server_documentation = nil
 
       # Dynamic Client Registration (RFC 7591)
-      @rfc_7591_enabled = true
-      @rfc_7591_require_initial_access_token = false
-      @rfc_7591_initial_access_token_validator = nil
-      @rfc_7591_allowed_grant_types = %w[authorization_code refresh_token]
-      @rfc_7591_allowed_response_types = %w[code]
-      @rfc_7591_allowed_scopes = nil
-      @rfc_7591_allowed_token_endpoint_auth_methods = %w[none client_secret_basic client_secret_post client_secret_jwt private_key_jwt]
-      @rfc_7591_client_secret_expiration = nil
-      @rfc_7591_software_statement_jwks = nil
-      @rfc_7591_software_statement_required = false
-      @rfc_7591_jwks_cache_ttl = 3600
+      @dcr_enabled = true
+      @dcr_require_initial_access_token = false
+      @dcr_initial_access_token_validator = nil
+      @dcr_allowed_grant_types = %w[authorization_code refresh_token]
+      @dcr_allowed_response_types = %w[code]
+      @dcr_allowed_scopes = nil
+      @dcr_allowed_token_endpoint_auth_methods = %w[none client_secret_basic client_secret_post client_secret_jwt private_key_jwt]
+      @dcr_client_secret_expiration = nil
+      @dcr_software_statement_jwks = nil
+      @dcr_software_statement_required = false
+      @dcr_jwks_cache_ttl = 3600
 
       # Client Metadata Document (draft-ietf-oauth-client-id-metadata-document)
       @client_metadata_document_enabled = true
@@ -443,7 +443,7 @@ module TokenAuthority
 
       if issuer_url.blank?
         raise ConfigurationError,
-          "no issuer URL configured: set rfc_9068_issuer_url or add authorization_servers to a resource"
+          "no issuer URL configured: set token_issuer_url or add authorization_servers to a resource"
       end
     end
 
@@ -482,21 +482,21 @@ module TokenAuthority
     # Returns the effective audience URL for JWT tokens.
     #
     # The audience URL is determined as follows:
-    # 1. If rfc_9068_audience_url is set, use that value
+    # 1. If token_audience_url is set, use that value
     # 2. Otherwise, derive from the first resource's :resource URL
     #
     # @return [String, nil] the audience URL, or nil if not configured
     #
     # @example Explicit audience URL
-    #   config.rfc_9068_audience_url = "https://api.example.com"
+    #   config.token_audience_url = "https://api.example.com"
     #   config.audience_url  # => "https://api.example.com"
     #
     # @example Derived from resources
-    #   config.rfc_9068_audience_url = nil
+    #   config.token_audience_url = nil
     #   config.resources = { api: { resource: "https://api.example.com" } }
     #   config.audience_url  # => "https://api.example.com"
     def audience_url
-      return rfc_9068_audience_url if rfc_9068_audience_url.present?
+      return token_audience_url if token_audience_url.present?
 
       # Derive from first resource's :resource URL
       return nil unless resources.is_a?(Hash) && resources.any?
@@ -510,21 +510,21 @@ module TokenAuthority
     # Returns the effective issuer URL for JWT tokens.
     #
     # The issuer URL is determined as follows:
-    # 1. If rfc_9068_issuer_url is set, use that value
+    # 1. If token_issuer_url is set, use that value
     # 2. Otherwise, derive from the first resource's authorization_servers
     #
     # @return [String, nil] the issuer URL, or nil if not configured
     #
     # @example Explicit issuer URL
-    #   config.rfc_9068_issuer_url = "https://auth.example.com"
+    #   config.token_issuer_url = "https://auth.example.com"
     #   config.issuer_url  # => "https://auth.example.com"
     #
     # @example Derived from authorization_servers
-    #   config.rfc_9068_issuer_url = nil
+    #   config.token_issuer_url = nil
     #   config.resources = { api: { authorization_servers: ["https://auth.example.com"] } }
     #   config.issuer_url  # => "https://auth.example.com"
     def issuer_url
-      return rfc_9068_issuer_url if rfc_9068_issuer_url.present?
+      return token_issuer_url if token_issuer_url.present?
 
       # Derive from first resource's authorization_servers
       return nil unless resources.is_a?(Hash) && resources.any?

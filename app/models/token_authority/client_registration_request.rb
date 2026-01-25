@@ -72,7 +72,7 @@ module TokenAuthority
     def token_endpoint_auth_method_is_allowed
       return if token_endpoint_auth_method.blank?
 
-      allowed = TokenAuthority.config.rfc_7591_allowed_token_endpoint_auth_methods
+      allowed = TokenAuthority.config.dcr_allowed_token_endpoint_auth_methods
       unless allowed.include?(token_endpoint_auth_method)
         errors.add(:token_endpoint_auth_method, "is not allowed: #{token_endpoint_auth_method}")
       end
@@ -82,7 +82,7 @@ module TokenAuthority
       return if grant_types.blank?
       return unless grant_types.is_a?(Array)
 
-      allowed = TokenAuthority.config.rfc_7591_allowed_grant_types
+      allowed = TokenAuthority.config.dcr_allowed_grant_types
       disallowed = grant_types - allowed
       errors.add(:grant_types, "contains disallowed types: #{disallowed.join(", ")}") if disallowed.any?
     end
@@ -98,7 +98,7 @@ module TokenAuthority
     def scopes_are_allowed
       return if scope.blank?
 
-      allowed = TokenAuthority.config.rfc_7591_allowed_scopes
+      allowed = TokenAuthority.config.dcr_allowed_scopes
       return if allowed.blank? # If no restrictions configured, allow all
 
       requested_scopes = scope.to_s.split(/\s+/).reject(&:blank?)
@@ -146,10 +146,10 @@ module TokenAuthority
     end
 
     def parse_software_statement
-      jwks = TokenAuthority.config.rfc_7591_software_statement_jwks
+      jwks = TokenAuthority.config.dcr_software_statement_jwks
       if jwks.present?
         SoftwareStatement.decode_and_verify(software_statement, jwks: jwks)
-      elsif TokenAuthority.config.rfc_7591_software_statement_required
+      elsif TokenAuthority.config.dcr_software_statement_required
         raise TokenAuthority::UnapprovedSoftwareStatementError
       else
         SoftwareStatement.decode(software_statement)

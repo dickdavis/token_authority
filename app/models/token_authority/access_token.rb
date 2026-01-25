@@ -74,7 +74,7 @@ module TokenAuthority
       aud = if resources.any?
         (resources.size == 1) ? resources.first : resources
       else
-        TokenAuthority.config.rfc_9068_audience_url
+        TokenAuthority.config.audience_url
       end
 
       scope_claim = scopes.any? ? scopes.join(" ") : nil
@@ -83,7 +83,7 @@ module TokenAuthority
         aud:,
         exp:,
         iat: Time.zone.now.to_i,
-        iss: TokenAuthority.config.rfc_9068_issuer_url,
+        iss: TokenAuthority.config.issuer_url,
         jti: SecureRandom.uuid,
         sub: user_id.to_s,
         client_id:,

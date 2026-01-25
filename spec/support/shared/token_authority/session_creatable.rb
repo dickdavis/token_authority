@@ -18,10 +18,10 @@ RSpec.shared_examples "a model that creates TokenAuthority sessions" do
     it "returns an access token with valid aud, exp, iat, iss, jti, sub, and client_id claims" do
       token = TokenAuthority::JsonWebToken.decode(method_call.access_token)
       aggregate_failures do
-        expect(token[:aud]).to eq(TokenAuthority.config.rfc_9068_audience_url)
+        expect(token[:aud]).to eq(TokenAuthority.config.audience_url)
         expect(token[:exp]).to be_a(Integer)
         expect(token[:iat]).to be_a(Integer)
-        expect(token[:iss]).to eq(TokenAuthority.config.rfc_9068_issuer_url)
+        expect(token[:iss]).to eq(TokenAuthority.config.issuer_url)
         expect(token[:jti]).to match(TokenAuthority::Session::VALID_UUID_REGEX)
         expect(token[:sub]).to eq(token_authority_authorization_grant.user_id.to_s)
         expect(token[:client_id]).to eq(token_authority_authorization_grant.resolved_client.public_id)
@@ -42,10 +42,10 @@ RSpec.shared_examples "a model that creates TokenAuthority sessions" do
     it "returns a refresh token with valid aud, exp, iat, iss, jti, and user_id claims" do
       token = TokenAuthority::JsonWebToken.decode(method_call.refresh_token)
       aggregate_failures do
-        expect(token[:aud]).to eq(TokenAuthority.config.rfc_9068_audience_url)
+        expect(token[:aud]).to eq(TokenAuthority.config.audience_url)
         expect(token[:exp]).to be_a(Integer)
         expect(token[:iat]).to be_a(Integer)
-        expect(token[:iss]).to eq(TokenAuthority.config.rfc_9068_issuer_url)
+        expect(token[:iss]).to eq(TokenAuthority.config.issuer_url)
         expect(token[:jti]).to match(TokenAuthority::Session::VALID_UUID_REGEX)
       end
     end

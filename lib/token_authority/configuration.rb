@@ -10,30 +10,177 @@ module TokenAuthority
   # Configuration is typically set in a Rails initializer using a configure block
   # that yields this configuration object.
   #
-  # @example Basic configuration
+  # @example Minimal configuration
   #   TokenAuthority.configure do |config|
   #     config.secret_key = Rails.application.credentials.secret_key_base
-  #     config.user_class = "User"
-  #     config.rfc_9068_audience_url = "https://api.example.com"
-  #     config.rfc_9068_issuer_url = "https://example.com"
-  #   end
   #
-  # @example Enabling scopes
-  #   TokenAuthority.configure do |config|
   #     config.scopes = {
   #       "read" => "Read access to your data",
   #       "write" => "Write access to your data"
   #     }
-  #     config.require_scope = true
+  #
+  #     config.resources = {
+  #       api: {
+  #         resource: "https://example.com/api",
+  #         resource_name: "My API",
+  #         scopes_supported: %w[read write],
+  #         authorization_servers: ["https://example.com"]
+  #       }
+  #     }
   #   end
   #
   # @since 0.2.0
   class Configuration
+    # ==========================================================================
+    # General
+    # ==========================================================================
+
     # @!attribute [rw] secret_key
     #   The secret key used for JWT signing and HMAC operations.
     #   This should be a secure random string, typically derived from Rails credentials.
     #   @return [String] the secret key
     attr_accessor :secret_key
+
+    # @!attribute [rw] event_logging_enabled
+    #   Enable structured event logging for OAuth flows and security events.
+    #   @return [Boolean] true if enabled (default: true)
+    attr_accessor :event_logging_enabled
+
+    # @!attribute [rw] event_logging_debug_events
+    #   Enable debug-level event logging for troubleshooting.
+    #   @return [Boolean] true if enabled (default: false)
+    attr_accessor :event_logging_debug_events
+
+    # @!attribute [rw] instrumentation_enabled
+    #   Enable ActiveSupport::Notifications instrumentation for performance monitoring.
+    #   @return [Boolean] true if enabled (default: true)
+    attr_accessor :instrumentation_enabled
+
+    # ==========================================================================
+    # User Authentication
+    # ==========================================================================
+
+    # @!attribute [rw] authenticatable_controller
+    #   The controller class name that provides authentication methods.
+    #   Must implement `authenticate_user!` and `current_user` methods.
+    #   @return [String] controller class name (default: "ApplicationController")
+    attr_accessor :authenticatable_controller
+
+    # @!attribute [rw] user_class
+    #   The user model class name in the host application.
+    #   @return [String] user class name (default: "User")
+    attr_accessor :user_class
+
+    # ==========================================================================
+    # UI/Layout
+    # ==========================================================================
+
+    # @!attribute [rw] consent_page_layout
+    #   The layout to use for the OAuth consent screen.
+    #   @return [String] layout name (default: "application")
+    attr_accessor :consent_page_layout
+
+    # @!attribute [rw] error_page_layout
+    #   The layout to use for OAuth error pages.
+    #   @return [String] layout name (default: "application")
+    attr_accessor :error_page_layout
+
+    # ==========================================================================
+    # Scopes
+    # ==========================================================================
+
+    # @!attribute [rw] scopes
+    #   Hash mapping scope strings to human-readable descriptions.
+    #   Set to nil or empty hash to disable scopes.
+    #   @example
+    #     config.scopes = {
+    #       "read" => "Read access to your data",
+    #       "write" => "Write access to your data"
+    #     }
+    #   @return [Hash{String => String}, nil] scope mappings
+    attr_accessor :scopes
+
+    # @!attribute [rw] require_scope
+    #   Whether clients must include a scope parameter in authorization requests.
+    #   @return [Boolean] true if scope is required (default: true)
+    attr_accessor :require_scope
+
+    # ==========================================================================
+    # Resources (RFC 9728 / RFC 8707)
+    # ==========================================================================
+
+    # @!attribute [rw] resources
+    #   Protected resource metadata keyed by resource identifier (RFC 9728).
+    #
+    #   Maps resource symbols to metadata hashes. When a request arrives at
+    #   the /.well-known/oauth-protected-resource endpoint, the controller extracts
+    #   the subdomain and looks it up in this hash. If no match is found, the first
+    #   resource in the hash is used as the default.
+    #
+    #   For single-resource deployments, simply configure one entry - it will be used
+    #   for all requests regardless of subdomain.
+    #
+    #   Each entry must include the :resource field (required per RFC 9728). The
+    #   validate! method raises ConfigurationError if any entry is missing this field.
+    #   All other fields are optional and will be omitted from responses if not set.
+    #
+    #   == Available Resource Options
+    #
+    #   [resource]                  (Required) The protected resource URI. Used as the
+    #                               audience (aud) claim in JWT access tokens.
+    #   [resource_name]             Human-readable name shown on the consent screen.
+    #   [scopes_supported]          Array of scope strings this resource accepts.
+    #   [authorization_servers]     Array of authorization server URLs. The first entry
+    #                               is used as the issuer (iss) claim if rfc_9068_issuer_url
+    #                               is not set. Also appears in RFC 9728 metadata responses.
+    #   [bearer_methods_supported]  Array of supported bearer token methods (e.g., ["header"]).
+    #   [jwks_uri]                  URI for the JSON Web Key Set endpoint.
+    #   [resource_documentation]    URL for API documentation.
+    #   [resource_policy_uri]       URL for the privacy policy.
+    #   [resource_tos_uri]          URL for terms of service.
+    #
+    #   @example Single resource with all options
+    #     config.resources = {
+    #       api: {
+    #         resource: "https://example.com/api",
+    #         resource_name: "Example API",
+    #         scopes_supported: %w[read write admin],
+    #         authorization_servers: ["https://example.com"],
+    #         bearer_methods_supported: ["header"],
+    #         jwks_uri: "https://example.com/.well-known/jwks.json",
+    #         resource_documentation: "https://example.com/docs/api",
+    #         resource_policy_uri: "https://example.com/privacy",
+    #         resource_tos_uri: "https://example.com/terms"
+    #       }
+    #     }
+    #
+    #   @example Multi-resource deployment with subdomains
+    #     config.resources = {
+    #       api: {
+    #         resource: "https://api.example.com",
+    #         resource_name: "REST API",
+    #         scopes_supported: %w[api:read api:write],
+    #         authorization_servers: ["https://auth.example.com"]
+    #       },
+    #       mcp: {
+    #         resource: "https://mcp.example.com",
+    #         resource_name: "MCP Server",
+    #         scopes_supported: %w[mcp:tools mcp:prompts mcp:resources],
+    #         authorization_servers: ["https://auth.example.com"]
+    #       }
+    #     }
+    #
+    #   @return [Hash{Symbol => Hash}, nil] resource identifier to metadata mapping
+    attr_accessor :resources
+
+    # @!attribute [rw] require_resource
+    #   Whether clients must include a resource parameter in authorization requests.
+    #   @return [Boolean] true if resource is required (default: true)
+    attr_accessor :require_resource
+
+    # ==========================================================================
+    # JWT Access Tokens (RFC 9068)
+    # ==========================================================================
 
     # @!attribute [rw] rfc_9068_audience_url
     #   The default audience (aud) claim for JWT access tokens per RFC 9068.
@@ -57,96 +204,22 @@ module TokenAuthority
     #   @return [Integer] duration in seconds (default: 1,209,600)
     attr_accessor :rfc_9068_default_refresh_token_duration
 
-    # @!attribute [rw] authenticatable_controller
-    #   The controller class name that provides authentication methods.
-    #   Must implement `authenticate_user!` and `current_user` methods.
-    #   @return [String] controller class name (default: "ApplicationController")
-    attr_accessor :authenticatable_controller
-
-    # @!attribute [rw] user_class
-    #   The user model class name in the host application.
-    #   @return [String] user class name (default: "User")
-    attr_accessor :user_class
-
-    # @!attribute [rw] consent_page_layout
-    #   The layout to use for the OAuth consent screen.
-    #   @return [String] layout name (default: "application")
-    attr_accessor :consent_page_layout
-
-    # @!attribute [rw] error_page_layout
-    #   The layout to use for OAuth error pages.
-    #   @return [String] layout name (default: "application")
-    attr_accessor :error_page_layout
+    # ==========================================================================
+    # Server Metadata (RFC 8414)
+    # ==========================================================================
 
     # @!attribute [rw] rfc_8414_service_documentation
     #   URL for service documentation in authorization server metadata per RFC 8414.
     #   @return [String, nil] documentation URL
     attr_accessor :rfc_8414_service_documentation
 
-    # @!attribute [rw] scopes
-    #   Hash mapping scope strings to human-readable descriptions.
-    #   Set to nil or empty hash to disable scopes.
-    #   @example
-    #     config.scopes = {
-    #       "read" => "Read access to your data",
-    #       "write" => "Write access to your data"
-    #     }
-    #   @return [Hash{String => String}, nil] scope mappings
-    attr_accessor :scopes
-
-    # @!attribute [rw] require_scope
-    #   Whether clients must include a scope parameter in authorization requests.
-    #   @return [Boolean] true if scope is required (default: false)
-    attr_accessor :require_scope
-
-    # @!attribute [rw] rfc_9728_resource
-    #   The resource URI for protected resource metadata per RFC 9728.
-    #   @return [String, nil] resource URI
-    attr_accessor :rfc_9728_resource
-
-    # @!attribute [rw] rfc_9728_scopes_supported
-    #   Array of OAuth scopes supported by the protected resource per RFC 9728.
-    #   @return [Array<String>, nil] supported scopes
-    attr_accessor :rfc_9728_scopes_supported
-
-    # @!attribute [rw] rfc_9728_authorization_servers
-    #   Array of authorization server issuer URLs per RFC 9728.
-    #   @return [Array<String>, nil] authorization server URLs
-    attr_accessor :rfc_9728_authorization_servers
-
-    # @!attribute [rw] rfc_9728_bearer_methods_supported
-    #   Array of bearer token methods supported per RFC 9728.
-    #   @return [Array<String>, nil] bearer methods
-    attr_accessor :rfc_9728_bearer_methods_supported
-
-    # @!attribute [rw] rfc_9728_jwks_uri
-    #   URL to the JWKS for protected resource per RFC 9728.
-    #   @return [String, nil] JWKS URI
-    attr_accessor :rfc_9728_jwks_uri
-
-    # @!attribute [rw] rfc_9728_resource_name
-    #   Human-readable name of the protected resource per RFC 9728.
-    #   @return [String, nil] resource name
-    attr_accessor :rfc_9728_resource_name
-
-    # @!attribute [rw] rfc_9728_resource_documentation
-    #   URL to documentation for the protected resource per RFC 9728.
-    #   @return [String, nil] documentation URL
-    attr_accessor :rfc_9728_resource_documentation
-
-    # @!attribute [rw] rfc_9728_resource_policy_uri
-    #   URL to privacy policy for the protected resource per RFC 9728.
-    #   @return [String, nil] policy URI
-    attr_accessor :rfc_9728_resource_policy_uri
-
-    # @!attribute [rw] rfc_9728_resource_tos_uri
-    #   URL to terms of service for the protected resource per RFC 9728.
-    #   @return [String, nil] TOS URI
-    attr_accessor :rfc_9728_resource_tos_uri
+    # ==========================================================================
+    # Dynamic Client Registration (RFC 7591)
+    # ==========================================================================
 
     # @!attribute [rw] rfc_7591_enabled
     #   Enable dynamic client registration per RFC 7591.
-    #   @return [Boolean] true if enabled (default: false)
+    #   @return [Boolean] true if enabled (default: true)
     attr_accessor :rfc_7591_enabled
 
     # @!attribute [rw] rfc_7591_require_initial_access_token
@@ -200,6 +273,10 @@ module TokenAuthority
     #   @return [Integer] TTL in seconds (default: 3600)
     attr_accessor :rfc_7591_jwks_cache_ttl
 
+    # ==========================================================================
+    # Client Metadata Document (draft-ietf-oauth-client-id-metadata-document)
+    # ==========================================================================
+
     # @!attribute [rw] client_metadata_document_enabled
     #   Enable support for client metadata documents (URL-based client IDs).
     #   @return [Boolean] true if enabled (default: true)
@@ -235,40 +312,12 @@ module TokenAuthority
     #   @return [Integer] timeout in seconds (default: 5)
     attr_accessor :client_metadata_document_read_timeout
 
-    # @!attribute [rw] rfc_8707_resources
-    #   Hash mapping resource URIs to human-readable descriptions per RFC 8707.
-    #   Set to nil or empty hash to disable resource indicators.
-    #   @example
-    #     config.rfc_8707_resources = {
-    #       "https://api.example.com" => "Main API",
-    #       "https://files.example.com" => "File Storage API"
-    #     }
-    #   @return [Hash{String => String}, nil] resource mappings
-    attr_accessor :rfc_8707_resources
-
-    # @!attribute [rw] rfc_8707_require_resource
-    #   Whether clients must include a resource parameter per RFC 8707.
-    #   @return [Boolean] true if required (default: false)
-    attr_accessor :rfc_8707_require_resource
-
-    # @!attribute [rw] event_logging_enabled
-    #   Enable structured event logging for OAuth flows and security events.
-    #   @return [Boolean] true if enabled (default: true)
-    attr_accessor :event_logging_enabled
-
-    # @!attribute [rw] event_logging_debug_events
-    #   Enable debug-level event logging for troubleshooting.
-    #   @return [Boolean] true if enabled (default: false)
-    attr_accessor :event_logging_debug_events
-
-    # @!attribute [rw] instrumentation_enabled
-    #   Enable ActiveSupport::Notifications instrumentation for performance monitoring.
-    #   @return [Boolean] true if enabled (default: true)
-    attr_accessor :instrumentation_enabled
-
     def initialize
       # General
       @secret_key = nil
+      @event_logging_enabled = true
+      @event_logging_debug_events = false
+      @instrumentation_enabled = true
 
       # User Authentication
       @authenticatable_controller = "ApplicationController"
@@ -279,8 +328,12 @@ module TokenAuthority
       @error_page_layout = "application"
 
       # Scopes
-      @scopes = nil
-      @require_scope = false
+      @scopes = {}
+      @require_scope = true
+
+      # Resources
+      @resources = {}
+      @require_resource = true
 
       # JWT Access Tokens (RFC 9068)
       @rfc_9068_audience_url = nil
@@ -291,19 +344,8 @@ module TokenAuthority
       # Server Metadata (RFC 8414)
       @rfc_8414_service_documentation = nil
 
-      # Protected Resource Metadata (RFC 9728)
-      @rfc_9728_resource = nil
-      @rfc_9728_scopes_supported = nil
-      @rfc_9728_authorization_servers = nil
-      @rfc_9728_bearer_methods_supported = nil
-      @rfc_9728_jwks_uri = nil
-      @rfc_9728_resource_name = nil
-      @rfc_9728_resource_documentation = nil
-      @rfc_9728_resource_policy_uri = nil
-      @rfc_9728_resource_tos_uri = nil
-
       # Dynamic Client Registration (RFC 7591)
-      @rfc_7591_enabled = false
+      @rfc_7591_enabled = true
       @rfc_7591_require_initial_access_token = false
       @rfc_7591_initial_access_token_validator = nil
       @rfc_7591_allowed_grant_types = %w[authorization_code refresh_token]
@@ -323,17 +365,6 @@ module TokenAuthority
       @client_metadata_document_blocked_hosts = []
       @client_metadata_document_connect_timeout = 5
       @client_metadata_document_read_timeout = 5
-
-      # Resource Indicators (RFC 8707)
-      @rfc_8707_resources = nil
-      @rfc_8707_require_resource = false
-
-      # Event Logging
-      @event_logging_enabled = true
-      @event_logging_debug_events = false
-
-      # Instrumentation
-      @instrumentation_enabled = true
     end
 
     # Checks whether the scopes feature is enabled.
@@ -344,28 +375,167 @@ module TokenAuthority
       scopes.is_a?(Hash) && scopes.any?
     end
 
-    # Checks whether RFC 8707 resource indicators are enabled.
-    # Resource indicators are considered enabled when rfc_8707_resources is a non-empty hash.
+    # Checks whether resources are configured.
+    # Resources are enabled when at least one resource is configured.
     #
-    # @return [Boolean] true if resource indicators are enabled
-    def rfc_8707_enabled?
-      rfc_8707_resources.is_a?(Hash) && rfc_8707_resources.any?
+    # @return [Boolean] true if resources are enabled
+    def resources_enabled?
+      resource_registry.any?
+    end
+
+    # Builds a mapping of resource URIs to display names from resource configuration.
+    #
+    # This derives the RFC 8707 resource allowlist from the resources configuration.
+    # Each configured resource's :resource URI becomes a key, with its :resource_name
+    # (or the URI itself) as the display name.
+    #
+    # The result is used for:
+    # - Validating resource indicators in authorization requests
+    # - Displaying resource names on the consent screen
+    #
+    # @return [Hash{String => String}] mapping of resource URIs to display names
+    #
+    # @example With resources configured
+    #   config.resources = {
+    #     api: { resource: "https://api.example.com", resource_name: "REST API" },
+    #     mcp: { resource: "https://mcp.example.com", resource_name: "MCP Server" }
+    #   }
+    #   config.resource_registry
+    #   # => { "https://api.example.com" => "REST API", "https://mcp.example.com" => "MCP Server" }
+    def resource_registry
+      return {} unless resources.is_a?(Hash)
+
+      resources.each_with_object({}) do |(_key, config), registry|
+        next unless config.is_a?(Hash) && config[:resource].present?
+
+        uri = config[:resource]
+        registry[uri] = config[:resource_name] || uri
+      end
     end
 
     # Validates the configuration for internal consistency.
     # Ensures that required features are properly configured before use.
     #
     # @raise [ConfigurationError] if require_scope is true but scopes are not configured
-    # @raise [ConfigurationError] if rfc_8707_require_resource is true but resources are not configured
+    # @raise [ConfigurationError] if require_resource is true but no resources are configured
+    # @raise [ConfigurationError] if any resource entry is missing the required :resource field
+    # @raise [ConfigurationError] if no issuer URL is available
     # @return [void]
     def validate!
       if require_scope && !scopes_enabled?
         raise ConfigurationError, "require_scope is true but no scopes are configured"
       end
 
-      if rfc_8707_require_resource && !rfc_8707_enabled?
-        raise ConfigurationError, "rfc_8707_require_resource is true but no rfc_8707_resources are configured"
+      # Validate resource entries first (before checking if any valid resources exist)
+      if resources.is_a?(Hash)
+        resources.each do |key, config|
+          next unless config.is_a?(Hash)
+
+          if config[:resource].blank?
+            raise ConfigurationError, "resource :#{key} is missing the required :resource field"
+          end
+        end
       end
+
+      if require_resource && !resources_enabled?
+        raise ConfigurationError, "require_resource is true but no resources are configured"
+      end
+
+      if issuer_url.blank?
+        raise ConfigurationError,
+          "no issuer URL configured: set rfc_9068_issuer_url or add authorization_servers to a resource"
+      end
+    end
+
+    # Resolves protected resource configuration using subdomain-aware lookup.
+    #
+    # Lookup strategy:
+    # 1. If resource_key is present, look it up as a symbol in resources
+    # 2. If not found or resource_key is blank, use the first resource in the hash
+    # 3. If resources is empty, return nil (controller will 404)
+    #
+    # @param resource_key [String, nil] the subdomain or lookup key
+    # @return [Hash, nil] the resource metadata, or nil if not configured
+    #
+    # @example Subdomain-specific lookup
+    #   config.resources = { api: { resource: "https://api.example.com" } }
+    #   config.protected_resource_for("api")  # => { resource: "https://api.example.com" }
+    #
+    # @example Fallback to first resource
+    #   config.resources = { api: { resource: "https://api.example.com" } }
+    #   config.protected_resource_for("unknown")  # => { resource: "https://api.example.com" }
+    #
+    # @example Not configured
+    #   config.resources = {}
+    #   config.protected_resource_for(nil)  # => nil (will cause 404)
+    def protected_resource_for(resource_key)
+      return nil unless resources.is_a?(Hash) && resources.any?
+
+      # Try subdomain lookup first, fall back to first resource
+      if resource_key.present?
+        resources[resource_key.to_sym] || resources.values.first
+      else
+        resources.values.first
+      end
+    end
+
+    # Returns the effective audience URL for JWT tokens.
+    #
+    # The audience URL is determined as follows:
+    # 1. If rfc_9068_audience_url is set, use that value
+    # 2. Otherwise, derive from the first resource's :resource URL
+    #
+    # @return [String, nil] the audience URL, or nil if not configured
+    #
+    # @example Explicit audience URL
+    #   config.rfc_9068_audience_url = "https://api.example.com"
+    #   config.audience_url  # => "https://api.example.com"
+    #
+    # @example Derived from resources
+    #   config.rfc_9068_audience_url = nil
+    #   config.resources = { api: { resource: "https://api.example.com" } }
+    #   config.audience_url  # => "https://api.example.com"
+    def audience_url
+      return rfc_9068_audience_url if rfc_9068_audience_url.present?
+
+      # Derive from first resource's :resource URL
+      return nil unless resources.is_a?(Hash) && resources.any?
+
+      first_resource = resources.values.first
+      return nil unless first_resource.is_a?(Hash)
+
+      first_resource[:resource]
+    end
+
+    # Returns the effective issuer URL for JWT tokens.
+    #
+    # The issuer URL is determined as follows:
+    # 1. If rfc_9068_issuer_url is set, use that value
+    # 2. Otherwise, derive from the first resource's authorization_servers
+    #
+    # @return [String, nil] the issuer URL, or nil if not configured
+    #
+    # @example Explicit issuer URL
+    #   config.rfc_9068_issuer_url = "https://auth.example.com"
+    #   config.issuer_url  # => "https://auth.example.com"
+    #
+    # @example Derived from authorization_servers
+    #   config.rfc_9068_issuer_url = nil
+    #   config.resources = { api: { authorization_servers: ["https://auth.example.com"] } }
+    #   config.issuer_url  # => "https://auth.example.com"
+    def issuer_url
+      return rfc_9068_issuer_url if rfc_9068_issuer_url.present?
+
+      # Derive from first resource's authorization_servers
+      return nil unless resources.is_a?(Hash) && resources.any?
+
+      first_resource = resources.values.first
+      return nil unless first_resource.is_a?(Hash)
+
+      auth_servers = first_resource[:authorization_servers]
+      return nil unless auth_servers.is_a?(Array) && auth_servers.any?
+
+      auth_servers.first
     end
   end
 

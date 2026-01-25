@@ -74,7 +74,7 @@ module TokenAuthority
     # @return [String]
     # @api private
     def issuer
-      TokenAuthority.config.rfc_9068_issuer_url.to_s.chomp("/")
+      TokenAuthority.config.issuer_url.to_s.chomp("/")
     end
 
     # Returns the list of supported scopes from configuration.

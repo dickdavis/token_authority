@@ -38,22 +38,35 @@ See the [Installation Guide](https://github.com/dickdavis/token_authority/wiki/I
 
 ### Configuration
 
-Configure TokenAuthority in the generated initializer. The following represents a minimal configuration:
+Configure TokenAuthority in the generated initializer. TokenAuthority is configured with dynamic client registration, client metadata documents, and resource indicators enabled by default. The following represents a minimal configuration:
 
 ```ruby
 # config/initializers/token_authority.rb
 TokenAuthority.configure do |config|
-  # The secret key used for encryption/decryption
+  # The secret key used for signing JWT tokens
   config.secret_key = Rails.application.credentials.secret_key_base
-  # The URI for the protected resource (to be included in tokens and metadata)
-  config.rfc_9068_audience_url = "https://example.com/api/"
-  # The URI for the authorization server (to be included in tokens and metadata)
-  config.rfc_9068_issuer_url = "https://example.com/"
-  # Define available scopes and their descriptions (shown on consent screen)
+
+  # Define available scopes (required by default)
   config.scopes = {
     "read" => "Read your data",
-    "write" => "Create and modify your data",
-    "delete" => "Delete your data"
+    "write" => "Create and modify your data"
+  }
+
+  # Define protected resources (required by default)
+  # :resource is used as the audience (aud) claim in tokens
+  # :authorization_servers provides the issuer (iss) claim
+  config.resources = {
+    api: {
+      resource: "https://example.com/api",
+      resource_name: "My API",
+      scopes_supported: %w[read write],
+      authorization_servers: ["https://example.com"],
+      bearer_methods_supported: ["header"],
+      jwks_uri: "https://example.com/.well-known/jwks.json",
+      resource_documentation: "https://example.com/docs/api",
+      resource_policy_uri: "https://example.com/privacy",
+      resource_tos_uri: "https://example.com/terms"
+    }
   }
 end
 ```
@@ -66,7 +79,8 @@ Add the engine routes to your `config/routes.rb`:
 
 ```ruby
 Rails.application.routes.draw do
-  token_authority_routes
+  token_authority_auth_server_routes
+  token_authority_protected_resource_route
 end
 ```
 
@@ -79,7 +93,24 @@ To mount the engine at a different path, use the `at` option:
 
 ```ruby
 Rails.application.routes.draw do
-  token_authority_routes(at: "/auth")
+  token_authority_auth_server_routes(at: "/auth")
+  token_authority_protected_resource_route
+end
+```
+
+For applications with multiple protected resources, each resource must be on its own subdomain. This is because RFC 9728 defines a fixed well-known path (`/.well-known/oauth-protected-resource`) that can only exist once per host:
+
+```ruby
+Rails.application.routes.draw do
+  token_authority_auth_server_routes
+
+  constraints subdomain: "api" do
+    token_authority_protected_resource_route
+  end
+
+  constraints subdomain: "mcp" do
+    token_authority_protected_resource_route
+  end
 end
 ```
 

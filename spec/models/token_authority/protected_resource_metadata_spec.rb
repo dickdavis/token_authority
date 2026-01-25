@@ -3,27 +3,16 @@
 require "rails_helper"
 
 RSpec.describe TokenAuthority::ProtectedResourceMetadata, type: :model do
-  subject(:model) { described_class.new(mount_path: mount_path) }
-
-  let(:mount_path) { "/oauth" }
   let!(:original_config) do
     {
       rfc_9068_issuer_url: TokenAuthority.config.rfc_9068_issuer_url,
-      scopes: TokenAuthority.config.scopes,
-      rfc_9728_resource: TokenAuthority.config.rfc_9728_resource,
-      rfc_9728_scopes_supported: TokenAuthority.config.rfc_9728_scopes_supported,
-      rfc_9728_authorization_servers: TokenAuthority.config.rfc_9728_authorization_servers,
-      rfc_9728_bearer_methods_supported: TokenAuthority.config.rfc_9728_bearer_methods_supported,
-      rfc_9728_jwks_uri: TokenAuthority.config.rfc_9728_jwks_uri,
-      rfc_9728_resource_name: TokenAuthority.config.rfc_9728_resource_name,
-      rfc_9728_resource_documentation: TokenAuthority.config.rfc_9728_resource_documentation,
-      rfc_9728_resource_policy_uri: TokenAuthority.config.rfc_9728_resource_policy_uri,
-      rfc_9728_resource_tos_uri: TokenAuthority.config.rfc_9728_resource_tos_uri
+      resources: TokenAuthority.config.resources
     }
   end
 
   before do
     TokenAuthority.config.rfc_9068_issuer_url = "https://example.com/"
+    TokenAuthority.config.resources = {}
   end
 
   after do
@@ -33,199 +22,308 @@ RSpec.describe TokenAuthority::ProtectedResourceMetadata, type: :model do
   end
 
   describe "#to_h" do
-    it "returns the required resource field" do
-      expect(model.to_h[:resource]).to eq("https://example.com")
-    end
-
-    it "returns the authorization_servers field" do
-      expect(model.to_h[:authorization_servers]).to eq(["https://example.com"])
-    end
-
-    it "strips trailing slash from resource" do
-      TokenAuthority.config.rfc_9068_issuer_url = "https://example.com/"
-      expect(model.to_h[:resource]).to eq("https://example.com")
-    end
-
-    it "handles issuer without trailing slash" do
-      TokenAuthority.config.rfc_9068_issuer_url = "https://example.com"
-      expect(model.to_h[:resource]).to eq("https://example.com")
-    end
-
-    context "with custom rfc_9728_resource configured" do
+    context "when resources is configured with one entry" do
       before do
-        TokenAuthority.config.rfc_9728_resource = "https://api.example.com/"
+        TokenAuthority.config.resources = {
+          api: {
+            resource: "https://api.example.com",
+            resource_name: "Example API"
+          }
+        }
       end
 
-      it "uses the configured rfc_9728_resource" do
-        expect(model.to_h[:resource]).to eq("https://api.example.com/")
-      end
-    end
-
-    context "with custom rfc_9728_authorization_servers configured" do
-      before do
-        TokenAuthority.config.rfc_9728_authorization_servers = [
-          "https://auth1.example.com",
-          "https://auth2.example.com"
-        ]
+      it "uses the first entry for blank resource key" do
+        metadata = described_class.new(resource: "")
+        expect(metadata.to_h[:resource]).to eq("https://api.example.com")
       end
 
-      it "uses the configured authorization_servers" do
-        expect(model.to_h[:authorization_servers]).to eq([
-          "https://auth1.example.com",
-          "https://auth2.example.com"
-        ])
-      end
-    end
-
-    context "when rfc_9728_scopes_supported is configured" do
-      before do
-        TokenAuthority.config.rfc_9728_scopes_supported = ["api:read", "api:write"]
+      it "uses the first entry for nil resource key" do
+        metadata = described_class.new(resource: nil)
+        expect(metadata.to_h[:resource]).to eq("https://api.example.com")
       end
 
-      it "includes scopes_supported in the response" do
-        expect(model.to_h[:scopes_supported]).to eq(["api:read", "api:write"])
+      it "uses the matching entry for matching resource key" do
+        metadata = described_class.new(resource: "api")
+        expect(metadata.to_h[:resource]).to eq("https://api.example.com")
+      end
+
+      it "uses the first entry (fallback) for non-matching resource key" do
+        metadata = described_class.new(resource: "unknown")
+        expect(metadata.to_h[:resource]).to eq("https://api.example.com")
       end
     end
 
-    context "when rfc_9728_scopes_supported is not configured but scopes is" do
+    context "when resources is configured with multiple entries" do
       before do
-        TokenAuthority.config.rfc_9728_scopes_supported = nil
-        TokenAuthority.config.scopes = {"read" => "Read access", "write" => "Write access"}
+        TokenAuthority.config.resources = {
+          api: {
+            resource: "https://api.example.com",
+            resource_name: "REST API"
+          },
+          mcp: {
+            resource: "https://mcp.example.com",
+            resource_name: "MCP Server"
+          }
+        }
       end
 
-      it "falls back to scopes" do
-        expect(model.to_h[:scopes_supported]).to eq(["read", "write"])
+      it "uses resource-specific config when key matches" do
+        metadata = described_class.new(resource: "api")
+        expect(metadata.to_h[:resource]).to eq("https://api.example.com")
+      end
+
+      it "returns the correct config for different resource keys" do
+        metadata = described_class.new(resource: "mcp")
+        expect(metadata.to_h[:resource]).to eq("https://mcp.example.com")
+      end
+
+      it "falls back to first entry for unknown resource key" do
+        metadata = described_class.new(resource: "unknown")
+        expect(metadata.to_h[:resource]).to eq("https://api.example.com")
       end
     end
 
-    context "when no scopes are configured" do
+    context "when resources is empty" do
       before do
-        TokenAuthority.config.rfc_9728_scopes_supported = nil
-        TokenAuthority.config.scopes = nil
+        TokenAuthority.config.resources = {}
       end
 
-      it "omits scopes_supported from the response" do
-        expect(model.to_h).not_to have_key(:scopes_supported)
+      it "raises ResourceNotConfiguredError" do
+        metadata = described_class.new(resource: "unknown")
+        expect { metadata.to_h }.to raise_error(TokenAuthority::ResourceNotConfiguredError)
+      end
+
+      it "raises ResourceNotConfiguredError for nil key" do
+        metadata = described_class.new(resource: nil)
+        expect { metadata.to_h }.to raise_error(TokenAuthority::ResourceNotConfiguredError)
       end
     end
 
-    context "when bearer_methods_supported is configured" do
+    context "with basic resource configured" do
+      subject(:model) { described_class.new(resource: nil) }
+
       before do
-        TokenAuthority.config.rfc_9728_bearer_methods_supported = ["header", "body"]
+        TokenAuthority.config.resources = {
+          api: {resource: "https://api.example.com"}
+        }
       end
 
-      it "includes bearer_methods_supported in the response" do
-        expect(model.to_h[:bearer_methods_supported]).to eq(["header", "body"])
-      end
-    end
-
-    context "when bearer_methods_supported is not configured" do
-      before do
-        TokenAuthority.config.rfc_9728_bearer_methods_supported = nil
+      it "returns the required resource field" do
+        expect(model.to_h[:resource]).to eq("https://api.example.com")
       end
 
-      it "omits bearer_methods_supported from the response" do
-        expect(model.to_h).not_to have_key(:bearer_methods_supported)
-      end
-    end
-
-    context "when jwks_uri is configured" do
-      before do
-        TokenAuthority.config.rfc_9728_jwks_uri = "https://example.com/.well-known/jwks.json"
+      it "returns the authorization_servers field defaulting to issuer" do
+        expect(model.to_h[:authorization_servers]).to eq(["https://example.com"])
       end
 
-      it "includes jwks_uri in the response" do
-        expect(model.to_h[:jwks_uri]).to eq("https://example.com/.well-known/jwks.json")
-      end
-    end
+      context "with custom authorization_servers configured" do
+        before do
+          TokenAuthority.config.resources = {
+            api: {
+              resource: "https://api.example.com",
+              authorization_servers: [
+                "https://auth1.example.com",
+                "https://auth2.example.com"
+              ]
+            }
+          }
+        end
 
-    context "when jwks_uri is not configured" do
-      before do
-        TokenAuthority.config.rfc_9728_jwks_uri = nil
-      end
-
-      it "omits jwks_uri from the response" do
-        expect(model.to_h).not_to have_key(:jwks_uri)
-      end
-    end
-
-    context "when resource_name is configured" do
-      before do
-        TokenAuthority.config.rfc_9728_resource_name = "Example API"
-      end
-
-      it "includes resource_name in the response" do
-        expect(model.to_h[:resource_name]).to eq("Example API")
-      end
-    end
-
-    context "when resource_name is not configured" do
-      before do
-        TokenAuthority.config.rfc_9728_resource_name = nil
+        it "uses the configured authorization_servers" do
+          expect(model.to_h[:authorization_servers]).to eq([
+            "https://auth1.example.com",
+            "https://auth2.example.com"
+          ])
+        end
       end
 
-      it "omits resource_name from the response" do
-        expect(model.to_h).not_to have_key(:resource_name)
-      end
-    end
+      context "when scopes_supported is configured" do
+        before do
+          TokenAuthority.config.resources = {
+            api: {
+              resource: "https://api.example.com",
+              scopes_supported: ["api:read", "api:write"]
+            }
+          }
+        end
 
-    context "when resource_documentation is configured" do
-      before do
-        TokenAuthority.config.rfc_9728_resource_documentation = "https://example.com/docs/api"
-      end
-
-      it "includes resource_documentation in the response" do
-        expect(model.to_h[:resource_documentation]).to eq("https://example.com/docs/api")
-      end
-    end
-
-    context "when resource_documentation is not configured" do
-      before do
-        TokenAuthority.config.rfc_9728_resource_documentation = nil
+        it "includes scopes_supported in the response" do
+          expect(model.to_h[:scopes_supported]).to eq(["api:read", "api:write"])
+        end
       end
 
-      it "omits resource_documentation from the response" do
-        expect(model.to_h).not_to have_key(:resource_documentation)
-      end
-    end
+      context "when scopes_supported is not configured" do
+        before do
+          TokenAuthority.config.resources = {
+            api: {resource: "https://api.example.com"}
+          }
+        end
 
-    context "when resource_policy_uri is configured" do
-      before do
-        TokenAuthority.config.rfc_9728_resource_policy_uri = "https://example.com/privacy"
-      end
-
-      it "includes resource_policy_uri in the response" do
-        expect(model.to_h[:resource_policy_uri]).to eq("https://example.com/privacy")
-      end
-    end
-
-    context "when resource_policy_uri is not configured" do
-      before do
-        TokenAuthority.config.rfc_9728_resource_policy_uri = nil
+        it "omits scopes_supported from the response" do
+          expect(model.to_h).not_to have_key(:scopes_supported)
+        end
       end
 
-      it "omits resource_policy_uri from the response" do
-        expect(model.to_h).not_to have_key(:resource_policy_uri)
-      end
-    end
+      context "when bearer_methods_supported is configured" do
+        before do
+          TokenAuthority.config.resources = {
+            api: {
+              resource: "https://api.example.com",
+              bearer_methods_supported: ["header", "body"]
+            }
+          }
+        end
 
-    context "when resource_tos_uri is configured" do
-      before do
-        TokenAuthority.config.rfc_9728_resource_tos_uri = "https://example.com/tos"
-      end
-
-      it "includes resource_tos_uri in the response" do
-        expect(model.to_h[:resource_tos_uri]).to eq("https://example.com/tos")
-      end
-    end
-
-    context "when resource_tos_uri is not configured" do
-      before do
-        TokenAuthority.config.rfc_9728_resource_tos_uri = nil
+        it "includes bearer_methods_supported in the response" do
+          expect(model.to_h[:bearer_methods_supported]).to eq(["header", "body"])
+        end
       end
 
-      it "omits resource_tos_uri from the response" do
-        expect(model.to_h).not_to have_key(:resource_tos_uri)
+      context "when bearer_methods_supported is not configured" do
+        before do
+          TokenAuthority.config.resources = {
+            api: {resource: "https://api.example.com"}
+          }
+        end
+
+        it "omits bearer_methods_supported from the response" do
+          expect(model.to_h).not_to have_key(:bearer_methods_supported)
+        end
+      end
+
+      context "when jwks_uri is configured" do
+        before do
+          TokenAuthority.config.resources = {
+            api: {
+              resource: "https://api.example.com",
+              jwks_uri: "https://example.com/.well-known/jwks.json"
+            }
+          }
+        end
+
+        it "includes jwks_uri in the response" do
+          expect(model.to_h[:jwks_uri]).to eq("https://example.com/.well-known/jwks.json")
+        end
+      end
+
+      context "when jwks_uri is not configured" do
+        before do
+          TokenAuthority.config.resources = {
+            api: {resource: "https://api.example.com"}
+          }
+        end
+
+        it "omits jwks_uri from the response" do
+          expect(model.to_h).not_to have_key(:jwks_uri)
+        end
+      end
+
+      context "when resource_name is configured" do
+        before do
+          TokenAuthority.config.resources = {
+            api: {
+              resource: "https://api.example.com",
+              resource_name: "Example API"
+            }
+          }
+        end
+
+        it "includes resource_name in the response" do
+          expect(model.to_h[:resource_name]).to eq("Example API")
+        end
+      end
+
+      context "when resource_name is not configured" do
+        before do
+          TokenAuthority.config.resources = {
+            api: {resource: "https://api.example.com"}
+          }
+        end
+
+        it "omits resource_name from the response" do
+          expect(model.to_h).not_to have_key(:resource_name)
+        end
+      end
+
+      context "when resource_documentation is configured" do
+        before do
+          TokenAuthority.config.resources = {
+            api: {
+              resource: "https://api.example.com",
+              resource_documentation: "https://example.com/docs/api"
+            }
+          }
+        end
+
+        it "includes resource_documentation in the response" do
+          expect(model.to_h[:resource_documentation]).to eq("https://example.com/docs/api")
+        end
+      end
+
+      context "when resource_documentation is not configured" do
+        before do
+          TokenAuthority.config.resources = {
+            api: {resource: "https://api.example.com"}
+          }
+        end
+
+        it "omits resource_documentation from the response" do
+          expect(model.to_h).not_to have_key(:resource_documentation)
+        end
+      end
+
+      context "when resource_policy_uri is configured" do
+        before do
+          TokenAuthority.config.resources = {
+            api: {
+              resource: "https://api.example.com",
+              resource_policy_uri: "https://example.com/privacy"
+            }
+          }
+        end
+
+        it "includes resource_policy_uri in the response" do
+          expect(model.to_h[:resource_policy_uri]).to eq("https://example.com/privacy")
+        end
+      end
+
+      context "when resource_policy_uri is not configured" do
+        before do
+          TokenAuthority.config.resources = {
+            api: {resource: "https://api.example.com"}
+          }
+        end
+
+        it "omits resource_policy_uri from the response" do
+          expect(model.to_h).not_to have_key(:resource_policy_uri)
+        end
+      end
+
+      context "when resource_tos_uri is configured" do
+        before do
+          TokenAuthority.config.resources = {
+            api: {
+              resource: "https://api.example.com",
+              resource_tos_uri: "https://example.com/tos"
+            }
+          }
+        end
+
+        it "includes resource_tos_uri in the response" do
+          expect(model.to_h[:resource_tos_uri]).to eq("https://example.com/tos")
+        end
+      end
+
+      context "when resource_tos_uri is not configured" do
+        before do
+          TokenAuthority.config.resources = {
+            api: {resource: "https://api.example.com"}
+          }
+        end
+
+        it "omits resource_tos_uri from the response" do
+          expect(model.to_h).not_to have_key(:resource_tos_uri)
+        end
       end
     end
   end

@@ -1,26 +1,25 @@
 # frozen_string_literal: true
 
-# URL-Based Client Authorization Flow (Client Metadata Documents)
+# Dynamic Client Registration & OAuth Flow
 #
-# This script demonstrates the OAuth flow using a URL-based client_id,
-# where client metadata is fetched from the URL at runtime.
+# This script demonstrates the complete OAuth 2.1 authorization flow:
+# 1. Discovery via well-known metadata endpoints
+# 2. Dynamic Client Registration (RFC 7591) - Register a public client
+# 3. OAuth 2.1 Authorization Code Flow with PKCE (S256)
+# 4. Resource Indicators (RFC 8707) for audience binding
+# 5. OAuth Scopes for permission control
 #
-# Features demonstrated:
-#   - Client Metadata Documents (draft-ietf-oauth-client-id-metadata-document)
-#   - OAuth Scopes for permission control
-#   - Resource Indicators (RFC 8707) for audience binding
-#   - PKCE with S256 (required for public clients)
+# Public clients (token_endpoint_auth_method: "none") with PKCE are the
+# preferred approach for dynamic registration scenarios.
 #
 # Prerequisites:
-#   1. Start the metadata server: ruby script/serve_client_metadata.rb
-#   2. Expose it via ngrok: ngrok http 4567
-#   3. Start the Rails server: bin/rails server
+#   1. Start the Rails server: bin/rails server
 #
 # Usage:
-#   rails runner script/mcp_client_metadata_document.rb
+#   rails runner script/dynamic_client_registration.rb
 #
 # References:
-#   - https://datatracker.ietf.org/doc/html/draft-ietf-oauth-client-id-metadata-document
+#   - https://datatracker.ietf.org/doc/html/rfc7591
 #   - https://www.rfc-editor.org/rfc/rfc8707.html
 
 require "base64"
@@ -35,7 +34,7 @@ require "uri"
 # =============================================================================
 
 BASE_URL = "http://localhost:3000"
-DEFAULT_REDIRECT_URI = "http://localhost:3000/callback"
+REDIRECT_URI = "http://localhost:3000/callback"
 
 # =============================================================================
 # Helper Methods
@@ -57,7 +56,26 @@ def subsection(title)
   puts
 end
 
-def http_post(url, form_data:, resources: [])
+def http_get(url)
+  uri = URI.parse(url)
+  http = Net::HTTP.new(uri.host, uri.port)
+  request = Net::HTTP::Get.new(uri.request_uri)
+  request["Accept"] = "application/json"
+  http.request(request)
+end
+
+def http_post_json(url, body:)
+  uri = URI.parse(url)
+  http = Net::HTTP.new(uri.host, uri.port)
+
+  request = Net::HTTP::Post.new(uri.path)
+  request["Content-Type"] = "application/json"
+  request.body = body.to_json
+
+  http.request(request)
+end
+
+def http_post_form(url, form_data:, resources: [])
   uri = URI.parse(url)
   http = Net::HTTP.new(uri.host, uri.port)
 
@@ -96,24 +114,41 @@ rescue
   nil
 end
 
-def display_configured_resources
-  resources = TokenAuthority.config.rfc_8707_resources
+def fetch_authorization_server_metadata(base_url)
+  url = "#{base_url}/.well-known/oauth-authorization-server"
+  response = http_get(url)
 
-  if resources.nil? || resources.empty?
-    puts "RFC 8707 Resource Indicators: DISABLED"
-    puts "  No resources configured. Tokens will use default audience."
-    return []
+  unless response.code == "200"
+    puts "ERROR: Failed to fetch authorization server metadata from #{url}"
+    puts "Response: #{response.code} #{response.message}"
+    exit 1
   end
 
-  puts "RFC 8707 Resource Indicators: ENABLED"
-  puts
-  puts "Configured resources (allowlist):"
-  resources.each_with_index do |(uri, display_name), index|
-    puts "  [#{index + 1}] #{display_name}"
-    puts "      #{uri}"
+  JSON.parse(response.body)
+end
+
+def fetch_protected_resource_metadata(base_url)
+  url = "#{base_url}/.well-known/oauth-protected-resource"
+  response = http_get(url)
+
+  unless response.code == "200"
+    puts "ERROR: Failed to fetch protected resource metadata from #{url}"
+    puts "Response: #{response.code} #{response.message}"
+    exit 1
   end
 
-  resources.keys
+  JSON.parse(response.body)
+end
+
+def display_available_resources(resource_metadata)
+  resource_uri = resource_metadata["resource"]
+  resource_name = resource_metadata["resource_name"] || resource_uri
+
+  puts "Protected Resource (from /.well-known/oauth-protected-resource):"
+  puts "  [1] #{resource_name}"
+  puts "      #{resource_uri}"
+
+  [resource_uri]
 end
 
 def select_resources(available_resources)
@@ -133,21 +168,17 @@ def select_resources(available_resources)
   end
 end
 
-def display_configured_scopes
-  scopes = TokenAuthority.config.scopes
+def display_available_scopes(auth_server_metadata)
+  scopes = auth_server_metadata["scopes_supported"]
 
   if scopes.nil? || scopes.empty?
-    puts "OAuth Scopes: DISABLED"
-    puts "  No scopes configured."
-    return {}
+    puts "OAuth Scopes: No scopes advertised by server"
+    return []
   end
 
-  puts "OAuth Scopes: ENABLED"
-  puts
-  puts "Configured scopes:"
-  scopes.each_with_index do |(scope, description), index|
+  puts "Scopes Supported (from /.well-known/oauth-authorization-server):"
+  scopes.each_with_index do |scope, index|
     puts "  [#{index + 1}] #{scope}"
-    puts "      #{description}"
   end
 
   scopes
@@ -169,9 +200,8 @@ def select_scopes(available_scopes)
   # Check if input looks like numbers (comma-separated)
   if input.match?(/^[\d,\s]+$/)
     indices = input.split(",").map { |s| s.strip.to_i - 1 }
-    scope_keys = available_scopes.keys
-    selected = indices.select { |i| i >= 0 && i < scope_keys.length }
-      .map { |i| scope_keys[i] }
+    selected = indices.select { |i| i >= 0 && i < available_scopes.length }
+      .map { |i| available_scopes[i] }
     selected.join(" ")
   else
     # Treat as space-separated scope names
@@ -179,45 +209,130 @@ def select_scopes(available_scopes)
   end
 end
 
+def open_in_browser(url)
+  puts "Opening authorization URL in your browser..."
+
+  case RUBY_PLATFORM
+  when /darwin/
+    system("open", url)
+  when /linux/
+    system("xdg-open", url)
+  when /mswin|mingw/
+    system("start", url)
+  else
+    puts "Could not auto-open browser. Please open this URL manually:"
+    puts url
+  end
+end
+
 # =============================================================================
-# STEP 1: Collect Client Information
+# STEP 1: Discovery - Fetch Metadata
 # =============================================================================
 
-section "URL-Based Client Authorization Flow"
+section "MCP Dynamic Client Registration Flow"
 
-puts "URL-based clients use an HTTPS URL as their client_id. The authorization"
-puts "server fetches client metadata from this URL at runtime."
+puts "This script demonstrates the MCP-preferred authorization flow using"
+puts "Dynamic Client Registration (RFC 7591) with a public client."
 puts
-puts "Before continuing, ensure you have:"
-puts "  1. Started the metadata server: ruby script/serve_client_metadata.rb"
-puts "  2. Exposed it via ngrok: ngrok http 4567"
-puts "  3. Started the Rails server: bin/rails server"
+puts "Prerequisites:"
+puts "  1. Rails server running: bin/rails server"
 puts
 
-print "Enter the client_id URL (e.g., https://abc123.ngrok-free.app/oauth-client): "
-client_id = gets&.chomp&.strip
+subsection "STEP 1: Discovery - Fetch Server Metadata"
 
-if client_id.nil? || client_id.empty?
-  puts "No client_id provided. Exiting."
+puts "Fetching authorization server metadata..."
+auth_server_metadata = fetch_authorization_server_metadata(BASE_URL)
+
+puts "Fetching protected resource metadata..."
+resource_metadata = fetch_protected_resource_metadata(BASE_URL)
+
+puts
+puts "Authorization Server Metadata:"
+puts "  Issuer:                #{auth_server_metadata["issuer"]}"
+puts "  Authorization Endpoint: #{auth_server_metadata["authorization_endpoint"]}"
+puts "  Token Endpoint:         #{auth_server_metadata["token_endpoint"]}"
+puts "  Registration Endpoint:  #{auth_server_metadata["registration_endpoint"]}"
+
+# Verify dynamic registration is supported
+unless auth_server_metadata["registration_endpoint"]
+  puts
+  puts "ERROR: Dynamic client registration is not supported by this server."
   exit 1
 end
 
-print "Enter the redirect_uri [#{DEFAULT_REDIRECT_URI}]: "
-input_redirect_uri = gets&.chomp&.strip
-redirect_uri = input_redirect_uri.empty? ? DEFAULT_REDIRECT_URI : input_redirect_uri
+puts
+puts "Protected Resource Metadata:"
+puts "  Resource:              #{resource_metadata["resource"]}"
+puts "  Resource Name:         #{resource_metadata["resource_name"]}" if resource_metadata["resource_name"]
+puts "  Authorization Servers: #{resource_metadata["authorization_servers"]&.join(", ")}"
 
 # =============================================================================
-# STEP 2: Resource Indicators (RFC 8707)
+# STEP 2: Dynamic Client Registration (RFC 7591)
 # =============================================================================
 
-section "STEP 1: Resource Indicators (RFC 8707)"
+section "STEP 2: Dynamic Client Registration (RFC 7591)"
+
+puts "MCP spec prefers PUBLIC clients for dynamic registration scenarios."
+puts "Public clients use token_endpoint_auth_method: 'none' and rely on PKCE."
+puts
+
+client_name = "Test Client #{rand(10000..99999)}"
+puts "Generated client name: #{client_name}"
+
+registration_payload = {
+  redirect_uris: [REDIRECT_URI],
+  client_name: client_name,
+  token_endpoint_auth_method: "none",
+  grant_types: ["authorization_code", "refresh_token"],
+  response_types: ["code"]
+}
+
+register_url = auth_server_metadata["registration_endpoint"]
+
+puts
+puts "Registration endpoint: #{register_url}"
+puts
+puts "Request payload:"
+puts JSON.pretty_generate(registration_payload)
+
+subsection "Sending registration request..."
+
+response = http_post_json(register_url, body: registration_payload)
+registration_response = JSON.parse(response.body)
+
+puts "Response status: #{response.code}"
+puts "Response body:"
+puts JSON.pretty_generate(registration_response)
+
+unless response.code == "201"
+  puts
+  puts "ERROR: Registration failed!"
+  puts "Error: #{registration_response["error"]}"
+  puts "Description: #{registration_response["error_description"]}"
+  exit 1
+end
+
+client_id = registration_response["client_id"]
+
+puts
+puts "SUCCESS! Public client registered."
+puts
+puts "  Client ID:   #{client_id}"
+puts "  Auth Method: #{registration_response["token_endpoint_auth_method"]}"
+puts "  Note: No client_secret (public client)"
+
+# =============================================================================
+# STEP 3: Resource Indicators (RFC 8707)
+# =============================================================================
+
+section "STEP 3: Resource Indicators (RFC 8707)"
 
 puts "RFC 8707 allows clients to specify which protected resources they want"
 puts "to access. This binds the access token to specific audiences via the"
 puts "JWT 'aud' claim, preventing token reuse across different services."
 puts
 
-available_resources = display_configured_resources
+available_resources = display_available_resources(resource_metadata)
 selected_resources = select_resources(available_resources)
 
 puts
@@ -225,20 +340,20 @@ if selected_resources.any?
   puts "Selected resources:"
   selected_resources.each { |r| puts "  - #{r}" }
 else
-  puts "No resources selected. Token will use default audience from config."
+  puts "No resources selected. Token will use default audience."
 end
 
 # =============================================================================
-# STEP 2: Scopes
+# STEP 4: OAuth Scopes
 # =============================================================================
 
-section "STEP 2: OAuth Scopes"
+section "STEP 4: OAuth Scopes"
 
 puts "Scopes define what permissions the client is requesting. Users will see"
 puts "the scope descriptions on the consent screen."
 puts
 
-available_scopes = display_configured_scopes
+available_scopes = display_available_scopes(auth_server_metadata)
 selected_scope = select_scopes(available_scopes)
 
 puts
@@ -249,12 +364,12 @@ else
 end
 
 # =============================================================================
-# STEP 3: Generate PKCE Parameters
+# STEP 5: Generate PKCE Parameters
 # =============================================================================
 
-section "STEP 3: Generate PKCE Parameters"
+section "STEP 5: Generate PKCE Parameters"
 
-puts "URL-based clients are always PUBLIC clients and REQUIRE PKCE with S256."
+puts "MCP spec REQUIRES PKCE with S256 for all authorization flows."
 puts
 
 pkce = generate_pkce
@@ -266,14 +381,14 @@ puts "  Code Challenge: #{pkce[:challenge]}"
 puts "  Method:         #{pkce[:method]}"
 
 # =============================================================================
-# STEP 4: Build Authorization URL
+# STEP 6: Authorization Request
 # =============================================================================
 
-section "STEP 4: Authorization Request"
+section "STEP 6: Authorization Request"
 
 auth_params = {
   client_id: client_id,
-  redirect_uri: redirect_uri,
+  redirect_uri: REDIRECT_URI,
   response_type: "code",
   code_challenge: pkce[:challenge],
   code_challenge_method: pkce[:method],
@@ -284,18 +399,17 @@ auth_params = {
 auth_params[:scope] = selected_scope if selected_scope && !selected_scope.empty?
 
 # Add resource parameters (RFC 8707)
-# Note: Multiple resources are sent as repeated 'resource' params
 auth_query_parts = URI.encode_www_form(auth_params)
 if selected_resources.any?
   resource_params = selected_resources.map { |r| "resource=#{CGI.escape(r)}" }.join("&")
   auth_query_parts = "#{auth_query_parts}&#{resource_params}"
 end
 
-auth_url = "#{BASE_URL}/oauth/authorize?#{auth_query_parts}"
+auth_url = "#{auth_server_metadata["authorization_endpoint"]}?#{auth_query_parts}"
 
 puts "Parameters:"
 puts "  client_id:             #{client_id}"
-puts "  redirect_uri:          #{redirect_uri}"
+puts "  redirect_uri:          #{REDIRECT_URI}"
 puts "  response_type:         code"
 puts "  code_challenge:        #{pkce[:challenge]}"
 puts "  code_challenge_method: S256"
@@ -307,30 +421,18 @@ if selected_resources.any?
   puts "  resource:              #{selected_resources.join(", ")}"
 end
 puts
-puts "Opening authorization URL in your browser..."
 
-# Open URL in default browser
-case RUBY_PLATFORM
-when /darwin/
-  system("open", auth_url)
-when /linux/
-  system("xdg-open", auth_url)
-when /mswin|mingw/
-  system("start", auth_url)
-else
-  puts "Could not auto-open browser. Please open this URL manually:"
-  puts auth_url
-end
+open_in_browser(auth_url)
 
 # =============================================================================
-# STEP 5: Token Exchange
+# STEP 7: Token Exchange
 # =============================================================================
 
-section "STEP 5: Token Exchange"
+section "STEP 7: Token Exchange"
 
 puts "After user authorizes, you'll be redirected with an authorization code."
 puts
-puts "For URL-based (PUBLIC) clients:"
+puts "For PUBLIC clients (dynamically registered):"
 puts "  - No client authentication (no Authorization header)"
 puts "  - Client ID sent in request body"
 puts "  - PKCE code_verifier proves client identity"
@@ -338,8 +440,7 @@ puts
 if selected_resources.any?
   puts "RFC 8707 Downscoping:"
   puts "  At token exchange, you can request a SUBSET of the resources"
-  puts "  that were granted during authorization. This is useful for"
-  puts "  obtaining tokens with minimal necessary permissions."
+  puts "  that were granted during authorization."
   puts
 end
 
@@ -351,11 +452,11 @@ if authorization_code.nil? || authorization_code.empty?
   puts "No authorization code provided. Here's the curl command you would use:"
   puts
   curl_cmd = <<~CURL
-    curl -X POST #{BASE_URL}/oauth/token \\
+    curl -X POST #{auth_server_metadata["token_endpoint"]} \\
       -d "grant_type=authorization_code" \\
       -d "code=AUTHORIZATION_CODE" \\
-      -d "client_id=#{CGI.escape(client_id)}" \\
-      -d "redirect_uri=#{CGI.escape(redirect_uri)}" \\
+      -d "client_id=#{client_id}" \\
+      -d "redirect_uri=#{CGI.escape(REDIRECT_URI)}" \\
       -d "code_verifier=#{pkce[:verifier]}"
   CURL
   if selected_resources.any?
@@ -393,17 +494,19 @@ token_params = {
   grant_type: "authorization_code",
   code: authorization_code,
   client_id: client_id,
-  redirect_uri: redirect_uri,
+  redirect_uri: REDIRECT_URI,
   code_verifier: pkce[:verifier]
 }
 
-puts "Token endpoint: #{BASE_URL}/oauth/token"
+token_endpoint = auth_server_metadata["token_endpoint"]
+
+puts "Token endpoint: #{token_endpoint}"
 puts
 puts "Request parameters:"
 token_params.each { |k, v| puts "  #{k}: #{v}" }
 token_resources.each { |r| puts "  resource: #{r}" }
 
-response = http_post("#{BASE_URL}/oauth/token", form_data: token_params, resources: token_resources)
+response = http_post_form(token_endpoint, form_data: token_params, resources: token_resources)
 token_response = JSON.parse(response.body)
 
 puts
@@ -460,41 +563,32 @@ if jwt_payload
 end
 
 # =============================================================================
-# STEP 6: Using the Access Token
+# STEP 8: Using the Access Token
 # =============================================================================
 
-section "STEP 6: Using the Access Token"
+section "STEP 8: Using the Access Token"
 
 puts "Example API request with the access token:"
 puts
+resource_url = token_resources.first || resource_metadata["resource"]
 puts <<~CURL
-  curl -X GET #{BASE_URL}/api/v1/users/current \\
+  curl -X GET #{resource_url}v1/users/current \\
     -H "Authorization: Bearer #{access_token}"
 CURL
 
 puts
-puts "Note: The /api/v1/users/current endpoint requires the 'read' scope."
-if jwt_payload && jwt_payload["scope"]&.include?("read")
-  puts "Your token includes 'read' scope, so this request should succeed."
-else
-  puts "Your token does NOT include 'read' scope, so this request will return 403 Forbidden."
-end
-
-if token_resources.any?
-  puts
-  puts "The resource server at #{token_resources.first} should:"
-  puts "  1. Decode and verify the JWT signature"
-  puts "  2. Check that its resource URI is in the 'aud' claim"
-  puts "  3. Validate required scopes are present"
-  puts "  4. Reject tokens not meeting these requirements"
-end
+puts "MCP spec requirements for token usage:"
+puts "  - Tokens MUST be sent in Authorization header (not query string)"
+puts "  - Tokens MUST be included in EVERY request"
+puts "  - Invalid/expired tokens receive HTTP 401"
+puts "  - Insufficient scope receives HTTP 403"
 
 # =============================================================================
-# STEP 7: Refreshing Tokens
+# STEP 9: Refreshing Tokens
 # =============================================================================
 
 if refresh_token
-  section "STEP 7: Refreshing Tokens"
+  section "STEP 9: Refreshing Tokens"
 
   puts "For public clients, refresh tokens are rotated on each use."
   puts
@@ -506,10 +600,10 @@ if refresh_token
   puts "Refresh token request:"
   puts
   refresh_curl = <<~CURL
-    curl -X POST #{BASE_URL}/oauth/token \\
+    curl -X POST #{token_endpoint} \\
       -d "grant_type=refresh_token" \\
       -d "refresh_token=#{refresh_token}" \\
-      -d "client_id=#{CGI.escape(client_id)}"
+      -d "client_id=#{client_id}"
   CURL
   if token_resources.any?
     resource_flags = token_resources.map { |r| "-d \"resource=#{CGI.escape(r)}\"" }.join(" \\\n      ")
@@ -522,36 +616,39 @@ end
 # Summary
 # =============================================================================
 
-section "URL-Based Client Authorization Complete"
+section "MCP Dynamic Client Registration Complete"
 
-puts "This script demonstrated the OAuth flow with a URL-based client_id:"
+puts "This script demonstrated the MCP-preferred authorization flow:"
 puts
-puts "  1. Client metadata fetched from: #{client_id}"
-puts "  2. OAuth Scopes for permission control"
+puts "  1. Discovery"
+puts "     - Fetched authorization server metadata from /.well-known/oauth-authorization-server"
+puts "     - Fetched protected resource metadata from /.well-known/oauth-protected-resource"
+puts
+puts "  2. Dynamic Client Registration (RFC 7591)"
+puts "     - Public client (token_endpoint_auth_method: none)"
+puts "     - No client secret issued"
+puts
 puts "  3. Resource Indicators (RFC 8707) for audience binding"
-puts "  4. PKCE with S256 (required for public clients)"
-puts "  5. Token exchange without client secret"
-puts
-if selected_scope && !selected_scope.empty?
-  puts "Scopes requested: #{selected_scope}"
-  puts "The access token's 'scope' claim contains these permissions."
-  puts
-end
 if token_resources.any?
-  puts "RFC 8707 Resource Indicators used:"
-  token_resources.each { |r| puts "  - #{r}" }
-  puts
-  puts "The access token's 'aud' claim is bound to these resources."
-  puts "Resource servers should verify their URI is in the audience."
-  puts
+  token_resources.each { |r| puts "     - #{r}" }
 end
-puts "Key differences from registered clients:"
-puts "  - client_id is an HTTPS URL, not a UUID"
-puts "  - Metadata is fetched at runtime (cached by server)"
-puts "  - Always treated as a public client"
-puts "  - PKCE is mandatory"
+puts
+puts "  4. OAuth Scopes for permission control"
+if selected_scope && !selected_scope.empty?
+  puts "     - #{selected_scope}"
+end
+puts
+puts "  5. Authorization Code Flow with PKCE (S256)"
+puts "     - Code challenge method: S256 (mandatory)"
+puts "     - PKCE proves client identity"
+puts
+puts "  6. Token Exchange"
+puts "     - No client_secret required"
+puts "     - Audience-bound JWT access tokens"
+puts
+puts "Client ID: #{client_id}"
 puts
 puts "For more information, see:"
-puts "  - Client Metadata: https://datatracker.ietf.org/doc/html/draft-ietf-oauth-client-id-metadata-document"
-puts "  - OAuth Scopes: https://datatracker.ietf.org/doc/html/rfc6749#section-3.3"
-puts "  - Resource Indicators: https://www.rfc-editor.org/rfc/rfc8707.html"
+puts "  - MCP Authorization: https://modelcontextprotocol.io/specification/2025-03-26/basic/authorization"
+puts "  - RFC 7591 (Dynamic Registration): https://datatracker.ietf.org/doc/html/rfc7591"
+puts "  - RFC 8707 (Resource Indicators): https://www.rfc-editor.org/rfc/rfc8707.html"

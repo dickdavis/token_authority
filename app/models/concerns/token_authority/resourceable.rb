@@ -88,9 +88,9 @@ module TokenAuthority
     # @return [Boolean] true if all resources are allowed
     # @api private
     def allowed_resources?
-      return true unless TokenAuthority.config.rfc_8707_enabled?
+      return true unless TokenAuthority.config.resources_enabled?
 
-      resources.all? { |uri| TokenAuthority.config.rfc_8707_resources.key?(uri) }
+      resources.all? { |uri| TokenAuthority.config.resource_registry.key?(uri) }
     end
 
     # Checks if the current resources are a subset of the granted resources.

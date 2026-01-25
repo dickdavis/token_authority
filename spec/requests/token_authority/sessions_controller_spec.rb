@@ -296,7 +296,8 @@ RSpec.describe TokenAuthority::SessionsController, type: :request do
         end
 
         before do
-          allow(TokenAuthority.config).to receive(:rfc_8707_resources).and_return(configured_resources)
+          allow(TokenAuthority.config).to receive(:resource_registry).and_return(configured_resources)
+          allow(TokenAuthority.config).to receive(:resources_enabled?).and_return(true)
         end
 
         context "when no resource parameter is provided at token exchange" do
@@ -341,7 +342,7 @@ RSpec.describe TokenAuthority::SessionsController, type: :request do
             expect(response).to have_http_status(:ok)
             access_token = response.parsed_body["access_token"]
             decoded = TokenAuthority::JsonWebToken.decode(access_token)
-            expect(decoded[:aud]).to eq(TokenAuthority.config.rfc_9068_audience_url)
+            expect(decoded[:aud]).to eq(TokenAuthority.config.audience_url)
           end
         end
 
@@ -575,7 +576,8 @@ RSpec.describe TokenAuthority::SessionsController, type: :request do
         end
 
         before do
-          allow(TokenAuthority.config).to receive(:rfc_8707_resources).and_return(configured_resources)
+          allow(TokenAuthority.config).to receive(:resource_registry).and_return(configured_resources)
+          allow(TokenAuthority.config).to receive(:resources_enabled?).and_return(true)
         end
 
         context "when no resource parameter is provided at refresh" do
@@ -614,7 +616,8 @@ RSpec.describe TokenAuthority::SessionsController, type: :request do
 
         context "when RFC 8707 is disabled (no resources configured)" do
           before do
-            allow(TokenAuthority.config).to receive(:rfc_8707_resources).and_return(nil)
+            allow(TokenAuthority.config).to receive(:resource_registry).and_return({})
+            allow(TokenAuthority.config).to receive(:resources_enabled?).and_return(false)
           end
 
           context "when no resource is provided" do

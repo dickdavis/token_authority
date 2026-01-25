@@ -58,7 +58,7 @@ module TokenAuthority
       return if resources.empty?
 
       # If resources are provided but feature is disabled, reject them
-      unless TokenAuthority.config.rfc_8707_enabled?
+      unless TokenAuthority.config.resources_enabled?
         errors.add(:resources, :not_allowed)
         return
       end

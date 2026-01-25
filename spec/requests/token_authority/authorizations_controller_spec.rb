@@ -155,7 +155,8 @@ RSpec.describe TokenAuthority::AuthorizationsController, type: :request do
         end
 
         before do
-          allow(TokenAuthority.config).to receive(:rfc_8707_resources).and_return(configured_resources)
+          allow(TokenAuthority.config).to receive(:resource_registry).and_return(configured_resources)
+          allow(TokenAuthority.config).to receive(:resources_enabled?).and_return(true)
         end
 
         context "when a valid resource URI is provided" do
@@ -198,7 +199,7 @@ RSpec.describe TokenAuthority::AuthorizationsController, type: :request do
 
         context "when resource is required but not provided" do
           before do
-            allow(TokenAuthority.config).to receive(:rfc_8707_require_resource).and_return(true)
+            allow(TokenAuthority.config).to receive(:require_resource).and_return(true)
           end
 
           it_behaves_like "handles an invalid_target error"
@@ -212,7 +213,8 @@ RSpec.describe TokenAuthority::AuthorizationsController, type: :request do
 
         context "when RFC 8707 is disabled (no resources configured)" do
           before do
-            allow(TokenAuthority.config).to receive(:rfc_8707_resources).and_return(nil)
+            allow(TokenAuthority.config).to receive(:resource_registry).and_return({})
+            allow(TokenAuthority.config).to receive(:resources_enabled?).and_return(false)
           end
 
           context "when no resource is provided" do

@@ -1,5 +1,6 @@
 Rails.application.routes.draw do
-  token_authority_routes
+  token_authority_auth_server_routes
+  token_authority_protected_resource_route
 
   namespace :api do
     namespace :v1 do

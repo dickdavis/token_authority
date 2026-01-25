@@ -99,59 +99,45 @@ module TokenAuthority
     #   @return [Boolean] true if scope is required (default: false)
     attr_accessor :require_scope
 
-    # @!attribute [rw] protected_resource
-    #   Default protected resource metadata served when no subdomain matches (RFC 9728).
+    # @!attribute [rw] resources
+    #   Protected resource metadata keyed by subdomain (RFC 9728).
     #
-    #   This configuration serves two purposes:
-    #   1. For single-resource deployments, it's the only config needed
-    #   2. For multi-resource deployments, it's the fallback when a subdomain doesn't
-    #      match any entry in protected_resources
+    #   Maps subdomain symbols to resource metadata hashes. When a request arrives at
+    #   the /.well-known/oauth-protected-resource endpoint, the controller extracts
+    #   the subdomain and looks it up in this hash. If no match is found, the first
+    #   resource in the hash is used as the default.
+    #
+    #   For single-resource deployments, simply configure one entry - it will be used
+    #   for all requests regardless of subdomain.
     #
     #   The hash keys match RFC 9728 field names. Only the :resource field is required;
     #   all others are optional and will be omitted from responses if not set.
     #
-    #   @example Single resource configuration
-    #     config.protected_resource = {
-    #       resource: "https://api.example.com",
-    #       resource_name: "Example API",
-    #       scopes_supported: %w[read write admin],
-    #       bearer_methods_supported: %w[header],
-    #       jwks_uri: "https://api.example.com/.well-known/jwks.json"
+    #   @example Single resource deployment
+    #     config.resources = {
+    #       api: {
+    #         resource: "https://api.example.com",
+    #         resource_name: "Example API",
+    #         scopes_supported: %w[read write admin]
+    #       }
     #     }
     #
-    #   @return [Hash, nil] resource metadata hash
-    #   @see #protected_resources for multi-tenant scenarios
-    attr_accessor :protected_resource
-
-    # @!attribute [rw] protected_resources
-    #   Subdomain-keyed protected resource metadata for multi-tenant deployments (RFC 9728).
-    #
-    #   Maps subdomain strings to resource metadata hashes. When a request arrives at
-    #   the /.well-known/oauth-protected-resource endpoint, the controller extracts
-    #   the subdomain and looks it up in this hash. This enables a single authorization
-    #   server to describe multiple protected resources at different subdomains.
-    #
-    #   The lookup falls back to protected_resource (singular) if the subdomain isn't
-    #   found, allowing hybrid deployments where some resources have dedicated subdomains
-    #   and others use the default.
-    #
-    #   @example Multi-tenant API deployment
-    #     config.protected_resources = {
-    #       "api" => {
+    #   @example Multi-resource deployment with subdomains
+    #     config.resources = {
+    #       api: {
     #         resource: "https://api.example.com",
     #         resource_name: "REST API",
     #         scopes_supported: %w[api:read api:write]
     #       },
-    #       "mcp" => {
+    #       mcp: {
     #         resource: "https://mcp.example.com",
     #         resource_name: "MCP Server",
     #         scopes_supported: %w[mcp:tools mcp:prompts mcp:resources]
     #       }
     #     }
     #
-    #   @return [Hash{String => Hash}, nil] subdomain-to-metadata mapping
-    #   @see #protected_resource for the fallback configuration
-    attr_accessor :protected_resources
+    #   @return [Hash{Symbol => Hash}, nil] subdomain-to-metadata mapping
+    attr_accessor :resources
 
     # @!attribute [rw] rfc_7591_enabled
     #   Enable dynamic client registration per RFC 7591.
@@ -290,8 +276,7 @@ module TokenAuthority
       @rfc_8414_service_documentation = nil
 
       # Protected Resource Metadata (RFC 9728)
-      @protected_resource = {}
-      @protected_resources = {}
+      @resources = {}
 
       # Dynamic Client Registration (RFC 7591)
       @rfc_7591_enabled = false
@@ -342,11 +327,11 @@ module TokenAuthority
       resource_registry.any?
     end
 
-    # Builds a mapping of resource URIs to display names from protected resource configuration.
+    # Builds a mapping of resource URIs to display names from resource configuration.
     #
-    # This derives the RFC 8707 resource allowlist from the protected_resource and
-    # protected_resources configurations. Each configured resource's :resource URI becomes
-    # a key, with its :resource_name (or the URI itself) as the display name.
+    # This derives the RFC 8707 resource allowlist from the resources configuration.
+    # Each configured resource's :resource URI becomes a key, with its :resource_name
+    # (or the URI itself) as the display name.
     #
     # The result is used for:
     # - Validating resource indicators in authorization requests
@@ -354,41 +339,22 @@ module TokenAuthority
     #
     # @return [Hash{String => String}] mapping of resource URIs to display names
     #
-    # @example With protected_resource configured
-    #   config.protected_resource = {
-    #     resource: "https://api.example.com",
-    #     resource_name: "Main API"
-    #   }
-    #   config.resource_registry
-    #   # => { "https://api.example.com" => "Main API" }
-    #
-    # @example With multiple protected_resources
-    #   config.protected_resources = {
-    #     "api" => { resource: "https://api.example.com", resource_name: "REST API" },
-    #     "mcp" => { resource: "https://mcp.example.com", resource_name: "MCP Server" }
+    # @example With resources configured
+    #   config.resources = {
+    #     api: { resource: "https://api.example.com", resource_name: "REST API" },
+    #     mcp: { resource: "https://mcp.example.com", resource_name: "MCP Server" }
     #   }
     #   config.resource_registry
     #   # => { "https://api.example.com" => "REST API", "https://mcp.example.com" => "MCP Server" }
     def resource_registry
-      registry = {}
+      return {} unless resources.is_a?(Hash)
 
-      # Add from protected_resource (singular) if configured
-      if protected_resource.is_a?(Hash) && protected_resource[:resource].present?
-        uri = protected_resource[:resource]
-        registry[uri] = protected_resource[:resource_name] || uri
+      resources.each_with_object({}) do |(_key, config), registry|
+        next unless config.is_a?(Hash) && config[:resource].present?
+
+        uri = config[:resource]
+        registry[uri] = config[:resource_name] || uri
       end
-
-      # Add from protected_resources (plural) if configured
-      if protected_resources.is_a?(Hash)
-        protected_resources.each_value do |config|
-          next unless config.is_a?(Hash) && config[:resource].present?
-
-          uri = config[:resource]
-          registry[uri] = config[:resource_name] || uri
-        end
-      end
-
-      registry
     end
 
     # Validates the configuration for internal consistency.
@@ -409,39 +375,34 @@ module TokenAuthority
 
     # Resolves protected resource configuration using subdomain-aware lookup.
     #
-    # This implements the fallback strategy that makes both single-resource and
-    # multi-resource deployments work with the same configuration structure:
-    #
-    # 1. If resource_key is present (e.g., "api"), look it up in protected_resources
-    # 2. If not found or resource_key is blank, fall back to protected_resource (singular)
-    # 3. If result is an empty hash, convert to nil (represents "not configured")
-    #
-    # The empty hash conversion is important: it allows distinguishing between "resource
-    # explicitly configured but empty" (which should 404) and "not configured at all"
-    # (which also should 404). Both result in nil, triggering ResourceNotConfiguredError.
+    # Lookup strategy:
+    # 1. If resource_key is present, look it up as a symbol in resources
+    # 2. If not found or resource_key is blank, use the first resource in the hash
+    # 3. If resources is empty, return nil (controller will 404)
     #
     # @param resource_key [String, nil] the subdomain or lookup key
     # @return [Hash, nil] the resource metadata, or nil if not configured
     #
     # @example Subdomain-specific lookup
-    #   config.protected_resources = { "api" => { resource: "https://api.example.com" } }
+    #   config.resources = { api: { resource: "https://api.example.com" } }
     #   config.protected_resource_for("api")  # => { resource: "https://api.example.com" }
     #
-    # @example Fallback to default
-    #   config.protected_resource = { resource: "https://api.example.com" }
+    # @example Fallback to first resource
+    #   config.resources = { api: { resource: "https://api.example.com" } }
     #   config.protected_resource_for("unknown")  # => { resource: "https://api.example.com" }
     #
     # @example Not configured
-    #   config.protected_resource = {}
+    #   config.resources = {}
     #   config.protected_resource_for(nil)  # => nil (will cause 404)
     def protected_resource_for(resource_key)
-      result = if resource_key.present?
-        protected_resources&.dig(resource_key) || protected_resource
-      else
-        protected_resource
-      end
+      return nil unless resources.is_a?(Hash) && resources.any?
 
-      result.presence  # Convert empty hash to nil
+      # Try subdomain lookup first, fall back to first resource
+      if resource_key.present?
+        resources[resource_key.to_sym] || resources.values.first
+      else
+        resources.values.first
+      end
     end
   end
 

@@ -76,44 +76,38 @@ TokenAuthority.configure do |config|
   # Protected Resource Metadata (RFC 9728)
   # ==========================================================================
 
-  # Protected resource configuration for requests without a subdomain.
-  # This is the default configuration used when no subdomain-specific config is found.
-  # config.protected_resource = {
-  #   resource: "https://api.example.com/",
-  #   resource_name: "Example API",
-  #   scopes_supported: %w[read write],
-  #   authorization_servers: ["https://auth.example.com"],  # Defaults to issuer if not set
-  #   bearer_methods_supported: ["header"],
-  #   jwks_uri: "https://api.example.com/.well-known/jwks.json",
-  #   resource_documentation: "https://example.com/docs/api",
-  #   resource_policy_uri: "https://example.com/privacy",
-  #   resource_tos_uri: "https://example.com/tos"
-  # }
-
-  # Protected resource configuration keyed by subdomain.
-  # Use this to serve different metadata based on the request subdomain.
-  # config.protected_resources = {
-  #   "api" => {
-  #     resource: "https://api.example.com",
-  #     resource_name: "REST API",
+  # Protected resources keyed by subdomain. For single-resource deployments,
+  # just configure one entry - it will be used for all requests.
+  # For multi-resource deployments, add entries for each subdomain.
+  # The first entry is used as the default when no subdomain matches.
+  #
+  # config.resources = {
+  #   api: {
+  #     resource: "https://api.example.com/",
+  #     resource_name: "Example API",
   #     scopes_supported: %w[read write],
-  #     authorization_servers: ["https://auth.example.com"],
+  #     authorization_servers: ["https://auth.example.com"],  # Defaults to issuer if not set
   #     bearer_methods_supported: ["header"],
   #     jwks_uri: "https://api.example.com/.well-known/jwks.json",
   #     resource_documentation: "https://example.com/docs/api",
   #     resource_policy_uri: "https://example.com/privacy",
   #     resource_tos_uri: "https://example.com/tos"
+  #   }
+  # }
+  #
+  # Example multi-resource configuration:
+  # config.resources = {
+  #   api: {
+  #     resource: "https://api.example.com",
+  #     resource_name: "REST API",
+  #     scopes_supported: %w[read write],
+  #     bearer_methods_supported: ["header"]
   #   },
-  #   "mcp" => {
+  #   mcp: {
   #     resource: "https://mcp.example.com",
   #     resource_name: "MCP Server",
   #     scopes_supported: %w[mcp:tools mcp:resources],
-  #     authorization_servers: ["https://auth.example.com"],
-  #     bearer_methods_supported: ["header"],
-  #     jwks_uri: "https://mcp.example.com/.well-known/jwks.json",
-  #     resource_documentation: "https://example.com/docs/mcp",
-  #     resource_policy_uri: "https://example.com/privacy",
-  #     resource_tos_uri: "https://example.com/tos"
+  #     bearer_methods_supported: ["header"]
   #   }
   # }
 
@@ -140,14 +134,14 @@ TokenAuthority.configure do |config|
   # Resource Indicators (RFC 8707)
   # ==========================================================================
 
-  # Resource indicators are automatically enabled when protected resources are configured.
+  # Resource indicators are automatically enabled when resources are configured.
   # The allowlist of valid resource URIs is derived from the `resource` key in
-  # protected_resource and protected_resources configurations above.
+  # the resources configuration above.
   #
   # Display names shown on the consent screen use the `resource_name` key from
-  # each protected resource configuration. If not set, the resource URI is used.
+  # each resource configuration. If not set, the resource URI is used.
   #
-  # To disable resource indicators entirely, do not configure any protected resources.
+  # To disable resource indicators entirely, set resources to {}.
 
   # Require the resource parameter in authorization requests.
   # When true, clients must specify at least one resource.

@@ -6,15 +6,13 @@ RSpec.describe TokenAuthority::ProtectedResourceMetadata, type: :model do
   let!(:original_config) do
     {
       rfc_9068_issuer_url: TokenAuthority.config.rfc_9068_issuer_url,
-      protected_resource: TokenAuthority.config.protected_resource,
-      protected_resources: TokenAuthority.config.protected_resources
+      resources: TokenAuthority.config.resources
     }
   end
 
   before do
     TokenAuthority.config.rfc_9068_issuer_url = "https://example.com/"
-    TokenAuthority.config.protected_resource = {}
-    TokenAuthority.config.protected_resources = {}
+    TokenAuthority.config.resources = {}
   end
 
   after do
@@ -24,33 +22,45 @@ RSpec.describe TokenAuthority::ProtectedResourceMetadata, type: :model do
   end
 
   describe "#to_h" do
-    context "when protected_resource is configured" do
+    context "when resources is configured with one entry" do
       before do
-        TokenAuthority.config.protected_resource = {
-          resource: "https://api.example.com",
-          resource_name: "Example API"
+        TokenAuthority.config.resources = {
+          api: {
+            resource: "https://api.example.com",
+            resource_name: "Example API"
+          }
         }
       end
 
-      it "uses protected_resource for blank resource key" do
+      it "uses the first entry for blank resource key" do
         metadata = described_class.new(resource: "")
         expect(metadata.to_h[:resource]).to eq("https://api.example.com")
       end
 
-      it "uses protected_resource for nil resource key" do
+      it "uses the first entry for nil resource key" do
         metadata = described_class.new(resource: nil)
+        expect(metadata.to_h[:resource]).to eq("https://api.example.com")
+      end
+
+      it "uses the matching entry for matching resource key" do
+        metadata = described_class.new(resource: "api")
+        expect(metadata.to_h[:resource]).to eq("https://api.example.com")
+      end
+
+      it "uses the first entry (fallback) for non-matching resource key" do
+        metadata = described_class.new(resource: "unknown")
         expect(metadata.to_h[:resource]).to eq("https://api.example.com")
       end
     end
 
-    context "when protected_resources is configured with resource keys" do
+    context "when resources is configured with multiple entries" do
       before do
-        TokenAuthority.config.protected_resources = {
-          "api" => {
+        TokenAuthority.config.resources = {
+          api: {
             resource: "https://api.example.com",
             resource_name: "REST API"
           },
-          "mcp" => {
+          mcp: {
             resource: "https://mcp.example.com",
             resource_name: "MCP Server"
           }
@@ -66,57 +76,35 @@ RSpec.describe TokenAuthority::ProtectedResourceMetadata, type: :model do
         metadata = described_class.new(resource: "mcp")
         expect(metadata.to_h[:resource]).to eq("https://mcp.example.com")
       end
-    end
 
-    context "when resource key is present but not configured" do
-      before do
-        TokenAuthority.config.protected_resource = {
-          resource: "https://default.example.com",
-          resource_name: "Default API"
-        }
-        TokenAuthority.config.protected_resources = {
-          "api" => {
-            resource: "https://api.example.com",
-            resource_name: "REST API"
-          }
-        }
-      end
-
-      it "falls back to protected_resource" do
+      it "falls back to first entry for unknown resource key" do
         metadata = described_class.new(resource: "unknown")
-        expect(metadata.to_h[:resource]).to eq("https://default.example.com")
+        expect(metadata.to_h[:resource]).to eq("https://api.example.com")
       end
     end
 
-    context "when no configuration exists for resource key" do
+    context "when resources is empty" do
       before do
-        TokenAuthority.config.protected_resource = {}
-        TokenAuthority.config.protected_resources = {}
+        TokenAuthority.config.resources = {}
       end
 
       it "raises ResourceNotConfiguredError" do
         metadata = described_class.new(resource: "unknown")
         expect { metadata.to_h }.to raise_error(TokenAuthority::ResourceNotConfiguredError)
       end
-    end
 
-    context "when protected_resource is empty hash" do
-      before do
-        TokenAuthority.config.protected_resource = {}
-      end
-
-      it "raises ResourceNotConfiguredError" do
+      it "raises ResourceNotConfiguredError for nil key" do
         metadata = described_class.new(resource: nil)
         expect { metadata.to_h }.to raise_error(TokenAuthority::ResourceNotConfiguredError)
       end
     end
 
-    context "with basic protected_resource configured" do
+    context "with basic resource configured" do
       subject(:model) { described_class.new(resource: nil) }
 
       before do
-        TokenAuthority.config.protected_resource = {
-          resource: "https://api.example.com"
+        TokenAuthority.config.resources = {
+          api: {resource: "https://api.example.com"}
         }
       end
 
@@ -130,12 +118,14 @@ RSpec.describe TokenAuthority::ProtectedResourceMetadata, type: :model do
 
       context "with custom authorization_servers configured" do
         before do
-          TokenAuthority.config.protected_resource = {
-            resource: "https://api.example.com",
-            authorization_servers: [
-              "https://auth1.example.com",
-              "https://auth2.example.com"
-            ]
+          TokenAuthority.config.resources = {
+            api: {
+              resource: "https://api.example.com",
+              authorization_servers: [
+                "https://auth1.example.com",
+                "https://auth2.example.com"
+              ]
+            }
           }
         end
 
@@ -149,9 +139,11 @@ RSpec.describe TokenAuthority::ProtectedResourceMetadata, type: :model do
 
       context "when scopes_supported is configured" do
         before do
-          TokenAuthority.config.protected_resource = {
-            resource: "https://api.example.com",
-            scopes_supported: ["api:read", "api:write"]
+          TokenAuthority.config.resources = {
+            api: {
+              resource: "https://api.example.com",
+              scopes_supported: ["api:read", "api:write"]
+            }
           }
         end
 
@@ -162,8 +154,8 @@ RSpec.describe TokenAuthority::ProtectedResourceMetadata, type: :model do
 
       context "when scopes_supported is not configured" do
         before do
-          TokenAuthority.config.protected_resource = {
-            resource: "https://api.example.com"
+          TokenAuthority.config.resources = {
+            api: {resource: "https://api.example.com"}
           }
         end
 
@@ -174,9 +166,11 @@ RSpec.describe TokenAuthority::ProtectedResourceMetadata, type: :model do
 
       context "when bearer_methods_supported is configured" do
         before do
-          TokenAuthority.config.protected_resource = {
-            resource: "https://api.example.com",
-            bearer_methods_supported: ["header", "body"]
+          TokenAuthority.config.resources = {
+            api: {
+              resource: "https://api.example.com",
+              bearer_methods_supported: ["header", "body"]
+            }
           }
         end
 
@@ -187,8 +181,8 @@ RSpec.describe TokenAuthority::ProtectedResourceMetadata, type: :model do
 
       context "when bearer_methods_supported is not configured" do
         before do
-          TokenAuthority.config.protected_resource = {
-            resource: "https://api.example.com"
+          TokenAuthority.config.resources = {
+            api: {resource: "https://api.example.com"}
           }
         end
 
@@ -199,9 +193,11 @@ RSpec.describe TokenAuthority::ProtectedResourceMetadata, type: :model do
 
       context "when jwks_uri is configured" do
         before do
-          TokenAuthority.config.protected_resource = {
-            resource: "https://api.example.com",
-            jwks_uri: "https://example.com/.well-known/jwks.json"
+          TokenAuthority.config.resources = {
+            api: {
+              resource: "https://api.example.com",
+              jwks_uri: "https://example.com/.well-known/jwks.json"
+            }
           }
         end
 
@@ -212,8 +208,8 @@ RSpec.describe TokenAuthority::ProtectedResourceMetadata, type: :model do
 
       context "when jwks_uri is not configured" do
         before do
-          TokenAuthority.config.protected_resource = {
-            resource: "https://api.example.com"
+          TokenAuthority.config.resources = {
+            api: {resource: "https://api.example.com"}
           }
         end
 
@@ -224,9 +220,11 @@ RSpec.describe TokenAuthority::ProtectedResourceMetadata, type: :model do
 
       context "when resource_name is configured" do
         before do
-          TokenAuthority.config.protected_resource = {
-            resource: "https://api.example.com",
-            resource_name: "Example API"
+          TokenAuthority.config.resources = {
+            api: {
+              resource: "https://api.example.com",
+              resource_name: "Example API"
+            }
           }
         end
 
@@ -237,8 +235,8 @@ RSpec.describe TokenAuthority::ProtectedResourceMetadata, type: :model do
 
       context "when resource_name is not configured" do
         before do
-          TokenAuthority.config.protected_resource = {
-            resource: "https://api.example.com"
+          TokenAuthority.config.resources = {
+            api: {resource: "https://api.example.com"}
           }
         end
 
@@ -249,9 +247,11 @@ RSpec.describe TokenAuthority::ProtectedResourceMetadata, type: :model do
 
       context "when resource_documentation is configured" do
         before do
-          TokenAuthority.config.protected_resource = {
-            resource: "https://api.example.com",
-            resource_documentation: "https://example.com/docs/api"
+          TokenAuthority.config.resources = {
+            api: {
+              resource: "https://api.example.com",
+              resource_documentation: "https://example.com/docs/api"
+            }
           }
         end
 
@@ -262,8 +262,8 @@ RSpec.describe TokenAuthority::ProtectedResourceMetadata, type: :model do
 
       context "when resource_documentation is not configured" do
         before do
-          TokenAuthority.config.protected_resource = {
-            resource: "https://api.example.com"
+          TokenAuthority.config.resources = {
+            api: {resource: "https://api.example.com"}
           }
         end
 
@@ -274,9 +274,11 @@ RSpec.describe TokenAuthority::ProtectedResourceMetadata, type: :model do
 
       context "when resource_policy_uri is configured" do
         before do
-          TokenAuthority.config.protected_resource = {
-            resource: "https://api.example.com",
-            resource_policy_uri: "https://example.com/privacy"
+          TokenAuthority.config.resources = {
+            api: {
+              resource: "https://api.example.com",
+              resource_policy_uri: "https://example.com/privacy"
+            }
           }
         end
 
@@ -287,8 +289,8 @@ RSpec.describe TokenAuthority::ProtectedResourceMetadata, type: :model do
 
       context "when resource_policy_uri is not configured" do
         before do
-          TokenAuthority.config.protected_resource = {
-            resource: "https://api.example.com"
+          TokenAuthority.config.resources = {
+            api: {resource: "https://api.example.com"}
           }
         end
 
@@ -299,9 +301,11 @@ RSpec.describe TokenAuthority::ProtectedResourceMetadata, type: :model do
 
       context "when resource_tos_uri is configured" do
         before do
-          TokenAuthority.config.protected_resource = {
-            resource: "https://api.example.com",
-            resource_tos_uri: "https://example.com/tos"
+          TokenAuthority.config.resources = {
+            api: {
+              resource: "https://api.example.com",
+              resource_tos_uri: "https://example.com/tos"
+            }
           }
         end
 
@@ -312,8 +316,8 @@ RSpec.describe TokenAuthority::ProtectedResourceMetadata, type: :model do
 
       context "when resource_tos_uri is not configured" do
         before do
-          TokenAuthority.config.protected_resource = {
-            resource: "https://api.example.com"
+          TokenAuthority.config.resources = {
+            api: {resource: "https://api.example.com"}
           }
         end
 

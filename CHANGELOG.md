@@ -2,9 +2,9 @@
 
 ### Breaking
 
-- Replaced `rfc_9728_*` config options with `protected_resource` and `protected_resources` hashes
+- Replaced `rfc_9728_*` config options with `config.resources` hash (keyed by symbol)
 - Replaced `token_authority_routes` with `token_authority_auth_server_routes` and `token_authority_protected_resource_route`
-- Removed `rfc_8707_resources` config option; resource allowlist is now derived from protected resources
+- Removed `rfc_8707_resources` config option; resource allowlist is now derived from `config.resources`
 
 ## [0.2.1] - 2025-01-24
 

@@ -9,8 +9,7 @@ RSpec.describe TokenAuthority::ProtectedResourceMetadataController, type: :reque
     let!(:original_config) do
       {
         rfc_9068_issuer_url: TokenAuthority.config.rfc_9068_issuer_url,
-        protected_resource: TokenAuthority.config.protected_resource,
-        protected_resources: TokenAuthority.config.protected_resources
+        resources: TokenAuthority.config.resources
       }
     end
 
@@ -24,12 +23,14 @@ RSpec.describe TokenAuthority::ProtectedResourceMetadataController, type: :reque
       end
     end
 
-    context "when protected_resource is configured" do
+    context "when resources is configured" do
       before do
-        TokenAuthority.config.protected_resource = {
-          resource: "http://localhost:3000/api/",
-          resource_name: "Demo API",
-          scopes_supported: %w[read write]
+        TokenAuthority.config.resources = {
+          api: {
+            resource: "http://localhost:3000/api/",
+            resource_name: "Demo API",
+            scopes_supported: %w[read write]
+          }
         }
       end
 
@@ -64,11 +65,13 @@ RSpec.describe TokenAuthority::ProtectedResourceMetadataController, type: :reque
       end
     end
 
-    context "when protected_resource includes resource_documentation" do
+    context "when resources includes resource_documentation" do
       before do
-        TokenAuthority.config.protected_resource = {
-          resource: "http://localhost:3000/api/",
-          resource_documentation: "https://example.com/docs"
+        TokenAuthority.config.resources = {
+          api: {
+            resource: "http://localhost:3000/api/",
+            resource_documentation: "https://example.com/docs"
+          }
         }
       end
 
@@ -78,31 +81,12 @@ RSpec.describe TokenAuthority::ProtectedResourceMetadataController, type: :reque
       end
     end
 
-    context "when no protected resource is configured" do
+    context "when resources is empty" do
       before do
-        TokenAuthority.config.protected_resource = {}
-        TokenAuthority.config.protected_resources = {}
+        TokenAuthority.config.resources = {}
       end
 
       it "responds with HTTP status not_found" do
-        call_endpoint
-        expect(response).to have_http_status(:not_found)
-      end
-    end
-
-    context "when protected_resources is configured with subdomains" do
-      before do
-        TokenAuthority.config.protected_resource = {}
-        TokenAuthority.config.protected_resources = {
-          "api" => {
-            resource: "https://api.example.com",
-            resource_name: "REST API"
-          }
-        }
-      end
-
-      it "returns 404 when subdomain does not match" do
-        # Without subdomain, it falls back to protected_resource which is empty
         call_endpoint
         expect(response).to have_http_status(:not_found)
       end

@@ -54,22 +54,20 @@ module ActionDispatch
       # This helper is designed to be called multiple times with different subdomain
       # constraints, enabling a single Rails application to serve metadata for multiple
       # protected resources. The controller extracts the subdomain from each request and
-      # looks it up in config.protected_resources to find the appropriate metadata.
+      # looks it up as a symbol key in config.resources to find the appropriate metadata.
       #
-      # For single-resource deployments (no subdomains), call this without constraints
-      # and it will use config.protected_resource (singular). For multi-resource deployments,
-      # call it within subdomain constraint blocks and configure each subdomain in
-      # config.protected_resources.
+      # For single-resource deployments, configure one entry in config.resources - it will
+      # be used as the fallback for any request. For multi-resource deployments, configure
+      # entries for each subdomain. The first entry in config.resources is used as the
+      # fallback when no subdomain matches.
       #
-      # Returns 404 if no configuration exists for the requested subdomain, which allows
-      # clients to distinguish between "resource exists but is misconfigured" and "resource
-      # doesn't exist at this subdomain".
+      # Returns 404 if config.resources is empty.
       #
-      # @example Single protected resource (no subdomain routing)
+      # @example Single protected resource
       #   Rails.application.routes.draw do
       #     token_authority_auth_server_routes
       #     token_authority_protected_resource_route
-      #     # Serves metadata from config.protected_resource at the bare domain
+      #     # Serves metadata from first entry in config.resources
       #   end
       #
       # @example Multiple protected resources at different subdomains
@@ -79,13 +77,13 @@ module ActionDispatch
       #     # REST API protected resource
       #     constraints subdomain: "api" do
       #       token_authority_protected_resource_route
-      #       # Serves metadata from config.protected_resources["api"]
+      #       # Serves metadata from config.resources[:api]
       #     end
       #
       #     # MCP server protected resource
       #     constraints subdomain: "mcp" do
       #       token_authority_protected_resource_route
-      #       # Serves metadata from config.protected_resources["mcp"]
+      #       # Serves metadata from config.resources[:mcp]
       #     end
       #   end
       #

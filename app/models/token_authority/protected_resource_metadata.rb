@@ -9,20 +9,19 @@ module TokenAuthority
   # includes supported scopes, bearer token methods, and links to authorization servers.
   #
   # The lookup strategy supports multi-tenant deployments: the resource_key parameter
-  # (typically extracted from the request subdomain) determines which configuration
-  # to use. If no subdomain-specific configuration exists, falls back to the default
-  # protected_resource configuration. This allows a single authorization server to
-  # describe multiple protected resources at different subdomains.
+  # (typically extracted from the request subdomain) is converted to a symbol and used
+  # to look up the configuration in config.resources. If no match is found, the first
+  # resource in the hash is used as the fallback.
   #
-  # @example Single resource (no subdomain routing)
+  # @example Single resource deployment
   #   metadata = ProtectedResourceMetadata.new(resource: nil)
   #   metadata.to_h
-  #   # => { resource: "https://api.example.com", authorization_servers: [...], ... }
+  #   # => Returns first entry from config.resources
   #
   # @example Multi-tenant with subdomain-specific config
   #   metadata = ProtectedResourceMetadata.new(resource: "api")
   #   metadata.to_h
-  #   # => Returns config for "api" subdomain from protected_resources hash
+  #   # => Returns config.resources[:api]
   #
   # @see https://www.rfc-editor.org/rfc/rfc9728.html RFC 9728 OAuth 2.0 Protected Resource Metadata
   # @since 0.3.0

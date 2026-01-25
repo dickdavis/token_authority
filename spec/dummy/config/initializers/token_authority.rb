@@ -76,24 +76,27 @@ TokenAuthority.configure do |config|
   # Protected Resource Metadata (RFC 9728)
   # ==========================================================================
 
-  # Protected resource configuration for requests without a subdomain.
-  # This is the default configuration used when no subdomain-specific config is found.
-  config.protected_resource = {
-    resource: "http://localhost:3000/api/",
-    resource_name: "Demo API",
-    scopes_supported: %w[read write delete profile]
+  # Protected resources keyed by subdomain. For single-resource deployments,
+  # just configure one entry - it will be used for all requests.
+  # For multi-resource deployments, add entries for each subdomain.
+  # The first entry is used as the default when no subdomain matches.
+  config.resources = {
+    api: {
+      resource: "http://localhost:3000/api/",
+      resource_name: "Demo API",
+      scopes_supported: %w[read write delete profile]
+    }
   }
 
-  # Protected resource configuration keyed by subdomain.
-  # Use this to serve different metadata based on the request subdomain.
-  # config.protected_resources = {
-  #   "api" => {
+  # Example multi-resource configuration:
+  # config.resources = {
+  #   api: {
   #     resource: "https://api.example.com",
   #     resource_name: "REST API",
   #     scopes_supported: %w[read write],
   #     bearer_methods_supported: %w[header]
   #   },
-  #   "mcp" => {
+  #   mcp: {
   #     resource: "https://mcp.example.com",
   #     resource_name: "MCP Server",
   #     scopes_supported: %w[mcp:tools mcp:resources],
@@ -126,12 +129,11 @@ TokenAuthority.configure do |config|
   # Resource Indicators (RFC 8707)
   # ==========================================================================
 
-  # Resource indicators are automatically enabled when protected resources are configured.
+  # Resource indicators are automatically enabled when resources are configured.
   # The allowlist of valid resource URIs is derived from the `resource` key in
-  # protected_resource and protected_resources configurations above.
+  # the resources configuration above.
   #
-  # Set to nil or {} to disable resource indicators entirely by not configuring
-  # any protected resources.
+  # Set resources to {} to disable resource indicators entirely.
 
   # Require the resource parameter in authorization requests.
   # When true, clients must specify at least one resource.

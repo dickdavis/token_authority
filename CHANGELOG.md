@@ -1,5 +1,13 @@
 ## [Unreleased]
 
+## [0.3.0] - 2025-01-24
+
+### Added
+
+- Added support for multiple protected resources; applications can now define multiple protected resources under different subdomain constraints.
+- Added `issuer_url` method that returns either `token_issuer_url` or derives from `authorization_servers`
+- Added validation requiring either `token_issuer_url` or `:authorization_servers` on at least one resource
+
 ### Breaking
 
 - Replaced `rfc_9728_*` config options with `config.resources` hash (keyed by symbol)
@@ -32,11 +40,6 @@
   - `rfc_7591_software_statement_required` → `dcr_software_statement_required`
   - `rfc_7591_jwks_cache_ttl` → `dcr_jwks_cache_ttl`
 
-### Added
-
-- Added `issuer_url` method that returns either `token_issuer_url` or derives from `authorization_servers`
-- Added validation requiring either `token_issuer_url` or `:authorization_servers` on at least one resource
-
 ## [0.2.1] - 2025-01-24
 
 ### Fixes
@@ -66,7 +69,8 @@
 
 - Initial release
 
-[Unreleased]: https://github.com/dickdavis/token_authority/compare/v0.2.1...HEAD
+[Unreleased]: https://github.com/dickdavis/token_authority/compare/v0.3.0...HEAD
+[0.2.1]: https://github.com/dickdavis/token_authority/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/dickdavis/token_authority/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/dickdavis/token_authority/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/dickdavis/token_authority/releases/tag/v0.1.0

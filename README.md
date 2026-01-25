@@ -1,8 +1,6 @@
 # TokenAuthority
 
-Rails engine allowing apps to act as their own OAuth 2.1 provider. The goal of this project is to make authorization dead simple for MCP server developers.
-
-This project aims to implement the OAuth standards specified in the [MCP Authorization Specification](https://modelcontextprotocol.io/specification/2025-11-25/basic/authorization#standards-compliance).
+Rails engine allowing apps to act as their own OAuth 2.1 provider. The goal of this project is to make standards-based authorization as simple as possible.
 
 | Status | Standard |
 |--------|----------|

@@ -96,9 +96,9 @@ RSpec.describe TokenAuthority::ClientRegistrationRequest, type: :model do
     end
 
     describe "scope" do
-      context "when rfc_7591_allowed_scopes is not configured" do
+      context "when dcr_allowed_scopes is not configured" do
         before do
-          allow(TokenAuthority.config).to receive(:rfc_7591_allowed_scopes).and_return(nil)
+          allow(TokenAuthority.config).to receive(:dcr_allowed_scopes).and_return(nil)
         end
 
         it "is valid with any scope" do
@@ -107,9 +107,9 @@ RSpec.describe TokenAuthority::ClientRegistrationRequest, type: :model do
         end
       end
 
-      context "when rfc_7591_allowed_scopes is configured" do
+      context "when dcr_allowed_scopes is configured" do
         before do
-          allow(TokenAuthority.config).to receive(:rfc_7591_allowed_scopes).and_return(%w[read write])
+          allow(TokenAuthority.config).to receive(:dcr_allowed_scopes).and_return(%w[read write])
         end
 
         it "is valid with allowed scopes" do

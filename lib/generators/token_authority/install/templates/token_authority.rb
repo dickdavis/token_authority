@@ -125,20 +125,20 @@ TokenAuthority.configure do |config|
   # Used as the "iss" (issuer) claim in issued tokens.
   # If nil, the issuer is derived from the first resource's :authorization_servers.
   # You must configure either this OR :authorization_servers on at least one resource.
-  # config.rfc_9068_issuer_url = nil
+  # config.token_issuer_url = nil
 
   # The audience URL for JWT tokens (default: nil).
   # When set, this value is used as the "aud" claim for all tokens.
   # When nil (recommended), the audience is the resource URL from config.resources.
-  # config.rfc_9068_audience_url = nil
+  # config.token_audience_url = nil
 
   # Default duration for access tokens in seconds (5 minutes).
   # This value is used when creating new clients without explicit durations.
-  # config.rfc_9068_default_access_token_duration = 300
+  # config.default_access_token_duration = 300
 
   # Default duration for refresh tokens in seconds (14 days).
   # This value is used when creating new clients without explicit durations.
-  # config.rfc_9068_default_refresh_token_duration = 1_209_600
+  # config.default_refresh_token_duration = 1_209_600
 
   # ==========================================================================
   # Server Metadata (RFC 8414)
@@ -146,7 +146,7 @@ TokenAuthority.configure do |config|
 
   # URL to developer documentation for your OAuth server.
   # Included in the /.well-known/oauth-authorization-server response.
-  # config.rfc_8414_service_documentation = "https://example.com/docs/oauth"
+  # config.authorization_server_documentation = "https://example.com/docs/oauth"
 
   # Note: scopes_supported in the metadata response is automatically derived
   # from the keys of config.scopes (see Scopes section above).
@@ -157,42 +157,42 @@ TokenAuthority.configure do |config|
 
   # Enable dynamic client registration endpoint (/register) (default: true).
   # When enabled, clients can register programmatically via POST requests.
-  # config.rfc_7591_enabled = true
+  # config.dcr_enabled = true
 
   # Require an initial access token for client registration (default: false).
   # When enabled, registration requests must include a Bearer token.
-  # config.rfc_7591_require_initial_access_token = false
+  # config.dcr_require_initial_access_token = false
 
   # Validator proc for initial access tokens.
   # Must return true if the token is valid, false otherwise.
   # Example:
-  # config.rfc_7591_initial_access_token_validator = ->(token) {
+  # config.dcr_initial_access_token_validator = ->(token) {
   #   token == ENV["REGISTRATION_ACCESS_TOKEN"]
   # }
 
   # Allowed grant types for dynamically registered clients.
-  # config.rfc_7591_allowed_grant_types = %w[authorization_code refresh_token]
+  # config.dcr_allowed_grant_types = %w[authorization_code refresh_token]
 
   # Allowed response types for dynamically registered clients.
-  # config.rfc_7591_allowed_response_types = %w[code]
+  # config.dcr_allowed_response_types = %w[code]
 
   # Allowed token endpoint authentication methods.
   # Options: none, client_secret_basic, client_secret_post, client_secret_jwt, private_key_jwt
-  # config.rfc_7591_allowed_token_endpoint_auth_methods = %w[none client_secret_basic client_secret_post client_secret_jwt private_key_jwt]
+  # config.dcr_allowed_token_endpoint_auth_methods = %w[none client_secret_basic client_secret_post client_secret_jwt private_key_jwt]
 
   # Client secret expiration duration in seconds (nil = never expires).
-  # config.rfc_7591_client_secret_expiration = nil
+  # config.dcr_client_secret_expiration = nil
 
   # JWKS for verifying software statements (signed JWTs with client metadata).
   # Set to a JWKS hash to enable software statement verification.
-  # config.rfc_7591_software_statement_jwks = nil
+  # config.dcr_software_statement_jwks = nil
 
   # Require software statements for client registration.
   # When enabled, registration requests must include a valid software_statement.
-  # config.rfc_7591_software_statement_required = false
+  # config.dcr_software_statement_required = false
 
   # Cache TTL in seconds for fetched JWKS from jwks_uri (default: 1 hour).
-  # config.rfc_7591_jwks_cache_ttl = 3600
+  # config.dcr_jwks_cache_ttl = 3600
 
   # ==========================================================================
   # Client Metadata Document (draft-ietf-oauth-client-id-metadata-document)

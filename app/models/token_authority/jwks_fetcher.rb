@@ -55,7 +55,7 @@ module TokenAuthority
       end
 
       def store_in_cache(uri, jwks_data)
-        ttl = TokenAuthority.config.rfc_7591_jwks_cache_ttl
+        ttl = TokenAuthority.config.dcr_jwks_cache_ttl
         uri_hash = JwksCache.hash_uri(uri)
 
         JwksCache.find_or_initialize_by(uri_hash: uri_hash).tap do |cache|

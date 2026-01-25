@@ -61,7 +61,7 @@ module TokenAuthority
       metadata[:service_documentation] = service_documentation if service_documentation.present?
 
       # RFC 7591 Dynamic Client Registration
-      if TokenAuthority.config.rfc_7591_enabled
+      if TokenAuthority.config.dcr_enabled
         metadata[:registration_endpoint] = "#{issuer}#{@mount_path}/register"
       end
 
@@ -88,14 +88,14 @@ module TokenAuthority
     # @return [String, nil]
     # @api private
     def service_documentation
-      TokenAuthority.config.rfc_8414_service_documentation
+      TokenAuthority.config.authorization_server_documentation
     end
 
     # Returns the supported token endpoint authentication methods.
     # @return [Array<String>]
     # @api private
     def token_endpoint_auth_methods_supported
-      TokenAuthority.config.rfc_7591_allowed_token_endpoint_auth_methods
+      TokenAuthority.config.dcr_allowed_token_endpoint_auth_methods
     end
   end
 end

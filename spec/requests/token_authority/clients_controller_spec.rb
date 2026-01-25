@@ -15,7 +15,7 @@ RSpec.describe TokenAuthority::ClientsController, type: :request do
 
     context "when dynamic registration is disabled" do
       before do
-        TokenAuthority.config.rfc_7591_enabled = false
+        TokenAuthority.config.dcr_enabled = false
       end
 
       it "returns 404" do
@@ -26,11 +26,11 @@ RSpec.describe TokenAuthority::ClientsController, type: :request do
 
     context "when dynamic registration is enabled" do
       before do
-        TokenAuthority.config.rfc_7591_enabled = true
+        TokenAuthority.config.dcr_enabled = true
       end
 
       after do
-        TokenAuthority.config.rfc_7591_enabled = false
+        TokenAuthority.config.dcr_enabled = false
       end
 
       it "creates a new client and returns 201" do
@@ -132,13 +132,13 @@ RSpec.describe TokenAuthority::ClientsController, type: :request do
 
       context "when initial access token is required" do
         before do
-          TokenAuthority.config.rfc_7591_require_initial_access_token = true
-          TokenAuthority.config.rfc_7591_initial_access_token_validator = ->(token) { token == "valid-token" }
+          TokenAuthority.config.dcr_require_initial_access_token = true
+          TokenAuthority.config.dcr_initial_access_token_validator = ->(token) { token == "valid-token" }
         end
 
         after do
-          TokenAuthority.config.rfc_7591_require_initial_access_token = false
-          TokenAuthority.config.rfc_7591_initial_access_token_validator = nil
+          TokenAuthority.config.dcr_require_initial_access_token = false
+          TokenAuthority.config.dcr_initial_access_token_validator = nil
         end
 
         context "with valid token" do

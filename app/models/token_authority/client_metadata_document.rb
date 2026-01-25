@@ -47,11 +47,11 @@ module TokenAuthority
 
     # URL-based clients use default token durations from config
     def access_token_duration
-      TokenAuthority.config.rfc_9068_default_access_token_duration
+      TokenAuthority.config.default_access_token_duration
     end
 
     def refresh_token_duration
-      TokenAuthority.config.rfc_9068_default_refresh_token_duration
+      TokenAuthority.config.default_refresh_token_duration
     end
 
     # URL-based clients cannot have secrets

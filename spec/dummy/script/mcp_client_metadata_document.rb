@@ -97,17 +97,17 @@ rescue
 end
 
 def display_configured_resources
-  resources = TokenAuthority.config.rfc_8707_resources
+  resources = TokenAuthority.config.resource_registry
 
   if resources.nil? || resources.empty?
     puts "RFC 8707 Resource Indicators: DISABLED"
-    puts "  No resources configured. Tokens will use default audience."
+    puts "  No protected resources configured. Tokens will use default audience."
     return []
   end
 
   puts "RFC 8707 Resource Indicators: ENABLED"
   puts
-  puts "Configured resources (allowlist):"
+  puts "Configured resources (from protected resources):"
   resources.each_with_index do |(uri, display_name), index|
     puts "  [#{index + 1}] #{display_name}"
     puts "      #{uri}"

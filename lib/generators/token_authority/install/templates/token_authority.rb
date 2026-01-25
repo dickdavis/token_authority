@@ -140,16 +140,14 @@ TokenAuthority.configure do |config|
   # Resource Indicators (RFC 8707)
   # ==========================================================================
 
-  # Configure allowed resources with human-friendly display names.
-  # Keys are the resource URIs (used as the allowlist), values are display names
-  # shown on the consent screen.
+  # Resource indicators are automatically enabled when protected resources are configured.
+  # The allowlist of valid resource URIs is derived from the `resource` key in
+  # protected_resource and protected_resources configurations above.
   #
-  # Set to nil or {} to disable resource indicators entirely.
-  # When configured, only these resources are allowed in authorization requests.
-  # config.rfc_8707_resources = {
-  #   "https://api.example.com/" => "Main API",
-  #   "https://billing.example.com/" => "Billing Service"
-  # }
+  # Display names shown on the consent screen use the `resource_name` key from
+  # each protected resource configuration. If not set, the resource URI is used.
+  #
+  # To disable resource indicators entirely, do not configure any protected resources.
 
   # Require the resource parameter in authorization requests.
   # When true, clients must specify at least one resource.

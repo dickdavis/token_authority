@@ -156,19 +156,115 @@ RSpec.describe TokenAuthority::Configuration do
   end
 
   describe "#rfc_8707_enabled?" do
-    it "returns false when rfc_8707_resources is nil" do
-      config.rfc_8707_resources = nil
+    it "returns false when no protected resources are configured" do
+      config.protected_resource = {}
+      config.protected_resources = {}
       expect(config.rfc_8707_enabled?).to be false
     end
 
-    it "returns false when rfc_8707_resources is empty hash" do
-      config.rfc_8707_resources = {}
-      expect(config.rfc_8707_enabled?).to be false
-    end
-
-    it "returns true when rfc_8707_resources has entries" do
-      config.rfc_8707_resources = {"https://api.example.com" => "API"}
+    it "returns true when protected_resource is configured" do
+      config.protected_resource = {resource: "https://api.example.com", resource_name: "API"}
       expect(config.rfc_8707_enabled?).to be true
+    end
+
+    it "returns true when protected_resources is configured" do
+      config.protected_resources = {
+        "api" => {resource: "https://api.example.com", resource_name: "API"}
+      }
+      expect(config.rfc_8707_enabled?).to be true
+    end
+  end
+
+  describe "#resource_registry" do
+    context "when no protected resources are configured" do
+      before do
+        config.protected_resource = {}
+        config.protected_resources = {}
+      end
+
+      it "returns empty hash" do
+        expect(config.resource_registry).to eq({})
+      end
+    end
+
+    context "when protected_resource is configured" do
+      before do
+        config.protected_resource = {
+          resource: "https://api.example.com",
+          resource_name: "Main API"
+        }
+      end
+
+      it "returns mapping from resource URI to name" do
+        expect(config.resource_registry).to eq({
+          "https://api.example.com" => "Main API"
+        })
+      end
+    end
+
+    context "when protected_resource has no resource_name" do
+      before do
+        config.protected_resource = {
+          resource: "https://api.example.com"
+        }
+      end
+
+      it "uses the resource URI as the display name" do
+        expect(config.resource_registry).to eq({
+          "https://api.example.com" => "https://api.example.com"
+        })
+      end
+    end
+
+    context "when protected_resources is configured" do
+      before do
+        config.protected_resources = {
+          "api" => {resource: "https://api.example.com", resource_name: "REST API"},
+          "mcp" => {resource: "https://mcp.example.com", resource_name: "MCP Server"}
+        }
+      end
+
+      it "returns mapping from all resource URIs to names" do
+        expect(config.resource_registry).to eq({
+          "https://api.example.com" => "REST API",
+          "https://mcp.example.com" => "MCP Server"
+        })
+      end
+    end
+
+    context "when both protected_resource and protected_resources are configured" do
+      before do
+        config.protected_resource = {
+          resource: "https://default.example.com",
+          resource_name: "Default API"
+        }
+        config.protected_resources = {
+          "api" => {resource: "https://api.example.com", resource_name: "REST API"}
+        }
+      end
+
+      it "includes all resources in the registry" do
+        expect(config.resource_registry).to eq({
+          "https://default.example.com" => "Default API",
+          "https://api.example.com" => "REST API"
+        })
+      end
+    end
+
+    context "when protected_resources has invalid entries" do
+      before do
+        config.protected_resources = {
+          "api" => {resource: "https://api.example.com", resource_name: "REST API"},
+          "invalid" => nil,
+          "empty" => {}
+        }
+      end
+
+      it "skips invalid entries" do
+        expect(config.resource_registry).to eq({
+          "https://api.example.com" => "REST API"
+        })
+      end
     end
   end
 
@@ -183,20 +279,21 @@ RSpec.describe TokenAuthority::Configuration do
       )
     end
 
-    it "raises error when rfc_8707_require_resource is true but resources not configured" do
+    it "raises error when rfc_8707_require_resource is true but no protected resources configured" do
       config.rfc_8707_require_resource = true
-      config.rfc_8707_resources = nil
+      config.protected_resource = {}
+      config.protected_resources = {}
 
       expect { config.validate! }.to raise_error(
         TokenAuthority::ConfigurationError,
-        "rfc_8707_require_resource is true but no rfc_8707_resources are configured"
+        "rfc_8707_require_resource is true but no protected resources are configured"
       )
     end
 
     it "does not raise when configuration is valid" do
       config.scopes = {"read" => "Read access"}
       config.require_scope = true
-      config.rfc_8707_resources = {"https://api.example.com" => "API"}
+      config.protected_resource = {resource: "https://api.example.com", resource_name: "API"}
       config.rfc_8707_require_resource = true
 
       expect { config.validate! }.not_to raise_error

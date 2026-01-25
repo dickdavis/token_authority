@@ -244,17 +244,6 @@ module TokenAuthority
     #   @return [Integer] timeout in seconds (default: 5)
     attr_accessor :client_metadata_document_read_timeout
 
-    # @!attribute [rw] rfc_8707_resources
-    #   Hash mapping resource URIs to human-readable descriptions per RFC 8707.
-    #   Set to nil or empty hash to disable resource indicators.
-    #   @example
-    #     config.rfc_8707_resources = {
-    #       "https://api.example.com" => "Main API",
-    #       "https://files.example.com" => "File Storage API"
-    #     }
-    #   @return [Hash{String => String}, nil] resource mappings
-    attr_accessor :rfc_8707_resources
-
     # @!attribute [rw] rfc_8707_require_resource
     #   Whether clients must include a resource parameter per RFC 8707.
     #   @return [Boolean] true if required (default: false)
@@ -327,7 +316,6 @@ module TokenAuthority
       @client_metadata_document_read_timeout = 5
 
       # Resource Indicators (RFC 8707)
-      @rfc_8707_resources = nil
       @rfc_8707_require_resource = false
 
       # Event Logging
@@ -347,18 +335,67 @@ module TokenAuthority
     end
 
     # Checks whether RFC 8707 resource indicators are enabled.
-    # Resource indicators are considered enabled when rfc_8707_resources is a non-empty hash.
+    # Resource indicators are enabled when protected resources are configured.
     #
     # @return [Boolean] true if resource indicators are enabled
     def rfc_8707_enabled?
-      rfc_8707_resources.is_a?(Hash) && rfc_8707_resources.any?
+      resource_registry.any?
+    end
+
+    # Builds a mapping of resource URIs to display names from protected resource configuration.
+    #
+    # This derives the RFC 8707 resource allowlist from the protected_resource and
+    # protected_resources configurations. Each configured resource's :resource URI becomes
+    # a key, with its :resource_name (or the URI itself) as the display name.
+    #
+    # The result is used for:
+    # - Validating resource indicators in authorization requests
+    # - Displaying resource names on the consent screen
+    #
+    # @return [Hash{String => String}] mapping of resource URIs to display names
+    #
+    # @example With protected_resource configured
+    #   config.protected_resource = {
+    #     resource: "https://api.example.com",
+    #     resource_name: "Main API"
+    #   }
+    #   config.resource_registry
+    #   # => { "https://api.example.com" => "Main API" }
+    #
+    # @example With multiple protected_resources
+    #   config.protected_resources = {
+    #     "api" => { resource: "https://api.example.com", resource_name: "REST API" },
+    #     "mcp" => { resource: "https://mcp.example.com", resource_name: "MCP Server" }
+    #   }
+    #   config.resource_registry
+    #   # => { "https://api.example.com" => "REST API", "https://mcp.example.com" => "MCP Server" }
+    def resource_registry
+      registry = {}
+
+      # Add from protected_resource (singular) if configured
+      if protected_resource.is_a?(Hash) && protected_resource[:resource].present?
+        uri = protected_resource[:resource]
+        registry[uri] = protected_resource[:resource_name] || uri
+      end
+
+      # Add from protected_resources (plural) if configured
+      if protected_resources.is_a?(Hash)
+        protected_resources.each_value do |config|
+          next unless config.is_a?(Hash) && config[:resource].present?
+
+          uri = config[:resource]
+          registry[uri] = config[:resource_name] || uri
+        end
+      end
+
+      registry
     end
 
     # Validates the configuration for internal consistency.
     # Ensures that required features are properly configured before use.
     #
     # @raise [ConfigurationError] if require_scope is true but scopes are not configured
-    # @raise [ConfigurationError] if rfc_8707_require_resource is true but resources are not configured
+    # @raise [ConfigurationError] if rfc_8707_require_resource is true but no protected resources are configured
     # @return [void]
     def validate!
       if require_scope && !scopes_enabled?
@@ -366,7 +403,7 @@ module TokenAuthority
       end
 
       if rfc_8707_require_resource && !rfc_8707_enabled?
-        raise ConfigurationError, "rfc_8707_require_resource is true but no rfc_8707_resources are configured"
+        raise ConfigurationError, "rfc_8707_require_resource is true but no protected resources are configured"
       end
     end
 

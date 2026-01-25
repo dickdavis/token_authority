@@ -8,7 +8,7 @@ RSpec.describe TokenAuthority::AuthorizationGrantsHelper, type: :helper do
 
     context "when no resources are configured" do
       before do
-        allow(TokenAuthority.config).to receive(:rfc_8707_resources).and_return({})
+        allow(TokenAuthority.config).to receive(:resource_registry).and_return({})
       end
 
       it "returns the resource URI as-is" do
@@ -25,7 +25,7 @@ RSpec.describe TokenAuthority::AuthorizationGrantsHelper, type: :helper do
       end
 
       before do
-        allow(TokenAuthority.config).to receive(:rfc_8707_resources).and_return(configured_resources)
+        allow(TokenAuthority.config).to receive(:resource_registry).and_return(configured_resources)
       end
 
       it "returns the configured display name for a mapped URI" do
@@ -38,16 +38,6 @@ RSpec.describe TokenAuthority::AuthorizationGrantsHelper, type: :helper do
 
       it "returns the URI as-is for an unmapped URI" do
         expect(helper.resource_display_name("https://unknown.example.com")).to eq("https://unknown.example.com")
-      end
-    end
-
-    context "when resources config is nil" do
-      before do
-        allow(TokenAuthority.config).to receive(:rfc_8707_resources).and_return(nil)
-      end
-
-      it "returns the resource URI as-is" do
-        expect(helper.resource_display_name(resource_uri)).to eq(resource_uri)
       end
     end
   end

@@ -113,7 +113,7 @@ RSpec.describe TokenAuthority::AuthorizationGrantsController, type: :request do
 
       before do
         allow(TokenAuthority.config).to receive(:resource_registry).and_return(configured_resources)
-        allow(TokenAuthority.config).to receive(:rfc_8707_enabled?).and_return(true)
+        allow(TokenAuthority.config).to receive(:resources_enabled?).and_return(true)
         start_authorization_flow(token_authority_client, resources:)
       end
 

@@ -213,7 +213,7 @@ RSpec.describe TokenAuthority::AuthorizationRequest, type: :model do
 
       before do
         allow(TokenAuthority.config).to receive(:resource_registry).and_return(configured_resources)
-        allow(TokenAuthority.config).to receive(:rfc_8707_enabled?).and_return(true)
+        allow(TokenAuthority.config).to receive(:resources_enabled?).and_return(true)
       end
 
       context "when resources is nil" do
@@ -262,9 +262,9 @@ RSpec.describe TokenAuthority::AuthorizationRequest, type: :model do
         end
       end
 
-      context "when rfc_8707_require_resource is true" do
+      context "when require_resource is true" do
         before do
-          allow(TokenAuthority.config).to receive(:rfc_8707_require_resource).and_return(true)
+          allow(TokenAuthority.config).to receive(:require_resource).and_return(true)
         end
 
         context "when resources is empty" do
@@ -301,7 +301,7 @@ RSpec.describe TokenAuthority::AuthorizationRequest, type: :model do
       context "when RFC 8707 is disabled (no resources configured)" do
         before do
           allow(TokenAuthority.config).to receive(:resource_registry).and_return({})
-          allow(TokenAuthority.config).to receive(:rfc_8707_enabled?).and_return(false)
+          allow(TokenAuthority.config).to receive(:resources_enabled?).and_return(false)
         end
 
         context "when no resources are provided" do

@@ -10,25 +10,19 @@ TokenAuthority.configure do |config|
   # secret_key_base from credentials or configuration.
   config.secret_key = Rails.application.credentials.secret_key_base || Rails.application.secret_key_base
 
-  # ==========================================================================
-  # JWT Access Tokens (RFC 9068)
-  # ==========================================================================
+  # Enable event logging (default: true).
+  # When enabled, events are emitted and logged to Rails.logger.
+  # Events include: authorization requests, consent actions, token exchanges,
+  # token refreshes, revocations, client authentication, and security events.
+  # config.event_logging_enabled = true
 
-  # The audience URL for JWT tokens. This is typically your API's base URL.
-  # Used as the "aud" (audience) claim in issued tokens.
-  config.rfc_9068_audience_url = ENV.fetch("TOKEN_AUTHORITY_AUDIENCE_URL", "http://localhost:3000/api/")
+  # Enable debug events (default: false).
+  # Debug events provide detailed information useful during development,
+  # such as PKCE validation steps and cache hits/misses.
+  # config.event_logging_debug_events = false
 
-  # The issuer URL for JWT tokens. This is typically your application's base URL.
-  # Used as the "iss" (issuer) claim in issued tokens.
-  config.rfc_9068_issuer_url = ENV.fetch("TOKEN_AUTHORITY_ISSUER_URL", "http://localhost:3000/")
-
-  # Default duration for access tokens in seconds (5 minutes).
-  # This value is used when creating new clients without explicit durations.
-  # config.rfc_9068_default_access_token_duration = 300
-
-  # Default duration for refresh tokens in seconds (14 days).
-  # This value is used when creating new clients without explicit durations.
-  # config.rfc_9068_default_refresh_token_duration = 1_209_600
+  # Enable ActiveSupport::Notifications instrumentation (default: true).
+  # config.instrumentation_enabled = true
 
   # ==========================================================================
   # User Authentication
@@ -62,18 +56,26 @@ TokenAuthority.configure do |config|
   config.error_page_layout = "application"
 
   # ==========================================================================
-  # Server Metadata (RFC 8414)
+  # Scopes
   # ==========================================================================
 
-  # URL to developer documentation for your OAuth server.
-  # Included in the /.well-known/oauth-authorization-server response.
-  # config.rfc_8414_service_documentation = "https://example.com/docs/oauth"
+  # Configure allowed scopes with human-friendly display names.
+  # Keys are the scope strings (used as the allowlist), values are display names
+  # shown on the consent screen.
+  #
+  # Set to nil or {} to disable scope validation entirely.
+  # When configured, only these scopes are allowed in authorization requests.
+  # config.scopes = {
+  #   "read" => "Read access to your data",
+  #   "write" => "Write access to your data"
+  # }
 
-  # Note: scopes_supported in the metadata response is automatically derived
-  # from the keys of config.scopes (see Scopes section below).
+  # Require the scope parameter in authorization requests.
+  # When true, clients must specify at least one scope.
+  # config.require_scope = false
 
   # ==========================================================================
-  # Protected Resource Metadata (RFC 9728)
+  # Resources (RFC 9728 / RFC 8707)
   # ==========================================================================
 
   # Protected resources keyed by subdomain. For single-resource deployments,
@@ -83,6 +85,11 @@ TokenAuthority.configure do |config|
   #
   # Each entry must include the :resource field (required per RFC 9728).
   # All other fields are optional.
+  #
+  # Resource indicators (RFC 8707) are automatically enabled when resources are
+  # configured. The allowlist of valid resource URIs is derived from the :resource
+  # key in the configuration below. Display names on the consent screen use the
+  # :resource_name key (or the URI if not set).
   #
   # config.resources = {
   #   api: {
@@ -112,41 +119,40 @@ TokenAuthority.configure do |config|
   #   }
   # }
 
-  # ==========================================================================
-  # Scopes
-  # ==========================================================================
-
-  # Configure allowed scopes with human-friendly display names.
-  # Keys are the scope strings (used as the allowlist), values are display names
-  # shown on the consent screen.
-  #
-  # Set to nil or {} to disable scope validation entirely.
-  # When configured, only these scopes are allowed in authorization requests.
-  # config.scopes = {
-  #   "read" => "Read access to your data",
-  #   "write" => "Write access to your data"
-  # }
-
-  # Require the scope parameter in authorization requests.
-  # When true, clients must specify at least one scope.
-  # config.require_scope = false
-
-  # ==========================================================================
-  # Resource Indicators (RFC 8707)
-  # ==========================================================================
-
-  # Resource indicators are automatically enabled when resources are configured.
-  # The allowlist of valid resource URIs is derived from the `resource` key in
-  # the resources configuration above.
-  #
-  # Display names shown on the consent screen use the `resource_name` key from
-  # each resource configuration. If not set, the resource URI is used.
-  #
-  # To disable resource indicators entirely, set resources to {}.
-
   # Require the resource parameter in authorization requests.
   # When true, clients must specify at least one resource.
-  # config.rfc_8707_require_resource = false
+  # config.require_resource = false
+
+  # ==========================================================================
+  # JWT Access Tokens (RFC 9068)
+  # ==========================================================================
+
+  # The audience URL for JWT tokens. This is typically your API's base URL.
+  # Used as the "aud" (audience) claim in issued tokens.
+  config.rfc_9068_audience_url = ENV.fetch("TOKEN_AUTHORITY_AUDIENCE_URL", "http://localhost:3000/api/")
+
+  # The issuer URL for JWT tokens. This is typically your application's base URL.
+  # Used as the "iss" (issuer) claim in issued tokens.
+  config.rfc_9068_issuer_url = ENV.fetch("TOKEN_AUTHORITY_ISSUER_URL", "http://localhost:3000/")
+
+  # Default duration for access tokens in seconds (5 minutes).
+  # This value is used when creating new clients without explicit durations.
+  # config.rfc_9068_default_access_token_duration = 300
+
+  # Default duration for refresh tokens in seconds (14 days).
+  # This value is used when creating new clients without explicit durations.
+  # config.rfc_9068_default_refresh_token_duration = 1_209_600
+
+  # ==========================================================================
+  # Server Metadata (RFC 8414)
+  # ==========================================================================
+
+  # URL to developer documentation for your OAuth server.
+  # Included in the /.well-known/oauth-authorization-server response.
+  # config.rfc_8414_service_documentation = "https://example.com/docs/oauth"
+
+  # Note: scopes_supported in the metadata response is automatically derived
+  # from the keys of config.scopes (see Scopes section above).
 
   # ==========================================================================
   # Dynamic Client Registration (RFC 7591)
@@ -228,24 +234,4 @@ TokenAuthority.configure do |config|
   # Connection and read timeouts in seconds (default: 5 each).
   # config.client_metadata_document_connect_timeout = 5
   # config.client_metadata_document_read_timeout = 5
-
-  # ==========================================================================
-  # Event Logging
-  # ==========================================================================
-
-  # TokenAuthority emits structured events using Rails 8.1's event reporting.
-  # Events are automatically logged to Rails.logger when enabled.
-  #
-  # Events include: authorization requests, consent actions, token exchanges,
-  # token refreshes, revocations, client authentication, and security events
-  # (e.g., token theft detection).
-
-  # Enable event logging (default: true).
-  # When enabled, events are emitted and logged to Rails.logger.
-  # config.event_logging_enabled = true
-
-  # Enable debug events (default: false).
-  # Debug events provide detailed information useful during development,
-  # such as PKCE validation steps and cache hits/misses.
-  # config.event_logging_debug_events = false
 end

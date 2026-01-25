@@ -225,7 +225,7 @@ module TokenAuthority
 
     def resources_must_be_valid
       # Check if resource is required
-      if TokenAuthority.config.rfc_8707_require_resource && resources.empty?
+      if TokenAuthority.config.require_resource && resources.empty?
         errors.add(:resources, :required)
         return
       end
@@ -233,7 +233,7 @@ module TokenAuthority
       return if resources.empty?
 
       # If resources are provided but feature is disabled, reject them
-      unless TokenAuthority.config.rfc_8707_enabled?
+      unless TokenAuthority.config.resources_enabled?
         errors.add(:resources, :not_allowed)
         return
       end

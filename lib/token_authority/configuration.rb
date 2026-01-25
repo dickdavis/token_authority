@@ -29,33 +29,34 @@ module TokenAuthority
   #
   # @since 0.2.0
   class Configuration
+    # ==========================================================================
+    # General
+    # ==========================================================================
+
     # @!attribute [rw] secret_key
     #   The secret key used for JWT signing and HMAC operations.
     #   This should be a secure random string, typically derived from Rails credentials.
     #   @return [String] the secret key
     attr_accessor :secret_key
 
-    # @!attribute [rw] rfc_9068_audience_url
-    #   The default audience (aud) claim for JWT access tokens per RFC 9068.
-    #   Identifies the intended recipient of the token (typically the API server).
-    #   @return [String, nil] the audience URL
-    attr_accessor :rfc_9068_audience_url
+    # @!attribute [rw] event_logging_enabled
+    #   Enable structured event logging for OAuth flows and security events.
+    #   @return [Boolean] true if enabled (default: true)
+    attr_accessor :event_logging_enabled
 
-    # @!attribute [rw] rfc_9068_issuer_url
-    #   The issuer (iss) claim for JWT access tokens per RFC 9068.
-    #   Identifies the authorization server that issued the token.
-    #   @return [String, nil] the issuer URL
-    attr_accessor :rfc_9068_issuer_url
+    # @!attribute [rw] event_logging_debug_events
+    #   Enable debug-level event logging for troubleshooting.
+    #   @return [Boolean] true if enabled (default: false)
+    attr_accessor :event_logging_debug_events
 
-    # @!attribute [rw] rfc_9068_default_access_token_duration
-    #   Default lifetime for access tokens in seconds.
-    #   @return [Integer] duration in seconds (default: 300)
-    attr_accessor :rfc_9068_default_access_token_duration
+    # @!attribute [rw] instrumentation_enabled
+    #   Enable ActiveSupport::Notifications instrumentation for performance monitoring.
+    #   @return [Boolean] true if enabled (default: true)
+    attr_accessor :instrumentation_enabled
 
-    # @!attribute [rw] rfc_9068_default_refresh_token_duration
-    #   Default lifetime for refresh tokens in seconds.
-    #   @return [Integer] duration in seconds (default: 1,209,600)
-    attr_accessor :rfc_9068_default_refresh_token_duration
+    # ==========================================================================
+    # User Authentication
+    # ==========================================================================
 
     # @!attribute [rw] authenticatable_controller
     #   The controller class name that provides authentication methods.
@@ -68,6 +69,10 @@ module TokenAuthority
     #   @return [String] user class name (default: "User")
     attr_accessor :user_class
 
+    # ==========================================================================
+    # UI/Layout
+    # ==========================================================================
+
     # @!attribute [rw] consent_page_layout
     #   The layout to use for the OAuth consent screen.
     #   @return [String] layout name (default: "application")
@@ -78,10 +83,9 @@ module TokenAuthority
     #   @return [String] layout name (default: "application")
     attr_accessor :error_page_layout
 
-    # @!attribute [rw] rfc_8414_service_documentation
-    #   URL for service documentation in authorization server metadata per RFC 8414.
-    #   @return [String, nil] documentation URL
-    attr_accessor :rfc_8414_service_documentation
+    # ==========================================================================
+    # Scopes
+    # ==========================================================================
 
     # @!attribute [rw] scopes
     #   Hash mapping scope strings to human-readable descriptions.
@@ -98,6 +102,10 @@ module TokenAuthority
     #   Whether clients must include a scope parameter in authorization requests.
     #   @return [Boolean] true if scope is required (default: false)
     attr_accessor :require_scope
+
+    # ==========================================================================
+    # Resources (RFC 9728 / RFC 8707)
+    # ==========================================================================
 
     # @!attribute [rw] resources
     #   Protected resource metadata keyed by subdomain (RFC 9728).
@@ -139,6 +147,50 @@ module TokenAuthority
     #
     #   @return [Hash{Symbol => Hash}, nil] subdomain-to-metadata mapping
     attr_accessor :resources
+
+    # @!attribute [rw] require_resource
+    #   Whether clients must include a resource parameter in authorization requests.
+    #   @return [Boolean] true if resource is required (default: false)
+    attr_accessor :require_resource
+
+    # ==========================================================================
+    # JWT Access Tokens (RFC 9068)
+    # ==========================================================================
+
+    # @!attribute [rw] rfc_9068_audience_url
+    #   The default audience (aud) claim for JWT access tokens per RFC 9068.
+    #   Identifies the intended recipient of the token (typically the API server).
+    #   @return [String, nil] the audience URL
+    attr_accessor :rfc_9068_audience_url
+
+    # @!attribute [rw] rfc_9068_issuer_url
+    #   The issuer (iss) claim for JWT access tokens per RFC 9068.
+    #   Identifies the authorization server that issued the token.
+    #   @return [String, nil] the issuer URL
+    attr_accessor :rfc_9068_issuer_url
+
+    # @!attribute [rw] rfc_9068_default_access_token_duration
+    #   Default lifetime for access tokens in seconds.
+    #   @return [Integer] duration in seconds (default: 300)
+    attr_accessor :rfc_9068_default_access_token_duration
+
+    # @!attribute [rw] rfc_9068_default_refresh_token_duration
+    #   Default lifetime for refresh tokens in seconds.
+    #   @return [Integer] duration in seconds (default: 1,209,600)
+    attr_accessor :rfc_9068_default_refresh_token_duration
+
+    # ==========================================================================
+    # Server Metadata (RFC 8414)
+    # ==========================================================================
+
+    # @!attribute [rw] rfc_8414_service_documentation
+    #   URL for service documentation in authorization server metadata per RFC 8414.
+    #   @return [String, nil] documentation URL
+    attr_accessor :rfc_8414_service_documentation
+
+    # ==========================================================================
+    # Dynamic Client Registration (RFC 7591)
+    # ==========================================================================
 
     # @!attribute [rw] rfc_7591_enabled
     #   Enable dynamic client registration per RFC 7591.
@@ -196,6 +248,10 @@ module TokenAuthority
     #   @return [Integer] TTL in seconds (default: 3600)
     attr_accessor :rfc_7591_jwks_cache_ttl
 
+    # ==========================================================================
+    # Client Metadata Document (draft-ietf-oauth-client-id-metadata-document)
+    # ==========================================================================
+
     # @!attribute [rw] client_metadata_document_enabled
     #   Enable support for client metadata documents (URL-based client IDs).
     #   @return [Boolean] true if enabled (default: true)
@@ -231,29 +287,12 @@ module TokenAuthority
     #   @return [Integer] timeout in seconds (default: 5)
     attr_accessor :client_metadata_document_read_timeout
 
-    # @!attribute [rw] rfc_8707_require_resource
-    #   Whether clients must include a resource parameter per RFC 8707.
-    #   @return [Boolean] true if required (default: false)
-    attr_accessor :rfc_8707_require_resource
-
-    # @!attribute [rw] event_logging_enabled
-    #   Enable structured event logging for OAuth flows and security events.
-    #   @return [Boolean] true if enabled (default: true)
-    attr_accessor :event_logging_enabled
-
-    # @!attribute [rw] event_logging_debug_events
-    #   Enable debug-level event logging for troubleshooting.
-    #   @return [Boolean] true if enabled (default: false)
-    attr_accessor :event_logging_debug_events
-
-    # @!attribute [rw] instrumentation_enabled
-    #   Enable ActiveSupport::Notifications instrumentation for performance monitoring.
-    #   @return [Boolean] true if enabled (default: true)
-    attr_accessor :instrumentation_enabled
-
     def initialize
       # General
       @secret_key = nil
+      @event_logging_enabled = true
+      @event_logging_debug_events = false
+      @instrumentation_enabled = true
 
       # User Authentication
       @authenticatable_controller = "ApplicationController"
@@ -267,6 +306,10 @@ module TokenAuthority
       @scopes = nil
       @require_scope = false
 
+      # Resources
+      @resources = {}
+      @require_resource = false
+
       # JWT Access Tokens (RFC 9068)
       @rfc_9068_audience_url = nil
       @rfc_9068_issuer_url = nil
@@ -275,9 +318,6 @@ module TokenAuthority
 
       # Server Metadata (RFC 8414)
       @rfc_8414_service_documentation = nil
-
-      # Protected Resource Metadata (RFC 9728)
-      @resources = {}
 
       # Dynamic Client Registration (RFC 7591)
       @rfc_7591_enabled = false
@@ -300,16 +340,6 @@ module TokenAuthority
       @client_metadata_document_blocked_hosts = []
       @client_metadata_document_connect_timeout = 5
       @client_metadata_document_read_timeout = 5
-
-      # Resource Indicators (RFC 8707)
-      @rfc_8707_require_resource = false
-
-      # Event Logging
-      @event_logging_enabled = true
-      @event_logging_debug_events = false
-
-      # Instrumentation
-      @instrumentation_enabled = true
     end
 
     # Checks whether the scopes feature is enabled.
@@ -320,11 +350,11 @@ module TokenAuthority
       scopes.is_a?(Hash) && scopes.any?
     end
 
-    # Checks whether RFC 8707 resource indicators are enabled.
-    # Resource indicators are enabled when protected resources are configured.
+    # Checks whether resources are configured.
+    # Resources are enabled when at least one resource is configured.
     #
-    # @return [Boolean] true if resource indicators are enabled
-    def rfc_8707_enabled?
+    # @return [Boolean] true if resources are enabled
+    def resources_enabled?
       resource_registry.any?
     end
 
@@ -362,7 +392,7 @@ module TokenAuthority
     # Ensures that required features are properly configured before use.
     #
     # @raise [ConfigurationError] if require_scope is true but scopes are not configured
-    # @raise [ConfigurationError] if rfc_8707_require_resource is true but no resources are configured
+    # @raise [ConfigurationError] if require_resource is true but no resources are configured
     # @raise [ConfigurationError] if any resource entry is missing the required :resource field
     # @return [void]
     def validate!
@@ -370,8 +400,8 @@ module TokenAuthority
         raise ConfigurationError, "require_scope is true but no scopes are configured"
       end
 
-      if rfc_8707_require_resource && !rfc_8707_enabled?
-        raise ConfigurationError, "rfc_8707_require_resource is true but no protected resources are configured"
+      if require_resource && !resources_enabled?
+        raise ConfigurationError, "require_resource is true but no resources are configured"
       end
 
       if resources.is_a?(Hash)

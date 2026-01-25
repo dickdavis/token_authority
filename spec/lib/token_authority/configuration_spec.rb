@@ -132,17 +132,17 @@ RSpec.describe TokenAuthority::Configuration do
     end
   end
 
-  describe "#rfc_8707_enabled?" do
+  describe "#resources_enabled?" do
     it "returns false when resources is empty" do
       config.resources = {}
-      expect(config.rfc_8707_enabled?).to be false
+      expect(config.resources_enabled?).to be false
     end
 
     it "returns true when resources is configured" do
       config.resources = {
         api: {resource: "https://api.example.com", resource_name: "API"}
       }
-      expect(config.rfc_8707_enabled?).to be true
+      expect(config.resources_enabled?).to be true
     end
   end
 
@@ -221,13 +221,13 @@ RSpec.describe TokenAuthority::Configuration do
       )
     end
 
-    it "raises error when rfc_8707_require_resource is true but no resources configured" do
-      config.rfc_8707_require_resource = true
+    it "raises error when require_resource is true but no resources configured" do
+      config.require_resource = true
       config.resources = {}
 
       expect { config.validate! }.to raise_error(
         TokenAuthority::ConfigurationError,
-        "rfc_8707_require_resource is true but no protected resources are configured"
+        "require_resource is true but no resources are configured"
       )
     end
 
@@ -280,7 +280,7 @@ RSpec.describe TokenAuthority::Configuration do
       config.scopes = {"read" => "Read access"}
       config.require_scope = true
       config.resources = {api: {resource: "https://api.example.com", resource_name: "API"}}
-      config.rfc_8707_require_resource = true
+      config.require_resource = true
 
       expect { config.validate! }.not_to raise_error
     end

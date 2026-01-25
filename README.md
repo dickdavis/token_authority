@@ -1,8 +1,6 @@
 # TokenAuthority
 
-Rails engine allowing apps to act as their own OAuth 2.1 provider. The goal of this project is to make authorization dead simple for MCP server developers.
-
-This project aims to implement the OAuth standards specified in the [MCP Authorization Specification](https://modelcontextprotocol.io/specification/2025-11-25/basic/authorization#standards-compliance).
+Rails engine allowing apps to act as their own OAuth 2.1 provider. The goal of this project is to make standards-based authorization as simple as possible.
 
 | Status | Standard |
 |--------|----------|
@@ -113,6 +111,15 @@ Rails.application.routes.draw do
   end
 end
 ```
+
+> **Development Note:** Rails subdomain constraints require a real domain with proper DNS resolution. Use `lvh.me` (which resolves to `127.0.0.1`) for local development: `mcp.lvh.me:3000`, `api.lvh.me:3000`, etc. You'll also need to allow these hosts in your development config:
+>
+> ```ruby
+> # config/environments/development.rb
+> config.hosts << /.*\.lvh\.me/
+> ```
+>
+> See the [Installation Guide](https://github.com/dickdavis/token_authority/wiki/Installation-Guide#subdomain-development-setup) for details.
 
 ### User Consent
 

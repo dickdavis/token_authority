@@ -80,9 +80,12 @@ TokenAuthority.configure do |config|
   # just configure one entry - it will be used for all requests.
   # For multi-resource deployments, add entries for each subdomain.
   # The first entry is used as the default when no subdomain matches.
+  #
+  # Each entry must include the :resource field (required per RFC 9728).
+  # All other fields are optional.
   config.resources = {
     api: {
-      resource: "http://localhost:3000/api/",
+      resource: "http://localhost:3000/api/",  # Required
       resource_name: "Demo API",
       scopes_supported: %w[read write delete profile]
     }
@@ -93,14 +96,12 @@ TokenAuthority.configure do |config|
   #   api: {
   #     resource: "https://api.example.com",
   #     resource_name: "REST API",
-  #     scopes_supported: %w[read write],
-  #     bearer_methods_supported: %w[header]
+  #     scopes_supported: %w[read write]
   #   },
   #   mcp: {
   #     resource: "https://mcp.example.com",
   #     resource_name: "MCP Server",
-  #     scopes_supported: %w[mcp:tools mcp:resources],
-  #     bearer_methods_supported: %w[header]
+  #     scopes_supported: %w[mcp:tools mcp:resources]
   #   }
   # }
 

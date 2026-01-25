@@ -81,17 +81,20 @@ TokenAuthority.configure do |config|
   # For multi-resource deployments, add entries for each subdomain.
   # The first entry is used as the default when no subdomain matches.
   #
+  # Each entry must include the :resource field (required per RFC 9728).
+  # All other fields are optional.
+  #
   # config.resources = {
   #   api: {
-  #     resource: "https://api.example.com/",
-  #     resource_name: "Example API",
-  #     scopes_supported: %w[read write],
-  #     authorization_servers: ["https://auth.example.com"],  # Defaults to issuer if not set
-  #     bearer_methods_supported: ["header"],
-  #     jwks_uri: "https://api.example.com/.well-known/jwks.json",
-  #     resource_documentation: "https://example.com/docs/api",
-  #     resource_policy_uri: "https://example.com/privacy",
-  #     resource_tos_uri: "https://example.com/tos"
+  #     resource: "https://api.example.com/",           # Required: resource identifier URI
+  #     resource_name: "Example API",                   # Optional: human-readable name
+  #     scopes_supported: %w[read write],               # Optional: supported scopes
+  #     authorization_servers: ["https://auth.example.com"],  # Optional: defaults to issuer
+  #     bearer_methods_supported: ["header"],           # Optional: how to present tokens
+  #     jwks_uri: "https://api.example.com/.well-known/jwks.json",  # Optional
+  #     resource_documentation: "https://example.com/docs/api",     # Optional
+  #     resource_policy_uri: "https://example.com/privacy",         # Optional
+  #     resource_tos_uri: "https://example.com/tos"                 # Optional
   #   }
   # }
   #
@@ -100,14 +103,12 @@ TokenAuthority.configure do |config|
   #   api: {
   #     resource: "https://api.example.com",
   #     resource_name: "REST API",
-  #     scopes_supported: %w[read write],
-  #     bearer_methods_supported: ["header"]
+  #     scopes_supported: %w[read write]
   #   },
   #   mcp: {
   #     resource: "https://mcp.example.com",
   #     resource_name: "MCP Server",
-  #     scopes_supported: %w[mcp:tools mcp:resources],
-  #     bearer_methods_supported: ["header"]
+  #     scopes_supported: %w[mcp:tools mcp:resources]
   #   }
   # }
 

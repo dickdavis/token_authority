@@ -231,11 +231,68 @@ RSpec.describe TokenAuthority::Configuration do
       )
     end
 
+    it "raises error when resource entry is missing the :resource field" do
+      config.resources = {
+        api: {resource_name: "API without resource URI"}
+      }
+
+      expect { config.validate! }.to raise_error(
+        TokenAuthority::ConfigurationError,
+        "resource :api is missing the required :resource field"
+      )
+    end
+
+    it "raises error when resource entry has blank :resource field" do
+      config.resources = {
+        api: {resource: "", resource_name: "API"}
+      }
+
+      expect { config.validate! }.to raise_error(
+        TokenAuthority::ConfigurationError,
+        "resource :api is missing the required :resource field"
+      )
+    end
+
+    it "raises error when resource entry has nil :resource field" do
+      config.resources = {
+        api: {resource: nil, resource_name: "API"}
+      }
+
+      expect { config.validate! }.to raise_error(
+        TokenAuthority::ConfigurationError,
+        "resource :api is missing the required :resource field"
+      )
+    end
+
+    it "validates all resources and reports the first invalid one" do
+      config.resources = {
+        api: {resource: "https://api.example.com"},
+        mcp: {resource_name: "MCP without resource URI"}
+      }
+
+      expect { config.validate! }.to raise_error(
+        TokenAuthority::ConfigurationError,
+        "resource :mcp is missing the required :resource field"
+      )
+    end
+
     it "does not raise when configuration is valid" do
       config.scopes = {"read" => "Read access"}
       config.require_scope = true
       config.resources = {api: {resource: "https://api.example.com", resource_name: "API"}}
       config.rfc_8707_require_resource = true
+
+      expect { config.validate! }.not_to raise_error
+    end
+
+    it "does not raise when resources is empty" do
+      config.resources = {}
+
+      expect { config.validate! }.not_to raise_error
+    end
+
+    it "does not raise when resources is nil" do
+      config.resources = nil
 
       expect { config.validate! }.not_to raise_error
     end

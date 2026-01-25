@@ -110,8 +110,9 @@ module TokenAuthority
     #   For single-resource deployments, simply configure one entry - it will be used
     #   for all requests regardless of subdomain.
     #
-    #   The hash keys match RFC 9728 field names. Only the :resource field is required;
-    #   all others are optional and will be omitted from responses if not set.
+    #   Each entry must include the :resource field (required per RFC 9728). The
+    #   validate! method raises ConfigurationError if any entry is missing this field.
+    #   All other fields are optional and will be omitted from responses if not set.
     #
     #   @example Single resource deployment
     #     config.resources = {
@@ -361,7 +362,8 @@ module TokenAuthority
     # Ensures that required features are properly configured before use.
     #
     # @raise [ConfigurationError] if require_scope is true but scopes are not configured
-    # @raise [ConfigurationError] if rfc_8707_require_resource is true but no protected resources are configured
+    # @raise [ConfigurationError] if rfc_8707_require_resource is true but no resources are configured
+    # @raise [ConfigurationError] if any resource entry is missing the required :resource field
     # @return [void]
     def validate!
       if require_scope && !scopes_enabled?
@@ -370,6 +372,16 @@ module TokenAuthority
 
       if rfc_8707_require_resource && !rfc_8707_enabled?
         raise ConfigurationError, "rfc_8707_require_resource is true but no protected resources are configured"
+      end
+
+      if resources.is_a?(Hash)
+        resources.each do |key, config|
+          next unless config.is_a?(Hash)
+
+          if config[:resource].blank?
+            raise ConfigurationError, "resource :#{key} is missing the required :resource field"
+          end
+        end
       end
     end
 

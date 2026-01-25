@@ -112,6 +112,15 @@ Rails.application.routes.draw do
 end
 ```
 
+> **Development Note:** Rails subdomain constraints require a real domain with proper DNS resolution. Use `lvh.me` (which resolves to `127.0.0.1`) for local development: `mcp.lvh.me:3000`, `api.lvh.me:3000`, etc. You'll also need to allow these hosts in your development config:
+>
+> ```ruby
+> # config/environments/development.rb
+> config.hosts << /.*\.lvh\.me/
+> ```
+>
+> See the [Installation Guide](https://github.com/dickdavis/token_authority/wiki/Installation-Guide#subdomain-development-setup) for details.
+
 ### User Consent
 
 Before issuing authorization codes, TokenAuthority displays a consent screen where users can approve or deny access to OAuth clients. The consent views are fully customizable and the layout is configurable—see [Customizing Views](https://github.com/dickdavis/token_authority/wiki/Customizing-Views) for details.

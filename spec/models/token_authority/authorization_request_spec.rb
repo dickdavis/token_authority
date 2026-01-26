@@ -298,6 +298,31 @@ RSpec.describe TokenAuthority::AuthorizationRequest, type: :model do
         end
       end
 
+      context "when resource URIs have mismatched trailing slashes" do
+        before do
+          # Config has trailing slash, request does not
+          allow(TokenAuthority.config).to receive(:resource_registry).and_return({
+            "https://api.example.com" => "REST API"
+          })
+        end
+
+        context "when request has no trailing slash but config did" do
+          let(:resources) { ["https://api.example.com"] }
+
+          it "is valid due to URI normalization" do
+            expect(model).to be_valid
+          end
+        end
+
+        context "when request has trailing slash but config did not" do
+          let(:resources) { ["https://api.example.com/"] }
+
+          it "is valid due to URI normalization" do
+            expect(model).to be_valid
+          end
+        end
+      end
+
       context "when RFC 8707 is disabled (no resources configured)" do
         before do
           allow(TokenAuthority.config).to receive(:resource_registry).and_return({})

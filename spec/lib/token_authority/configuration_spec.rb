@@ -208,6 +208,48 @@ RSpec.describe TokenAuthority::Configuration do
         })
       end
     end
+
+    context "when resource URIs have trailing slashes" do
+      before do
+        config.resources = {
+          api: {resource: "https://api.example.com/", resource_name: "REST API"},
+          mcp: {resource: "https://mcp.example.com/", resource_name: "MCP Server"}
+        }
+      end
+
+      it "normalizes URIs by removing trailing slashes" do
+        expect(config.resource_registry).to eq({
+          "https://api.example.com" => "REST API",
+          "https://mcp.example.com" => "MCP Server"
+        })
+      end
+    end
+  end
+
+  describe "#normalize_resource_uri" do
+    it "removes trailing slash from URI" do
+      expect(config.normalize_resource_uri("https://api.example.com/")).to eq("https://api.example.com")
+    end
+
+    it "leaves URI without trailing slash unchanged" do
+      expect(config.normalize_resource_uri("https://api.example.com")).to eq("https://api.example.com")
+    end
+
+    it "removes only one trailing slash" do
+      expect(config.normalize_resource_uri("https://api.example.com//")).to eq("https://api.example.com/")
+    end
+
+    it "preserves path components" do
+      expect(config.normalize_resource_uri("https://api.example.com/v1/")).to eq("https://api.example.com/v1")
+    end
+
+    it "returns blank string unchanged" do
+      expect(config.normalize_resource_uri("")).to eq("")
+    end
+
+    it "returns nil unchanged" do
+      expect(config.normalize_resource_uri(nil)).to be_nil
+    end
   end
 
   describe "#validate!" do

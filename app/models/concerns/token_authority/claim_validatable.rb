@@ -33,6 +33,8 @@ module TokenAuthority
       include ActiveModel::Validations
       include ActiveModel::Validations::Callbacks
 
+      class_attribute :expire_session_on_expiration, default: true
+
       attr_accessor :aud, :exp, :iat, :iss, :jti
 
       validates :jti, presence: true
@@ -80,6 +82,7 @@ module TokenAuthority
 
     def errors_for_expirable_claims?
       return false if skip_token_authority_session_update?
+      return false unless self.class.expire_session_on_expiration
 
       errors.attribute_names.intersect?(EXPIRABLE_CLAIMS)
     end

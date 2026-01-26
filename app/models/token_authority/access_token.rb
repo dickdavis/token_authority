@@ -31,6 +31,8 @@ module TokenAuthority
   class AccessToken
     include TokenAuthority::ClaimValidatable
 
+    self.expire_session_on_expiration = false
+
     # @!attribute [rw] sub
     #   The subject identifier (resource owner) per RFC 9068.
     #   @return [String]

@@ -34,6 +34,24 @@ RSpec.describe TokenAuthority::AccessToken, type: :model do
         end
       end
     end
+
+    describe "#expire_token_authority_session" do
+      context "when the `exp` claim is blank" do
+        it "does NOT update the Session status to `expired`" do
+          model.exp = ""
+          model.valid?
+          expect(token_authority_session.reload).to be_created_status
+        end
+      end
+
+      context "when the `exp` claim is expired" do
+        it "does NOT update the Session status to `expired`" do
+          model.exp = 5.minutes.ago.to_i
+          model.valid?
+          expect(token_authority_session.reload).to be_created_status
+        end
+      end
+    end
   end
 
   describe ".default" do

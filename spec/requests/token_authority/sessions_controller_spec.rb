@@ -560,6 +560,24 @@ RSpec.describe TokenAuthority::SessionsController, type: :request do
       it_behaves_like "does not refresh a revoked session"
       it_behaves_like "does not refresh an already refreshed session"
 
+      context "when the access token was used after expiration (normal OAuth flow)" do
+        before do
+          # Simulate access token validation after expiration - should NOT change session status
+          expired_access_token = build(:token_authority_access_token,
+            token_authority_session: token_authority_session,
+            exp: 1.minute.ago.to_i)
+          expired_access_token.valid?
+        end
+
+        it "successfully refreshes the session" do
+          call_endpoint
+          aggregate_failures do
+            expect(response).to have_http_status(:ok)
+            expect(token_authority_session.reload).to be_refreshed_status
+          end
+        end
+      end
+
       context "with RFC 8707 resource indicators" do
         let(:rfc8707_authorization_grant) do
           create(:token_authority_authorization_grant, user:, token_authority_client:, resources: granted_resources)

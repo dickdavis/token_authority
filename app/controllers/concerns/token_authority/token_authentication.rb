@@ -102,6 +102,7 @@ module TokenAuthority
       notify_event("authentication.token.failed",
         failure_reason: "missing_authorization_header")
 
+      set_www_authenticate_header
       render json: {error: I18n.t("token_authority.errors.missing_auth_header")}, status: :unauthorized
     end
 
@@ -112,6 +113,7 @@ module TokenAuthority
       notify_event("authentication.token.failed",
         failure_reason: "invalid_token_format")
 
+      set_www_authenticate_header(error: "invalid_token")
       render json: {error: I18n.t("token_authority.errors.invalid_token")}, status: :unauthorized
     end
 
@@ -122,7 +124,91 @@ module TokenAuthority
       notify_event("authentication.token.failed",
         failure_reason: "unauthorized_token")
 
+      set_www_authenticate_header(error: "invalid_token")
       render json: {error: I18n.t("token_authority.errors.unauthorized_token")}, status: :unauthorized
+    end
+
+    # Sets the WWW-Authenticate header for 401 responses per RFC 9728 and MCP spec.
+    #
+    # This header tells OAuth clients where to find the protected resource
+    # metadata, enabling automatic OAuth flow discovery (including DCR).
+    #
+    # Per MCP Authorization spec, the header SHOULD include a scope parameter
+    # to indicate scopes required for accessing the resource (RFC 6750 Section 3).
+    #
+    # @param error [String, nil] optional OAuth error code (e.g., "invalid_token")
+    # @return [void]
+    # @api private
+    def set_www_authenticate_header(error: nil)
+      resource_config = current_protected_resource_config
+      metadata_url = protected_resource_metadata_url(resource_config)
+      return if metadata_url.blank?
+
+      header_value = %(Bearer resource_metadata="#{metadata_url}")
+      header_value += %(, scope="#{www_authenticate_scope(resource_config)}") if www_authenticate_scope(resource_config).present?
+      header_value += %(, error="#{error}") if error.present?
+
+      response.headers["WWW-Authenticate"] = header_value
+    end
+
+    # Returns the current protected resource configuration.
+    #
+    # Looks up the resource by request subdomain. If no subdomain match is found,
+    # the first configured resource is used.
+    #
+    # @return [Hash, nil] the resource configuration
+    # @api private
+    def current_protected_resource_config
+      subdomain = request.subdomain.presence
+      TokenAuthority.config.protected_resource_for(subdomain)
+    end
+
+    # Returns the URL for the protected resource metadata endpoint.
+    #
+    # Derives the URL from the resource configuration's :resource field,
+    # which represents the protected resource URI. The well-known path is
+    # appended to form the complete metadata URL.
+    #
+    # If no resources are configured, falls back to deriving from the current
+    # request host.
+    #
+    # Controllers can override this method to customize the metadata URL.
+    #
+    # @param resource_config [Hash, nil] the resource configuration
+    # @return [String] the metadata URL
+    # @api private
+    def protected_resource_metadata_url(resource_config = nil)
+      resource_config ||= current_protected_resource_config
+
+      if resource_config.is_a?(Hash) && resource_config[:resource].present?
+        resource_uri = URI(resource_config[:resource])
+        return "#{resource_uri.scheme}://#{resource_uri.host}/.well-known/oauth-protected-resource"
+      end
+
+      # Fallback: derive from request origin
+      "#{request.protocol}#{request.host_with_port}/.well-known/oauth-protected-resource"
+    end
+
+    # Returns the scope value for the WWW-Authenticate header.
+    #
+    # Uses the resource's scopes_supported configuration to indicate what
+    # scopes are required for accessing this resource. Per MCP spec, this
+    # provides clients with guidance on appropriate scopes to request.
+    #
+    # Controllers can override this method to specify different scopes
+    # (e.g., endpoint-specific required scopes).
+    #
+    # @param resource_config [Hash, nil] the resource configuration
+    # @return [String, nil] space-separated scope string, or nil if no scopes configured
+    # @api private
+    def www_authenticate_scope(resource_config = nil)
+      resource_config ||= current_protected_resource_config
+      return nil unless resource_config.is_a?(Hash)
+
+      scopes = resource_config[:scopes_supported]
+      return nil unless scopes.is_a?(Array) && scopes.any?
+
+      scopes.join(" ")
     end
   end
 end

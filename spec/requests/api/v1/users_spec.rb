@@ -66,6 +66,31 @@ RSpec.describe "Api::V1::Users", type: :request do
         end
       end
 
+      it "includes WWW-Authenticate header with resource_metadata and scope" do
+        call_endpoint
+        # Derives from dummy app's resource config (http://localhost:3000/api/)
+        # Includes scopes_supported from the resource config
+        expect(response.headers["WWW-Authenticate"]).to eq(
+          'Bearer resource_metadata="http://localhost/.well-known/oauth-protected-resource", scope="read write delete profile"'
+        )
+      end
+
+      context "when no resources are configured" do
+        around do |example|
+          original_resources = TokenAuthority.config.resources.dup
+          TokenAuthority.config.resources = {}
+          example.run
+          TokenAuthority.config.resources = original_resources
+        end
+
+        it "falls back to request host for metadata URL" do
+          call_endpoint
+          expect(response.headers["WWW-Authenticate"]).to eq(
+            'Bearer resource_metadata="http://www.example.com/.well-known/oauth-protected-resource"'
+          )
+        end
+      end
+
       it "emits token authentication failed event" do
         expect { call_endpoint }
           .to emit_event("token_authority.authentication.token.failed")
@@ -102,6 +127,13 @@ RSpec.describe "Api::V1::Users", type: :request do
         end
       end
 
+      it "includes WWW-Authenticate header with scope and error parameters" do
+        call_endpoint
+        expect(response.headers["WWW-Authenticate"]).to eq(
+          'Bearer resource_metadata="http://localhost/.well-known/oauth-protected-resource", scope="read write delete profile", error="invalid_token"'
+        )
+      end
+
       it "emits token authentication failed event" do
         expect { call_endpoint }
           .to emit_event("token_authority.authentication.token.failed")
@@ -118,6 +150,13 @@ RSpec.describe "Api::V1::Users", type: :request do
           expect(response).to have_http_status(:unauthorized)
           expect(response.parsed_body).to eq({"error" => I18n.t("token_authority.errors.unauthorized_token")})
         end
+      end
+
+      it "includes WWW-Authenticate header with scope and error parameters" do
+        call_endpoint
+        expect(response.headers["WWW-Authenticate"]).to eq(
+          'Bearer resource_metadata="http://localhost/.well-known/oauth-protected-resource", scope="read write delete profile", error="invalid_token"'
+        )
       end
 
       it "emits token authentication failed event" do

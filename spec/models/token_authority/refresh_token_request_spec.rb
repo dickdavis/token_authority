@@ -116,6 +116,25 @@ RSpec.describe TokenAuthority::RefreshTokenRequest, type: :model do
         end
       end
 
+      context "when resources have mismatched trailing slashes" do
+        context "when granted has trailing slash but request does not" do
+          let(:granted_resources) { ["https://api1.example.com/", "https://api2.example.com/"] }
+          let(:resources) { ["https://api1.example.com"] }
+
+          it "is valid due to URI normalization" do
+            expect(model).to be_valid
+          end
+        end
+
+        context "when request has trailing slash but granted does not" do
+          let(:resources) { ["https://api1.example.com/"] }
+
+          it "is valid due to URI normalization" do
+            expect(model).to be_valid
+          end
+        end
+      end
+
       context "when resources contains invalid URIs" do
         let(:resources) { ["not-a-valid-uri"] }
 

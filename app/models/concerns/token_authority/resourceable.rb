@@ -84,19 +84,25 @@ module TokenAuthority
     # Checks if all requested resources are in the allowed resources list.
     #
     # Returns true if resource indicators are not enabled in configuration.
+    # URIs are normalized (trailing slashes removed) before comparison for
+    # interoperability.
     #
     # @return [Boolean] true if all resources are allowed
     # @api private
     def allowed_resources?
       return true unless TokenAuthority.config.resources_enabled?
 
-      resources.all? { |uri| TokenAuthority.config.resource_registry.key?(uri) }
+      resources.all? do |uri|
+        normalized_uri = TokenAuthority.config.normalize_resource_uri(uri)
+        TokenAuthority.config.resource_registry.key?(normalized_uri)
+      end
     end
 
     # Checks if the current resources are a subset of the granted resources.
     #
     # Used during token refresh to ensure the new token doesn't request
     # access to more resources than the original grant.
+    # URIs are normalized (trailing slashes removed) before comparison.
     #
     # @param granted [Array<String>, nil] the originally granted resources
     #
@@ -105,7 +111,10 @@ module TokenAuthority
     def resources_subset_of?(granted)
       return true if granted.blank? || resources.blank?
 
-      (resources - granted).empty?
+      normalized_resources = resources.map { |uri| TokenAuthority.config.normalize_resource_uri(uri) }
+      normalized_granted = granted.map { |uri| TokenAuthority.config.normalize_resource_uri(uri) }
+
+      (normalized_resources - normalized_granted).empty?
     end
   end
 end

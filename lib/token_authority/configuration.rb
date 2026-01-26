@@ -408,9 +408,26 @@ module TokenAuthority
       resources.each_with_object({}) do |(_key, config), registry|
         next unless config.is_a?(Hash) && config[:resource].present?
 
-        uri = config[:resource]
+        uri = normalize_resource_uri(config[:resource])
         registry[uri] = config[:resource_name] || uri
       end
+    end
+
+    # Normalizes a resource URI for consistent comparison.
+    #
+    # This method removes trailing slashes from resource URIs to ensure consistent
+    # matching between configured resources and client-provided resource parameters.
+    #
+    # @param uri [String] the resource URI to normalize
+    # @return [String] the normalized URI without trailing slash
+    #
+    # @example
+    #   normalize_resource_uri("https://mcp.example.com/")
+    #   # => "https://mcp.example.com"
+    def normalize_resource_uri(uri)
+      return uri if uri.blank?
+
+      uri.to_s.chomp("/")
     end
 
     # Validates the configuration for internal consistency.

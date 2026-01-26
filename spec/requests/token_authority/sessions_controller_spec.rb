@@ -371,6 +371,7 @@ RSpec.describe TokenAuthority::SessionsController, type: :request do
       include_context "with an authenticated client", :post, :token_authority_create_session_path
 
       it_behaves_like "an endpoint that requires client authentication"
+      it_behaves_like "an endpoint that supports client_secret_post authentication"
       it_behaves_like "requires a valid code param"
 
       context "when client did not use additional security challenges for authorize request" do
@@ -671,6 +672,7 @@ RSpec.describe TokenAuthority::SessionsController, type: :request do
       include_context "with an authenticated client", :post, :token_authority_refresh_session_path
 
       it_behaves_like "an endpoint that requires client authentication"
+      it_behaves_like "an endpoint that supports client_secret_post authentication"
       it_behaves_like "does not require a valid client_id param"
       it_behaves_like "generates an OAuth session"
       it_behaves_like "requires a valid refresh_token param"
@@ -786,6 +788,7 @@ RSpec.describe TokenAuthority::SessionsController, type: :request do
       include_context "with an authenticated client", :post, :token_authority_revoke_path
 
       it_behaves_like "an endpoint that requires client authentication"
+      it_behaves_like "an endpoint that supports client_secret_post authentication"
       it_behaves_like "emits token revocation events"
 
       it "invokes the domain logic for revocation via generic lookup" do
@@ -839,6 +842,7 @@ RSpec.describe TokenAuthority::SessionsController, type: :request do
       include_context "with an authenticated client", :post, :token_authority_revoke_access_token_path
 
       it_behaves_like "an endpoint that requires client authentication"
+      it_behaves_like "an endpoint that supports client_secret_post authentication"
       it_behaves_like "emits token revocation events"
 
       it "invokes the domain logic for revocation via access token lookup" do
@@ -892,6 +896,7 @@ RSpec.describe TokenAuthority::SessionsController, type: :request do
       include_context "with an authenticated client", :post, :token_authority_revoke_refresh_token_path
 
       it_behaves_like "an endpoint that requires client authentication"
+      it_behaves_like "an endpoint that supports client_secret_post authentication"
       it_behaves_like "emits token revocation events"
 
       it "invokes the domain logic for revocation via refresh token lookup" do

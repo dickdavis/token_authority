@@ -4,13 +4,14 @@ module TokenAuthority
   # Provides OAuth client authentication for controllers.
   #
   # This concern handles authentication of OAuth clients during authorization
-  # and token requests. It supports both confidential clients (using HTTP Basic
-  # authentication with client_id and client_secret) and public clients (using
-  # only client_id).
+  # and token requests. It supports multiple authentication methods:
+  # - Public clients (using only client_id, no secret required)
+  # - HTTP Basic authentication (client_secret_basic)
+  # - POST body credentials (client_secret_post)
   #
   # The concern automatically:
   # - Resolves client_id to either a registered Client or URL-based ClientMetadataDocument
-  # - Validates HTTP Basic credentials for confidential clients
+  # - Validates credentials via HTTP Basic or POST body for confidential clients
   # - Emits authentication events for monitoring and security auditing
   # - Handles authentication errors with appropriate HTTP responses
   #
@@ -89,6 +90,14 @@ module TokenAuthority
         return
       end
 
+      if client_secret_post_auth_successful?
+        notify_event("authentication.client.succeeded",
+          client_id: @token_authority_client.public_id,
+          client_type: @token_authority_client.client_type,
+          auth_method: "client_secret_post")
+        return
+      end
+
       notify_event("authentication.client.failed",
         client_id: client_id,
         failure_reason: "missing_credentials",
@@ -109,6 +118,29 @@ module TokenAuthority
       @token_authority_client = TokenAuthority::ClientIdResolver.resolve(id)
     rescue TokenAuthority::ClientNotFoundError
       @token_authority_client = nil
+    end
+
+    # Attempts to authenticate using client_secret_post (credentials in POST body).
+    #
+    # Validates the client_secret from POST parameters against the loaded client.
+    # Accepts POST body credentials for confidential clients configured with either
+    # client_secret_post or client_secret_basic auth methods.
+    #
+    # @return [Boolean] true if authentication succeeds
+    # @api private
+    def client_secret_post_auth_successful?
+      return false if params[:client_secret].blank?
+      return false if @token_authority_client.blank?
+      return false if @token_authority_client.public_client_type?
+
+      authenticated = @token_authority_client.authenticate_with_secret(params[:client_secret])
+      unless authenticated
+        notify_event("authentication.client.failed",
+          client_id: @token_authority_client.public_id,
+          failure_reason: "invalid_secret",
+          auth_method_attempted: "client_secret_post")
+      end
+      authenticated
     end
 
     # Attempts to authenticate using HTTP Basic credentials.

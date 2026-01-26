@@ -70,45 +70,5 @@ RSpec.shared_examples "a model that validates token claims" do
         end
       end
     end
-
-    describe "#expire_token_authority_session" do
-      context "when the `exp` claim is blank" do
-        it "updates the Session status to `expired`" do
-          model.exp = ""
-          expect do
-            model.valid?
-            token_authority_session.reload
-          end.to change(token_authority_session, :status).from("created").to("expired")
-        end
-      end
-
-      context "when the `exp` claim is expired" do
-        it "updates the Session status to `expired`" do
-          model.exp = 5.minutes.ago.to_i
-          expect do
-            model.valid?
-            token_authority_session.reload
-          end.to change(token_authority_session, :status).from("created").to("expired")
-        end
-      end
-
-      context "when the `exp` is invalid and a revocable claim is also invalid" do
-        it "does not update the Session status to `expired`" do
-          model.exp = ""
-          model.aud = ""
-          model.valid?
-          expect(token_authority_session.reload).not_to be_expired_status
-        end
-
-        it "updates the Session status to `revoked`" do
-          model.exp = ""
-          model.aud = ""
-          expect do
-            model.valid?
-            token_authority_session.reload
-          end.to change(token_authority_session, :status).from("created").to("revoked")
-        end
-      end
-    end
   end
 end

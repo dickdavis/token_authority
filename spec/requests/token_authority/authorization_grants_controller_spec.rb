@@ -183,10 +183,11 @@ RSpec.describe TokenAuthority::AuthorizationGrantsController, type: :request do
 
   shared_examples "handles user authorization approval" do
     context "when the authorization grant is successfully created" do
-      it "creates an authorization grant and redirects to client redirection_uri with state and code params" do
+      it "creates an authorization grant and renders redirect page with state and code params" do
         aggregate_failures do
           expect { call_endpoint }.to change(TokenAuthority::AuthorizationGrant, :count)
-          expect(response).to redirect_to("http://localhost:3000/?code=#{TokenAuthority::AuthorizationGrant.last.public_id}&state=#{client_state}")
+          expect(response).to have_http_status(:ok)
+          expect(response.body).to include("http://localhost:3000/?code=#{TokenAuthority::AuthorizationGrant.last.public_id}\\u0026state=#{client_state}")
         end
       end
 
@@ -208,9 +209,12 @@ RSpec.describe TokenAuthority::AuthorizationGrantsController, type: :request do
         allow_any_instance_of(TokenAuthority::AuthorizationGrant).to receive(:save).and_return(false)
       end
 
-      it "redirects to client redirection_uri with state and error params" do
+      it "renders redirect page with state and error params" do
         call_endpoint
-        expect(response).to redirect_to("http://localhost:3000/?error=invalid_request&state=#{client_state}")
+        aggregate_failures do
+          expect(response).to have_http_status(:ok)
+          expect(response.body).to include("http://localhost:3000/?error=invalid_request\\u0026state=#{client_state}")
+        end
       end
 
       it "clears the session state after redirect" do
@@ -223,9 +227,12 @@ RSpec.describe TokenAuthority::AuthorizationGrantsController, type: :request do
   shared_examples "handles user authorization rejection" do
     let(:approve) { "false" }
 
-    it "redirects to client redirection_uri with state and error params" do
+    it "renders redirect page with state and error params" do
       call_endpoint
-      expect(response).to redirect_to("http://localhost:3000/?error=access_denied&state=#{client_state}")
+      aggregate_failures do
+        expect(response).to have_http_status(:ok)
+        expect(response.body).to include("http://localhost:3000/?error=access_denied\\u0026state=#{client_state}")
+      end
     end
 
     it "clears the session state after redirect" do

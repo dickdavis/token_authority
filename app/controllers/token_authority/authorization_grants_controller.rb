@@ -102,7 +102,9 @@ module TokenAuthority
     def redirect_to_client(params_for_redirect:)
       clear_internal_state
       url = @token_authority_client.url_for_redirect(params: params_for_redirect.compact)
-      redirect_to url, allow_other_host: true
+      render "token_authority/redirect",
+        layout: TokenAuthority.config.consent_page_layout,
+        locals: {redirect_url: url}
     end
 
     def clear_internal_state

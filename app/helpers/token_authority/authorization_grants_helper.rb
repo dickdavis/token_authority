@@ -22,5 +22,15 @@ module TokenAuthority
       scopes = TokenAuthority.config.scopes || {}
       scopes[scope] || scope
     end
+
+    # Generates a script tag that redirects the browser to the given URL.
+    # Used for OAuth redirects where the browser may not navigate away
+    # (e.g., custom URI schemes like claude://).
+    #
+    # @param url [String] The URL to redirect to
+    # @return [String] A script tag with the redirect JavaScript
+    def redirect_script_tag(url)
+      javascript_tag "window.location.href = #{url.to_json};"
+    end
   end
 end

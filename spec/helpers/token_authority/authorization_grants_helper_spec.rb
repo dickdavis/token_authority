@@ -90,4 +90,26 @@ RSpec.describe TokenAuthority::AuthorizationGrantsHelper, type: :helper do
       end
     end
   end
+
+  describe "#redirect_script_tag" do
+    it "generates a script tag with the redirect URL" do
+      result = helper.redirect_script_tag("http://example.com/callback")
+      expect(result).to include("<script>")
+      expect(result).to include("window.location.href")
+      expect(result).to include("http://example.com/callback")
+    end
+
+    it "JSON-encodes the URL to prevent XSS" do
+      malicious_url = "http://example.com/</script><script>alert('xss')"
+      result = helper.redirect_script_tag(malicious_url)
+      expect(result).not_to include("</script><script>")
+      expect(result).to include("\\u003c/script\\u003e")
+    end
+
+    it "properly escapes ampersands in query strings" do
+      url = "http://example.com/?code=abc&state=xyz"
+      result = helper.redirect_script_tag(url)
+      expect(result).to include("\\u0026")
+    end
+  end
 end

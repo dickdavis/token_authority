@@ -6,10 +6,14 @@ module TokenAuthority
     # Looks up the URI in the resource registry derived from protected resources.
     # Falls back to the URI itself if no mapping is configured.
     #
+    # The URI is normalized (trailing slash removed) before lookup to match
+    # how the resource registry stores URIs.
+    #
     # @param resource_uri [String] The resource URI
     # @return [String] The display name or the URI if no mapping exists
     def resource_display_name(resource_uri)
-      TokenAuthority.config.resource_registry[resource_uri] || resource_uri
+      normalized_uri = TokenAuthority.config.normalize_resource_uri(resource_uri)
+      TokenAuthority.config.resource_registry[normalized_uri] || resource_uri
     end
 
     # Returns a human-friendly display name for a scope.

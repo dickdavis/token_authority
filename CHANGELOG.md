@@ -1,12 +1,24 @@
 ## [Unreleased]
 
-## [0.3.1] - 2025-01-25
+## [0.3.2] - 2026-01-26
+
+### Added
+
+- WWW-Authenticate header on 401 responses from protected endpoints per RFC 9728, enabling automatic OAuth discovery for MCP clients
+- `client_secret_post` authentication for confidential clients on token and revocation endpoints
+- HTML redirect page for OAuth authorization completion, improving UX for desktop apps with custom URI schemes
+
+### Fixed
+
+- Resource URI comparison now normalizes trailing slashes, preventing `invalid_target` errors
+
+## [0.3.1] - 2026-01-25
 
 ### Fixed
 
 - Do not expire OAuth sessions when access tokens expire; this was preventing session refresh flow from completing successfully in some cases.
 
-## [0.3.0] - 2025-01-24
+## [0.3.0] - 2026-01-24
 
 ### Added
 
@@ -46,7 +58,7 @@
   - `rfc_7591_software_statement_required` → `dcr_software_statement_required`
   - `rfc_7591_jwks_cache_ttl` → `dcr_jwks_cache_ttl`
 
-## [0.2.1] - 2025-01-24
+## [0.2.1] - 2026-01-24
 
 ### Fixes
 
@@ -57,7 +69,7 @@
 
 - Update README to include link to MCP Quickstart guide.
 
-## [0.2.0] - 2025-01-23
+## [0.2.0] - 2026-01-23
 
 - Implemented support for OAuth 2.1 authorization flows and JSON Web Token (JWT) Profile for OAuth 2.0 Access Tokens (RFC 9068).
 - Implemented support for OAuth 2.0 Authorization Server Metadata (RFC 8414).
@@ -75,7 +87,8 @@
 
 - Initial release
 
-[Unreleased]: https://github.com/dickdavis/token_authority/compare/v0.3.1...HEAD
+[Unreleased]: https://github.com/dickdavis/token_authority/compare/v0.3.2...HEAD
+[0.3.2]: https://github.com/dickdavis/token_authority/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/dickdavis/token_authority/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/dickdavis/token_authority/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/dickdavis/token_authority/compare/v0.2.0...v0.2.1

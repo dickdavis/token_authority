@@ -289,7 +289,7 @@ GEM
       lint_roller (~> 1.1)
       rubocop-performance (~> 1.26.0)
     stringio (3.2.0)
-    test-prof (1.5.0)
+    test-prof (1.5.1)
     thor (1.5.0)
     timecop (0.9.10)
     timeout (0.6.0)
@@ -446,7 +446,7 @@ CHECKSUMS
   standard-custom (1.0.2) sha256=424adc84179a074f1a2a309bb9cf7cd6bfdb2b6541f20c6bf9436c0ba22a652b
   standard-performance (1.9.0) sha256=49483d31be448292951d80e5e67cdcb576c2502103c7b40aec6f1b6e9c88e3f2
   stringio (3.2.0) sha256=c37cb2e58b4ffbd33fe5cd948c05934af997b36e0b6ca6fdf43afa234cf222e1
-  test-prof (1.5.0) sha256=da487be26216fdd2cf3a4901c9a3e63c8af87964aa28740757f9c26a4cd4eae8
+  test-prof (1.5.1) sha256=280aa782492584128c1b73d73b23900ef91301ceb0147296424521d60403a3f5
   thor (1.5.0) sha256=e3a9e55fe857e44859ce104a84675ab6e8cd59c650a49106a05f55f136425e73
   timecop (0.9.10) sha256=12ba45ce57cdcf6b1043cb6cdffa6381fd89ce10d369c28a7f6f04dc1b0cd8eb
   timeout (0.6.0) sha256=6d722ad619f96ee383a0c557ec6eb8c4ecb08af3af62098a0be5057bf00de1af
